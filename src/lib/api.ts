@@ -4,8 +4,12 @@ import { kvIncrWithExpiry, localIncrWithExpiry } from "@/lib/kv";
 export const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, X-PAYMENT, Authorization, Mcp-Session-Id, MCP-Protocol-Version",
-  "Access-Control-Expose-Headers": "X-PAYMENT-RESPONSE, Mcp-Session-Id",
+  // x402 v2 (PAYMENT-SIGNATURE) + v1 (X-PAYMENT) request headers; MCP session headers.
+  "Access-Control-Allow-Headers":
+    "Content-Type, Authorization, PAYMENT-SIGNATURE, X-PAYMENT, Access-Control-Expose-Headers, Mcp-Session-Id, MCP-Protocol-Version, Last-Event-ID",
+  // x402 v2 (PAYMENT-REQUIRED / PAYMENT-RESPONSE) + v1 (X-PAYMENT-RESPONSE) response headers must be readable by browser agents.
+  "Access-Control-Expose-Headers": "PAYMENT-REQUIRED, PAYMENT-RESPONSE, X-PAYMENT-RESPONSE, Mcp-Session-Id, Retry-After",
+  "Access-Control-Max-Age": "86400",
 } as const;
 
 export function json(data: unknown, init: { status?: number; headers?: Record<string, string>; cache?: string } = {}) {
@@ -23,9 +27,31 @@ export function preflight() {
   return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
 }
 
+/**
+ * Client network key for rate limiting / per-network caps. IPv4 is kept whole; IPv6 is bucketed to its /64
+ * (one subscriber's allocation), so rotating addresses inside a single /64 cannot multiply per-IP limits.
+ */
 export function clientIp(req: Request): string {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip")?.trim() || "local";
-  return ip.slice(0, 64);
+  return networkKey(ip).slice(0, 64);
+}
+
+/** IPv6 → "<first four hextets>::/64"; IPv4-mapped IPv6 → the IPv4; anything else unchanged. */
+export function networkKey(raw: string): string {
+  let ip = raw.trim();
+  const bracket = ip.match(/^\[([^\]]+)\](?::\d+)?$/);
+  if (bracket) ip = bracket[1];
+  ip = ip.replace(/%.*$/, ""); // zone id
+  if (!ip.includes(":")) return ip.replace(/:\d+$/, "");
+  const mapped = ip.match(/^(?:0*:)*:?ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i) ?? ip.match(/^::(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (mapped) return mapped[1];
+  const [head, tail] = ip.toLowerCase().split("::");
+  const h = head ? head.split(":") : [];
+  const t = tail !== undefined && tail ? tail.split(":") : [];
+  if (!h.concat(t).every((g) => /^[0-9a-f]{1,4}$/.test(g))) return ip;
+  const full = tail === undefined ? h : [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill("0"), ...t];
+  if (full.length !== 8) return ip;
+  return `${full.slice(0, 4).map((g) => g.replace(/^0+(?=.)/, "")).join(":")}::/64`;
 }
 
 /**
