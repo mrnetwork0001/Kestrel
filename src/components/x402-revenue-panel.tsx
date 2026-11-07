@@ -23,7 +23,7 @@ export async function X402RevenuePanel() {
   }
 
   const right = (
-    <a href="/api/x402/revenue" className="mono text-[11px] text-phosphor hover:underline">
+    <a href="/api/x402/revenue" className="mono text-[11px] text-phosphor hover:underline max-[901px]:inline-flex max-[901px]:min-h-9 max-[901px]:items-center max-[901px]:gap-1">
       JSON ↗
     </a>
   );

@@ -62,7 +62,7 @@ async function Board() {
   const raisedRh = t.raisedWeiByChain["4663"] ?? null;
   return (
     <div className="space-y-6">
-      <section aria-label="Ecosystem totals" className="panel grid grid-cols-2 gap-x-6 gap-y-5 p-5 max-[600px]:gap-x-4 max-[600px]:p-4 md:grid-cols-3 lg:grid-cols-6 [&>*]:[overflow-wrap:anywhere]">
+      <section aria-label="Ecosystem totals" className="panel grid grid-cols-2 gap-x-6 gap-y-5 p-5 max-[601px]:gap-x-4 max-[601px]:p-4 md:grid-cols-3 lg:grid-cols-6 [&>*]:[overflow-wrap:anywhere]">
         <Stat label="Launches" value={t.launches} sub={`${t.byChain["8453"] ?? 0} Base · ${t.byChain["4663"] ?? 0} Robinhood`} />
         <Stat label="Raised (on-chain)" value={raisedBase ? `${fmtUnits(raisedBase, 18, 2)} ETH` : "—"} sub={raisedRh ? `+ ${fmtUnits(raisedRh, 18, 3)} ETH on Robinhood` : "Base escrows"} tone="base" />
         <Stat label="Still in escrow" value={`${fmtUnits(t.inEscrowWei, 18, 2)} ETH`} sub={`${t.escrowsRead}/${t.launches} escrows read`} />
@@ -84,7 +84,7 @@ async function Board() {
           <ul className="space-y-1.5">
             {board.universe.factories.map((f) => (
               <li key={`${f.chainId}:${f.address}`} className="flex flex-wrap items-center gap-x-2">
-                <AddrLink chainId={f.chainId} address={f.address} label={f.label} className="text-[12px]" />
+                <AddrLink chainId={f.chainId} address={f.address} label={f.label} className="text-[12px] max-[901px]:inline-flex max-[901px]:min-h-9 max-[901px]:items-center max-[901px]:gap-1" />
                 <span className="mono">getAllEscrows · totalEscrows = {f.totalEscrows ?? "unreadable"}</span>
               </li>
             ))}
@@ -100,7 +100,7 @@ async function Board() {
             {Object.entries(board.blocks).map(([chain, n]) => (
               <li key={chain}>
                 {chain === "4663" ? "Robinhood Chain" : "Base"} escrow reads at block{" "}
-                <a href={explorerBlock(Number(chain), n)} target="_blank" rel="noreferrer" className="mono text-ink-2 underline decoration-white/10 underline-offset-2 hover:text-ink">
+                <a href={explorerBlock(Number(chain), n)} target="_blank" rel="noreferrer" className="mono text-ink-2 underline decoration-white/10 underline-offset-2 hover:text-ink max-[901px]:inline-flex max-[901px]:min-h-9 max-[901px]:items-center max-[901px]:gap-1">
                   {Number(n).toLocaleString("en-US")} ↗
                 </a>
               </li>
@@ -110,7 +110,7 @@ async function Board() {
               {board.cache?.stale ? " · serving the previous copy while a refresh runs" : ""}.
             </li>
             <li>
-              Machine-readable: <a href="/api/ecosystem" className="mono text-phosphor underline decoration-phosphor/30 underline-offset-2">GET /api/ecosystem</a>
+              Machine-readable: <a href="/api/ecosystem" className="mono text-phosphor underline decoration-phosphor/30 underline-offset-2 max-[901px]:inline-flex max-[901px]:min-h-9 max-[901px]:items-center max-[901px]:gap-1">GET /api/ecosystem</a>
             </li>
           </ul>
         </div>
@@ -121,11 +121,11 @@ async function Board() {
 
 export default function EcosystemPage() {
   return (
-    <div className="mx-auto max-w-[1400px] px-4 pb-10 pt-12 max-[900px]:pt-8">
+    <div className="mx-auto max-w-[1400px] px-4 pb-10 pt-12 max-[901px]:pt-8">
       <SectionLabel n="05">Vibestarter Ecosystem Health Board</SectionLabel>
-      <h1 className="mt-4 max-w-4xl font-serif text-[40px] leading-[1.05] text-ink max-[600px]:text-[34px] md:text-[52px]">Every Vibestarter launch, checked live on-chain.</h1>
-      <div className="mt-5 grid gap-8 max-[900px]:gap-6 lg:grid-cols-[1.2fr_1fr] [&>*]:min-w-0">
-        <div className="space-y-4 text-[15px] leading-relaxed text-ink-2 max-[600px]:text-[14px]">
+      <h1 className="mt-4 max-w-4xl font-serif text-[40px] leading-[1.05] text-ink max-[601px]:text-[34px] md:text-[52px]">Every Vibestarter launch, checked live on-chain.</h1>
+      <div className="mt-5 grid gap-8 max-[901px]:gap-6 lg:grid-cols-[1.2fr_1fr] [&>*]:min-w-0">
+        <div className="space-y-4 text-[15px] leading-relaxed text-ink-2 max-[601px]:text-[14px]">
           <p>
             Vibestarter raises sit in tranche escrows: a 10% kickstart, then six monthly 15% releases. Each release opens a 72-hour window where token holders
             can challenge it. Liquidity is meant to be locked for good. This board reads every launch on Base and Robinhood Chain straight from the contracts
@@ -153,20 +153,20 @@ export default function EcosystemPage() {
         </Panel>
       </div>
 
-      <div className="mt-10 min-w-0 max-[900px]:mt-8">
+      <div className="mt-10 min-w-0 max-[901px]:mt-8">
         <Suspense fallback={<BoardSkeleton />}>
           <Board />
         </Suspense>
       </div>
 
-      <div className="mt-10 flex flex-wrap gap-3 max-[900px]:mt-8">
-        <Link href="/app?tab=shield" className="rounded-[2px] bg-phosphor px-4 py-2.5 mono text-[12px] font-semibold text-canvas hover:bg-[#a6e698] max-[900px]:inline-flex max-[900px]:min-h-11 max-[900px]:items-center">
+      <div className="mt-10 flex flex-wrap gap-3 max-[901px]:mt-8">
+        <Link href="/app?tab=shield" className="rounded-[2px] bg-phosphor px-4 py-2.5 mono text-[12px] font-semibold text-canvas hover:bg-[#a6e698] max-[901px]:inline-flex max-[901px]:min-h-11 max-[901px]:items-center">
           OPEN BACKER SHIELD →
         </Link>
-        <Link href="/how-it-works" className="rounded-[2px] border border-hair-strong px-4 py-2.5 mono text-[12px] text-ink hover:border-phosphor/60 hover:text-phosphor max-[900px]:inline-flex max-[900px]:min-h-11 max-[900px]:items-center">
+        <Link href="/how-it-works" className="rounded-[2px] border border-hair-strong px-4 py-2.5 mono text-[12px] text-ink hover:border-phosphor/60 hover:text-phosphor max-[901px]:inline-flex max-[901px]:min-h-11 max-[901px]:items-center">
           How the checks work
         </Link>
-        <Link href="/agents" className="rounded-[2px] border border-hair-strong px-4 py-2.5 mono text-[12px] text-ink hover:border-phosphor/60 hover:text-phosphor max-[900px]:inline-flex max-[900px]:min-h-11 max-[900px]:items-center">
+        <Link href="/agents" className="rounded-[2px] border border-hair-strong px-4 py-2.5 mono text-[12px] text-ink hover:border-phosphor/60 hover:text-phosphor max-[901px]:inline-flex max-[901px]:min-h-11 max-[901px]:items-center">
           Agents · MCP · x402
         </Link>
       </div>

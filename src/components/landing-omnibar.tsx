@@ -51,7 +51,7 @@ export function LandingOmnibar() {
             aria-label="Address to scan"
           />
         </label>
-        <button type="submit" className="rounded-[2px] bg-phosphor px-5 py-2 mono text-[12px] font-semibold text-canvas hover:bg-[#a6e698]">
+        <button type="submit" className="rounded-[2px] bg-phosphor px-5 py-2 max-[901px]:min-h-11 mono text-[12px] font-semibold text-canvas hover:bg-[#a6e698]">
           RUN SCAN
         </button>
       </form>

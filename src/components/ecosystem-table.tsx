@@ -72,7 +72,7 @@ function Unavail({ children = "unavailable" }: { children?: ReactNode }) {
 }
 
 /** Phone/tablet card layout (<=900px): standalone links get a 36px touch target. */
-const TAP = "max-[900px]:inline-flex max-[900px]:min-h-9 max-[900px]:items-center max-[900px]:gap-1";
+const TAP = "max-[901px]:inline-flex max-[901px]:min-h-9 max-[901px]:items-center max-[901px]:gap-1";
 
 const TONE: Record<string, string> = { critical: "text-crit", warn: "text-warn", info: "text-ink-3" };
 
@@ -89,7 +89,7 @@ function LaunchCell({ r }: { r: EcosystemRow }) {
         <ChainBadge chainId={r.chainId} />
         {r.apiStatus && <span className="mono text-[10px] tracking-wider text-ink-3">{r.apiStatus}</span>}
       </div>
-      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] max-[900px]:gap-x-4 max-[900px]:gap-y-0">
+      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] max-[901px]:gap-x-4 max-[901px]:gap-y-0">
         <AddrLink chainId={r.chainId} address={r.escrow} label="escrow" className={TAP} />
         {r.token && <AddrLink chainId={r.chainId} address={r.token.address} label="token" className={TAP} />}
         {r.vibestarterUrl && (
@@ -136,8 +136,8 @@ function LockCell({ r }: { r: EcosystemRow }) {
           {l.ethPaired ? ` · ${eth(l.ethPaired, 3)} paired` : ""}
         </p>
         <div className="mt-1 flex flex-wrap gap-x-3 text-[11px]">
-          {l.feeClaimer && <AddrLink chainId={r.chainId} address={l.feeClaimer} label="claimer" />}
-          {l.lockTx?.verified && <TxLink chainId={r.chainId} hash={l.lockTx.hash} label="lock tx" />}
+          {l.feeClaimer && <AddrLink chainId={r.chainId} address={l.feeClaimer} label="claimer" className={TAP} />}
+          {l.lockTx?.verified && <TxLink chainId={r.chainId} hash={l.lockTx.hash} label="lock tx" className={TAP} />}
         </div>
       </div>
     );
@@ -153,7 +153,7 @@ function DepthCell({ r }: { r: EcosystemRow }) {
     <div title={p.note}>
       <span className="whitespace-nowrap tnum text-[15px] text-ink">{p.quoteHeld !== null && p.quoteDecimals !== null ? `${fmtUnits(p.quoteHeld, p.quoteDecimals, 3)} ${p.quoteSymbol}` : "depth unscored"}</span>
       <p className="mt-1 text-[11px] text-ink-3">{p.venue}</p>
-      <AddrLink chainId={r.chainId} address={p.address} label="pool" className="text-[11px]" />
+      <AddrLink chainId={r.chainId} address={p.address} label="pool" className={cx("text-[11px]", TAP)} />
     </div>
   );
 }
@@ -249,7 +249,7 @@ function AppCell({ r }: { r: EcosystemRow }) {
         <Unavail>not probed</Unavail>
       )}
       <p className="mt-1 truncate text-[11px]">
-        <a href={r.appUrl} target="_blank" rel="noreferrer nofollow" className="mono text-ink-3 underline decoration-white/10 underline-offset-2 hover:text-ink">
+        <a href={r.appUrl} target="_blank" rel="noreferrer nofollow" className="mono text-ink-3 underline decoration-white/10 underline-offset-2 hover:text-ink max-[901px]:block max-[901px]:truncate max-[901px]:py-2.5">
           {host} ↗
         </a>
       </p>
@@ -261,7 +261,7 @@ function GithubCell({ r }: { r: EcosystemRow }) {
   const g = r.github;
   if (!g) return <Unavail>{r.githubLogin ? "unavailable" : "GitHub login not resolved"}</Unavail>;
   const link = (
-    <a href={g.profileUrl} target="_blank" rel="noreferrer" className="mono text-[11px] text-ink-3 underline decoration-white/10 underline-offset-2 hover:text-ink">
+    <a href={g.profileUrl} target="_blank" rel="noreferrer" className={cx("mono text-[11px] text-ink-3 underline decoration-white/10 underline-offset-2 hover:text-ink", TAP)}>
       @{g.login} ↗
     </a>
   );
@@ -359,7 +359,7 @@ export function EcosystemTable({ rows, nowSec }: { rows: EcosystemRow[]; nowSec:
   return (
     <div>
       {/* sort picker (cards) */}
-      <div className="mb-3 flex flex-wrap items-center gap-2 xl:hidden max-[600px]:[&>select]:min-w-0 max-[600px]:[&>select]:flex-1">
+      <div className="mb-3 flex flex-wrap items-center gap-2 xl:hidden max-[601px]:[&>select]:min-w-0 max-[601px]:[&>select]:flex-1">
         <label htmlFor="eco-sort" className="label">
           Sort by
         </label>
@@ -370,7 +370,7 @@ export function EcosystemTable({ rows, nowSec }: { rows: EcosystemRow[]; nowSec:
             const key = e.target.value as SortKey;
             setSort({ key, dir: SORTS.find((x) => x.key === key)?.defaultDir ?? "desc" });
           }}
-          className="rounded-[2px] border border-hair-strong bg-surface px-2 py-1.5 mono text-[12px] text-ink max-[900px]:min-h-11 max-[900px]:text-[16px]"
+          className="rounded-[2px] border border-hair-strong bg-surface px-2 py-1.5 mono text-[12px] text-ink max-[901px]:min-h-11 max-[901px]:text-[16px]"
         >
           {SORTS.map((s) => (
             <option key={s.key} value={s.key}>
@@ -381,7 +381,7 @@ export function EcosystemTable({ rows, nowSec }: { rows: EcosystemRow[]; nowSec:
         <button
           type="button"
           onClick={() => setSort((s) => ({ ...s, dir: s.dir === "asc" ? "desc" : "asc" }))}
-          className="rounded-[2px] border border-hair-strong px-2 py-1.5 mono text-[12px] text-ink-2 hover:text-ink max-[900px]:min-h-11 max-[900px]:px-3"
+          className="rounded-[2px] border border-hair-strong px-2 py-1.5 mono text-[12px] text-ink-2 hover:text-ink max-[901px]:min-h-11 max-[901px]:px-3"
           aria-label={`Sort direction: ${sort.dir === "asc" ? "ascending" : "descending"}`}
         >
           {sort.dir === "asc" ? "↑ asc" : "↓ desc"}
@@ -417,9 +417,9 @@ export function EcosystemTable({ rows, nowSec }: { rows: EcosystemRow[]; nowSec:
       {/* cards */}
       <ul className="grid gap-3 md:grid-cols-2 xl:hidden [&>*]:min-w-0">
         {sorted.map((r) => (
-          <li key={r.key} className="panel overflow-hidden p-4 max-[600px]:p-3.5">
+          <li key={r.key} className="panel overflow-hidden p-4 max-[601px]:p-3.5">
             <LaunchCell r={r} />
-            <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 max-[600px]:gap-x-3">
+            <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 max-[601px]:gap-x-3">
               {COLS.slice(1).map((c) => (
                 <div key={c.key} className="min-w-0">
                   <dt className="label mb-1 !text-[10px]">{c.label}</dt>
