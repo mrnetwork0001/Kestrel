@@ -228,30 +228,6 @@ export const SPENDER_LABELS: Record<string, string> = Object.fromEntries(
   [...ROBINHOOD_SPENDERS, ...BASE_SPENDERS].map((s) => [s.address.toLowerCase(), s.name])
 );
 
-/**
- * Public Panic Bunker demo target (non-personal): the Vibestarter team Safe on Base. Verified live 2026-11-07:
- * Safe v1.4.1, 2-of-3; owner of VibesLaunchRouterV2 / VibesRegistry / Base OFT adapter, launch fee recipient;
- * holds VIBES; UNLIMITED ERC-20 approvals: USDC → CoW GPv2VaultRelayer, WETH → CoW GPv2VaultRelayer,
- * EURC → CoW GPv2VaultRelayer, USDC → Aave v3 Pool. Approvals can change at any time — the scan reads them live.
- * Not added to LIVE_DEMO_PRESETS (kind "wallet" would widen that union); wire it where the UX wants it.
- */
-export const PANIC_BUNKER_DEMO_PRESET = {
-  id: "vibestarter-team-safe",
-  label: "Vibestarter Team Safe (2-of-3)",
-  badge: "Panic Bunker",
-  chainId: 8453,
-  targetAddress: "0x3CFDbf58Ed6866cD45Fb8B273EBA32a6259fFee0" as Address,
-  kind: "wallet" as const,
-  description: "Protocol treasury Safe with live unlimited approvals (CoW, Aave) — see exactly what a 1-click batch revoke would build.",
-} as const;
-
-/** Non-personal smart-wallet demo targets found during the 2026-11-07 approval sweep (verified live). */
-export const DEMO_WALLETS = {
-  /** Vibestarter team Safe (2-of-3): owner of VibesLaunchRouterV2 / VibesRegistry / Base OFT adapter + launch fee recipient. */
-  vibestarterTeamSafe: "0x3CFDbf58Ed6866cD45Fb8B273EBA32a6259fFee0" as Address,
-  /** DEGEN token owner Safe (2-of-3). */
-  degenOwnerSafe: "0x704Ec5C12Ca20a293C2C0B72B22619A4231f3c0d" as Address,
-} as const;
 
 /** Labels for well-known infrastructure addresses (excluded from whale detection). */
 export const KNOWN_LABELS: Record<string, string> = {
