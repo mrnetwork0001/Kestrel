@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AddrLink, BandBadge, ChainBadge, cx, Panel, ScoreGauge, SEVERITY_COLOR, Stat, TxLink } from "@/components/ui";
 import { explorerBlock, fmtBps, fmtCompact, fmtUnits, fmtUtc } from "@/lib/format";
 import type { ScanResult } from "@/lib/engine/types";
+import { ShareCard } from "@/components/share-card";
 import { useBrief } from "./use-api";
 import { useState } from "react";
 
@@ -36,6 +37,7 @@ export function BriefingTab({ scan, loading, error, onScan }: { scan: ScanResult
           <p className="mt-3 mono text-[10px] text-ink-3">
             {fmtUtc(scan.block.timestamp)} · scanned in {scan.durationMs} ms · {scan.findings.length} findings
           </p>
+          <ShareCard address={t.address} chainId={t.chainId} label={t.label} score={scan.score} band={scan.band} />
         </Panel>
 
         <Panel
