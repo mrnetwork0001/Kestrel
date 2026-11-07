@@ -1,4 +1,5 @@
 /** Desk-key primitives (dependency-free so both `auth.ts` and `store.ts` can import them without a cycle). */
+import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 
 export const DESK_KEY_RE = /^kst_[A-Za-z0-9_-]{20,64}$/;

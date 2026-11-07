@@ -1,10 +1,12 @@
+import "server-only";
 import { randomBytes } from "node:crypto";
 import { type Address, getAddress } from "viem";
 import { TRACKED_TOKENS } from "@/config/contracts";
 import { OWNABLE_ABI, SAFE_MULTISIG_ABI } from "@/lib/abis";
 import { parseAddressFromSlot } from "@/lib/bytecode-signatures";
 import { parseAddress } from "@/lib/engine/chain-utils";
-import { scanTarget } from "@/lib/engine/scan";
+import { scanDegradedReasons, scanTarget } from "@/lib/engine/scan";
+import { quoteSideOf } from "@/lib/engine/sides";
 import type { ChainId, ScanResult, ThreatBand } from "@/lib/engine/types";
 import { getPublicClientForChain } from "@/lib/rpc";
 import { PROXY_SLOT_NAMES, type ProxySlotName, SLOTS, VIBES_BRIDGE, VIBES_SET, WETH } from "./constants";
@@ -101,11 +103,13 @@ export async function buildMeta(chainId: ChainId, target: Address, scan: ScanRes
     const p = scan.pool;
     meta.pool = {
       address: getAddress(p.address) as Hex,
-      kind: p.kind === "aerodrome-v2" ? "aerodrome-v2" : "uniswap-v3", // Slipstream CL shares v3 slot0/liquidity/Burn semantics
+      // Slipstream CL ("aerodrome-cl") shares v3 slot0/liquidity/Burn semantics; the kind is kept for venue naming.
+      kind: p.kind === "aerodrome-v2" || p.kind === "aerodrome-cl" ? p.kind : "uniswap-v3",
       token0: tokenRef(p.token0),
       token1: tokenRef(p.token1),
       feeBps: p.feeBps,
       wethSide: p.token0.address.toLowerCase() === weth ? 0 : p.token1.address.toLowerCase() === weth ? 1 : null,
+      quoteSide: quoteSideOf(chainId, p.token0.address, p.token1.address),
     };
   }
   if (scan.token && (kind === "token" || kind === "pool")) meta.token = tokenRef(scan.token);
@@ -116,7 +120,10 @@ export async function buildMeta(chainId: ChainId, target: Address, scan: ScanRes
     slotValues = pm.slotValues;
   }
   if (kind === "wallet") {
-    meta.isEoa = true; // scanTarget classifies code-less addresses (incl. EIP-7702 delegated EOAs) as wallets
+    // Only EOAs (incl. EIP-7702 delegated EOAs) bump eth_getTransactionCount when they act. Safes, Coinbase Smart
+    // Wallets and ERC-4337 accounts execute without touching their account nonce, so wallet_activity could never fire.
+    const acct = scan.wallet?.account?.kind;
+    meta.isEoa = acct === "eoa" || acct === "eip7702" || (!acct && !scan.xray?.isContract);
     const fromScan = [...(scan.wallet?.holdings ?? []).map((h) => h.token), ...(scan.wallet?.approvals ?? []).map((a) => a.token)];
     const set = new Map<string, Hex>();
     for (const t of [...TRACKED_TOKENS[chainId], ...extraTokens, ...fromScan]) {
@@ -159,6 +166,10 @@ export async function armWatch(desk: Pick<Desk, "id">, input: ArmInput): Promise
   }
 
   const scan = await scanTarget(chainId, address, { useLlm: false, extraTokens: extra });
+  // A degraded scan would lock a wrong kind/meta/rule set (e.g. no pool → no LP/price rules) and an inflated band
+  // baseline into the watch for good: refuse and let the caller retry. (A partial approval scan only is surfaced below.)
+  const incomplete = scanDegradedReasons(scan, { approvals: false });
+  if (incomplete.length) throw new ArmError(`Live read incomplete, retry shortly: ${incomplete[0].slice(0, 160)}`, 503);
   const kind = scan.target.kind;
   const { meta, slotValues } = await buildMeta(chainId, address, scan, extra);
   const rules = resolveRules(input.rules, kind, meta);
@@ -180,6 +191,7 @@ export async function armWatch(desk: Pick<Desk, "id">, input: ArmInput): Promise
 
   // Baselines from the exact probe pass the tick will run (logs skipped: baselines are state).
   const baselineErrors: string[] = [];
+  if (scan.wallet?.coverage?.partial) baselineErrors.push("approval scan at arm time was incomplete (some reads failed or the log window was not fully read); approval baselines fill in on the next ticks");
   const plan = planFor(watch, undefined);
   const chains = [...new Set<ChainId>([chainId, ...planChains(plan)])];
   const snaps: Partial<Record<ChainId, ChainSnapshot>> = {};

@@ -3,7 +3,7 @@ import type { ChainId } from "@/lib/engine/types";
 import { chainName } from "@/lib/format";
 import { requireDesk } from "@/lib/pager/auth";
 import { MAX_RANGE } from "@/lib/pager/constants";
-import { deliver, type Delivery } from "@/lib/pager/deliver";
+import { activeChannels, deliver, type Delivery } from "@/lib/pager/deliver";
 import { blankState, computeGlobals, evaluateWatch } from "@/lib/pager/evaluate";
 import { readJsonObject, storeFailure, unknownKeys } from "@/lib/pager/http";
 import { limit } from "@/lib/pager/limits";
@@ -102,12 +102,20 @@ export async function POST(req: Request, { params }: Ctx) {
         data: { watchId: watch.id },
       });
 
-  let delivered: Delivery[] = [];
+  let delivered: (Delivery | { channel: "none"; target: "none"; ok: false; status: null; error: string })[] = [];
   if (body.dispatch === true) {
-    try {
-      delivered = await deliver(desk, rendered, { deliveryId: `${desk.id}:test:${now}` });
-    } catch (e) {
-      console.error(`[pager] test dispatch failed: ${e instanceof Error ? e.message : String(e)}`);
+    const act = activeChannels(desk);
+    if (!act.telegram && !act.webhook) {
+      // Honest result instead of a silent empty list: nothing was sent because no channel is linked/enabled.
+      const disabled = [desk.channels.telegram?.disabledReason, desk.channels.webhook?.disabledReason].filter(Boolean).join("; ");
+      delivered = [{ channel: "none", target: "none", ok: false, status: null, error: disabled ? `Channel disabled: ${disabled}` : "No delivery channel linked: link Telegram or add a webhook first" }];
+    } else {
+      try {
+        delivered = await deliver(desk, rendered, { deliveryId: `${desk.id}:test:${now}` });
+      } catch (e) {
+        console.error(`[pager] test dispatch failed: ${e instanceof Error ? e.message : String(e)}`);
+        delivered = [{ channel: "webhook", target: "dispatch", ok: false, status: null, error: "Dispatch failed unexpectedly; see server log" }];
+      }
     }
   }
 

@@ -3,6 +3,7 @@
  * INCRBY + EXPIRE NX in one round-trip), with a process-local fallback if KV is unreachable.
  * Keys: `rl:pager:{bucket}:{subject}:{window}` (subject = desk id or a daily-rotating IP hash; never a raw key).
  */
+import "server-only";
 import { apiError } from "@/lib/api";
 import { kvIncrWithExpiry, localIncrWithExpiry } from "@/lib/kv";
 
@@ -10,7 +11,8 @@ export interface LimitRule { limit: number; windowSec: number }
 
 /** Per-endpoint limits from spec section 13. */
 export const LIMITS = {
-  deskCreate: { limit: 5, windowSec: 3600 },      // per IP
+  deskCreate: { limit: 5, windowSec: 3600 },      // per IP (IPv6: per /64)
+  deskCreateGlobal: { limit: 120, windowSec: 3600 }, // all networks combined (anonymous desk creation)
   deskRead: { limit: 60, windowSec: 60 },         // per desk
   deskPatch: { limit: 30, windowSec: 60 },        // per desk
   deskDelete: { limit: 5, windowSec: 3600 },      // per desk
@@ -37,6 +39,27 @@ const envInt = (name: string, dflt: number, min = 1, max = 100_000): number => {
 export const maxWatchesPerDesk = (): number => envInt("PAGER_MAX_WATCHES_PER_DESK", 10, 1, 1_000);
 /** Global watch cap across all desks (`PAGER_MAX_WATCHES_TOTAL`, default 500). */
 export const maxWatchesTotal = (): number => envInt("PAGER_MAX_WATCHES_TOTAL", 500, 1, 100_000);
+/**
+ * Share of the global watch cap available to desks with NO verified delivery channel (`PAGER_MAX_CHANNELLESS_WATCHES`,
+ * default 60% of PAGER_MAX_WATCHES_TOTAL). Anonymous channel-less desks can never exhaust the capacity reserved for
+ * desks that actually receive pages.
+ */
+export const maxChannellessWatches = (): number => envInt("PAGER_MAX_CHANNELLESS_WATCHES", Math.floor(maxWatchesTotal() * 0.6), 0, 100_000);
+
+/** Global cap that applies to a new watch on `desk` (null = a desk about to be created, i.e. channel-less). */
+export function watchCapFor(
+  desk: { system?: boolean; channels: { telegram: { verified: boolean; disabledReason: string | null } | null; webhook: { disabledReason: string | null } | null } } | null
+): number {
+  const total = maxWatchesTotal();
+  if (!desk) return Math.min(total, maxChannellessWatches());
+  const tg = desk.channels.telegram;
+  const hasChannel = !!desk.system || (!!tg && tg.verified && !tg.disabledReason) || (!!desk.channels.webhook && !desk.channels.webhook.disabledReason);
+  return hasChannel ? total : Math.min(total, maxChannellessWatches());
+}
+
+/** Global desk cap (`PAGER_MAX_DESKS_TOTAL`, default 5000); abandoned empty desks are pruned before refusing. */
+export const maxDesksTotal = (): number => envInt("PAGER_MAX_DESKS_TOTAL", 5_000, 10, 1_000_000);
+
 /** Max desks one IP (daily hash) can open per day (`PAGER_MAX_DESKS_PER_IP_DAY`, default 20). */
 export const maxDesksPerIpDay = (): number => envInt("PAGER_MAX_DESKS_PER_IP_DAY", 20, 1, 10_000);
 /** Expected scheduler cadence in seconds (`PAGER_CADENCE_SEC`, default 120). */

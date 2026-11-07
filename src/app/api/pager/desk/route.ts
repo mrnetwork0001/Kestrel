@@ -50,7 +50,7 @@ export async function POST(req: Request) {
   const guard = storageGuard();
   if (guard) return guard;
   const ip = ipHash(req);
-  const limited = await limit("deskCreate", ip);
+  const limited = (await limit("deskCreate", ip)) ?? (await limit("deskCreateGlobal", "all"));
   if (limited) return limited;
   const daily = await hit("deskDay", ip, { limit: maxDesksPerIpDay(), windowSec: 86_400 });
   if (daily.limited) return apiError("Too many desks opened from this network today", 429, { retryAfterSec: daily.retryAfterSec });
@@ -189,7 +189,12 @@ export async function PATCH(req: Request) {
     if (!next) return apiError("Desk not found (it may have been deleted)", 404);
     if (droppedChat) await delTgChat(droppedChat, desk.id).catch(() => undefined);
     const showSecret = !!issuedSecret && next.channels.webhook?.kind === "generic";
-    return json({ desk: toDeskPublic(next, { revealSecret: true }), ...(showSecret ? { webhookSecret: issuedSecret } : {}) });
+    // A typed chat id is stored as a PENDING link: Kestrel never messages it until that chat presses Start on the
+    // bot through this desk's POST /api/pager/telegram/link deep link (then it becomes verified).
+    const telegramNote = telegram
+      ? "Chat id saved as UNVERIFIED: Kestrel will not send pages to it until the chat presses Start via this desk's link (POST /api/pager/telegram/link)."
+      : undefined;
+    return json({ desk: toDeskPublic(next, { revealSecret: true }), ...(showSecret ? { webhookSecret: issuedSecret } : {}), ...(telegramNote ? { telegramNote } : {}) });
   } catch (e) {
     if (e instanceof PatchError) return apiError(e.message, 400);
     return storeFailure(e, "patchDesk");

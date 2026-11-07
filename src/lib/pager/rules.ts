@@ -6,6 +6,9 @@ import type { RuleConfig, RuleType, Watch } from "./types";
  * Night-Shift Pager rule catalogue: human labels, availability per target kind, defaults and
  * hand-rolled validation (no zod in this repo). One rule per type per watch; the rule id is the
  * stable string `r_<type>` so cooldowns / hysteresis survive edits.
+ *
+ * CLIENT-SAFE: imports only `./constants` (viem + config) and types, so UI components may import RULE_CATALOGUE,
+ * describeThreshold and validateRules directly. Never add a server-only import (node:*, KV, store) here.
  */
 
 type Meta = Watch["meta"];

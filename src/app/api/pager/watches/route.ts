@@ -4,7 +4,7 @@ import type { ChainId } from "@/lib/engine/types";
 import { ArmError, armWatch, type ArmResult } from "@/lib/pager/arm";
 import { requireDesk } from "@/lib/pager/auth";
 import { readJsonObject, storeFailure, unknownKeys } from "@/lib/pager/http";
-import { limit, maxWatchesPerDesk, maxWatchesTotal } from "@/lib/pager/limits";
+import { limit, maxWatchesPerDesk, maxWatchesTotal, watchCapFor } from "@/lib/pager/limits";
 import {
   StoreError,
   addWatch,
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
     if (existing.some((w) => w.chainId === chainId && w.target.toLowerCase() === address.toLowerCase())) {
       return apiError("This desk already watches that target on that chain", 409);
     }
-    if ((await countWatchesTotal()) >= maxWatchesTotal()) return apiError("Night shift at capacity, try again later", 503);
+    if ((await countWatchesTotal()) >= watchCapFor(desk)) return apiError(watchCapFor(desk) < maxWatchesTotal() ? "Night shift at capacity for desks without a linked channel. Link Telegram or a webhook first, then retry." : "Night shift at capacity, try again later", 503);
   } catch (e) {
     return storeFailure(e, "watchPrecheck");
   }
@@ -129,7 +129,7 @@ export async function POST(req: Request) {
   const state: WatchState = { ...armed.state, watchId: watch.id };
 
   try {
-    await addWatch(watch, state, { maxTotal: maxWatchesTotal() });
+    await addWatch(watch, state, { maxTotal: watchCapFor(desk) });
   } catch (e) {
     if (e instanceof StoreError) return apiError(e.message, e.status);
     return storeFailure(e, "addWatch");

@@ -3,6 +3,7 @@
  * the desk. The server stores ONLY `deskId = base64url(sha256(deskKey))[0:22]`, so a database leak cannot be
  * replayed. Keys are never logged, echoed in errors, or put in URLs other than the client-side `#desk=` fragment.
  */
+import "server-only";
 import { createHash } from "node:crypto";
 import { apiError, clientIp } from "@/lib/api";
 import { kvMissingInProd } from "@/lib/kv";

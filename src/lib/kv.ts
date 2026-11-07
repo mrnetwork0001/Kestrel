@@ -69,9 +69,94 @@ function memPut(key: string, v: MemVal, exSec?: number, keepTtl = false) {
   if (mem.size > 10_000) {
     const now = Date.now();
     for (const [mk, e] of mem) if (e.exp !== null && e.exp <= now) mem.delete(mk);
-    if (mem.size > 10_000) mem.clear();
+    // Evict caches / rate-limit counters first; pager state (desks, watches, sleep sessions) is the source of truth.
+    if (mem.size > 10_000) for (const mk of mem.keys()) if (!mk.startsWith(DEV_SNAPSHOT_PREFIX)) mem.delete(mk);
   }
 }
+
+/* ---------------- dev-only memory snapshot ----------------
+ * `next dev` restarts its server process on its own (memory threshold, config edits, crashes), which wipes the
+ * in-process store and makes Night-Shift Pager desks vanish mid-demo. In development + memory mode only, pager keys
+ * (`kestrel:pager:*`, minus locks) are snapshotted to .next/cache/kestrel-dev-kv.json every few seconds when they
+ * change and restored once per process. Never active with Upstash, in production, or with KV_DEV_SNAPSHOT=0.
+ * The file lives in the git-ignored .next/ dir; it holds the same data Redis would (desk-key hashes, never keys).
+ */
+const DEV_SNAPSHOT_PREFIX = `${PREFIX}pager:`;
+const DEV_SNAPSHOT_SKIP = /^kestrel:pager:(lock$|desklock:|itemlock:|opportunistic$|exec:)/;
+type SnapEntry = [key: string, tag: "s" | "h" | "set" | "l" | "z", value: unknown, exp: number | null];
+type FsLike = { readFileSync(p: string, enc: "utf8"): string; writeFileSync(p: string, d: string): void; renameSync(a: string, b: string): void; mkdirSync(p: string, o: { recursive: true }): void };
+const gs = globalThis as typeof globalThis & { __kestrelKvSnap?: { last: string; timer: ReturnType<typeof setInterval> | null } };
+
+function devSnapshotFs(): { fs: FsLike; dir: string; file: string } | null {
+  if (process.env.NODE_ENV !== "development" || process.env.KV_DEV_SNAPSHOT === "0" || creds()) return null;
+  const getBuiltin = (process as unknown as { getBuiltinModule?: (id: string) => unknown }).getBuiltinModule;
+  const fs = typeof getBuiltin === "function" ? (getBuiltin("fs") as FsLike | undefined) : undefined;
+  if (!fs || typeof process.cwd !== "function") return null;
+  const dir = `${process.cwd()}/.next/cache`;
+  return { fs, dir, file: `${dir}/kestrel-dev-kv.json` };
+}
+
+function encodeSnapshot(): string {
+  const now = Date.now();
+  const out: SnapEntry[] = [];
+  for (const [key, e] of mem) {
+    if (!key.startsWith(DEV_SNAPSHOT_PREFIX) || DEV_SNAPSHOT_SKIP.test(key) || (e.exp !== null && e.exp <= now)) continue;
+    const v = e.v;
+    if (typeof v === "string") out.push([key, "s", v, e.exp]);
+    else if (v instanceof Map) out.push([key, "h", [...v.entries()], e.exp]);
+    else if (v instanceof Set) out.push([key, "set", [...v], e.exp]);
+    else if (Array.isArray(v)) out.push([key, "l", v, e.exp]);
+    else out.push([key, "z", [...v.z.entries()], e.exp]);
+  }
+  out.sort((a, b) => (a[0] < b[0] ? -1 : 1));
+  return JSON.stringify(out);
+}
+
+function restoreSnapshot(raw: string): number {
+  const now = Date.now();
+  let n = 0;
+  for (const [key, tag, value, exp] of JSON.parse(raw) as SnapEntry[]) {
+    if (typeof key !== "string" || !key.startsWith(DEV_SNAPSHOT_PREFIX) || mem.has(key) || (exp !== null && exp <= now)) continue;
+    const v: MemVal =
+      tag === "s" ? String(value)
+      : tag === "h" ? new Map(value as [string, string][])
+      : tag === "set" ? new Set(value as string[])
+      : tag === "l" ? (value as string[]).map(String)
+      : { z: new Map(value as [string, number][]) };
+    mem.set(key, { v, exp: exp ?? null });
+    n++;
+  }
+  return n;
+}
+
+(function initDevSnapshot() {
+  if (gs.__kestrelKvSnap) return; // once per process (every route bundle evaluates this module)
+  const io = devSnapshotFs();
+  if (!io) return;
+  gs.__kestrelKvSnap = { last: "", timer: null };
+  try {
+    const n = restoreSnapshot(io.fs.readFileSync(io.file, "utf8"));
+    if (n) console.log(`[kv] dev memory store: restored ${n} pager key(s) from .next/cache/kestrel-dev-kv.json`);
+  } catch {
+    /* no snapshot yet / unreadable: start empty */
+  }
+  const st = gs.__kestrelKvSnap;
+  st.last = encodeSnapshot();
+  const timer = setInterval(() => {
+    try {
+      const next = encodeSnapshot();
+      if (next === st.last) return;
+      io.fs.mkdirSync(io.dir, { recursive: true });
+      io.fs.writeFileSync(`${io.file}.tmp`, next);
+      io.fs.renameSync(`${io.file}.tmp`, io.file);
+      st.last = next;
+    } catch (e) {
+      console.warn(`[kv] dev snapshot write failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }, 3_000);
+  timer.unref?.();
+  st.timer = timer;
+})();
 
 /** Process-local fixed-window counter. Used in memory mode and as the fail-open fallback for rate limiting. */
 export function localIncrWithExpiry(key: string, windowSec: number, by = 1): number {

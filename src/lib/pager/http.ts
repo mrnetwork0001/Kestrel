@@ -1,4 +1,5 @@
 /** Small HTTP helpers shared by the pager routes (body parsing, 204s, store-error mapping). */
+import "server-only";
 import { NextResponse } from "next/server";
 import { CORS_HEADERS, apiError } from "@/lib/api";
 import { StoreError } from "@/lib/pager/store";

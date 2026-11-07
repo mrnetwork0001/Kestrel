@@ -1,8 +1,10 @@
+import "server-only";
 import { createHash } from "node:crypto";
 import { decodeAbiParameters } from "viem";
 import { CONTRACTS, KNOWN_LABELS, SPENDERS } from "@/config/contracts";
 import { v2PricesScaled18, v3PricesScaled18, v3VirtualReserves } from "@/lib/amm-math";
 import { RISKY_SELECTORS, parseAddressFromSlot } from "@/lib/bytecode-signatures";
+import { quoteAssetFor, quoteSideOf } from "@/lib/engine/sides";
 import type { ChainId, Severity } from "@/lib/engine/types";
 import { chainName, fmtBps, fmtDuration, fmtUnits, fmtUtc, shortAddr } from "@/lib/format";
 import {
@@ -10,11 +12,9 @@ import {
   BRIDGE_LANE_NAME,
   CREDIT_HEADROOM_REARM_BPS,
   CREDIT_HEADROOM_WARN_BPS,
-  DUST_POOL_WETH,
   MULTICALL3,
   PERMIT2,
   POOL_SAMPLES_MAX,
-  PRICE_RULE_MIN_WETH,
   SEEN_MAX,
   SLOTS,
   T,
@@ -333,31 +333,59 @@ export function evaluateWatch(ctx: EvalContext, w: Watch, prev: WatchState): { a
 /* Pools                                                                                             */
 /* ------------------------------------------------------------------------------------------------ */
 
+/**
+ * Pool orientation, identical to the scan (engine/pools.ts riskyPrice + sides.ts): the quote side is chosen by
+ * ADDRESS (USDC > USDbC > WETH > cbBTC); the risky token is the other side and is priced in the quote token.
+ * With no known quote asset, token0 is priced in token1 (q = 1).
+ */
+function poolOrientation(w: Watch): { q: 0 | 1; quoteKnown: boolean; legacyQ: 0 | 1 } {
+  const p = w.meta.pool!;
+  const qs = p.quoteSide !== undefined ? p.quoteSide : quoteSideOf(w.chainId, p.token0.address, p.token1.address);
+  return { q: qs ?? 1, quoteKnown: qs !== null, legacyQ: p.wethSide === 1 ? 1 : 0 };
+}
+
+/** Samples comparable with the current orientation (legacy samples carried the wethSide orientation). */
+function orientedSamples(w: Watch, samples: PoolSample[]): PoolSample[] {
+  const o = poolOrientation(w);
+  return samples.filter((s) => (s.q ?? o.legacyQ) === o.q);
+}
+
+/** Dust / thin thresholds in the QUOTE asset's own units (WETH: 0.05 / 0.5, i.e. thin/100 and thin/10). */
+function quoteThresholds(w: Watch): { dust: bigint; thin: bigint; symbol: string; decimals: number } | null {
+  const p = w.meta.pool!;
+  const o = poolOrientation(w);
+  if (!o.quoteKnown) return null;
+  const quote = o.q === 0 ? p.token0 : p.token1;
+  const qa = quoteAssetFor(w.chainId, quote.address);
+  return qa ? { dust: qa.thin / 100n, thin: qa.thin / 10n, symbol: qa.symbol, decimals: qa.decimals } : null;
+}
+
 export function readPoolSample(w: Watch, snap: ChainSnapshot, now: number): PoolSample | null {
   const pool = w.meta.pool;
   if (!pool) return null;
   const d0 = pool.token0.decimals;
   const d1 = pool.token1.decimals;
+  const { q } = poolOrientation(w);
   let liq: bigint, px: bigint, depth: bigint;
   if (pool.kind === "aerodrome-v2") {
     const r = val<readonly [bigint, bigint, bigint]>(snap, pool.address, "getReserves");
     if (!r) return null;
     liq = isqrt(r[0] * r[1]);
     const p = v2PricesScaled18(r[0], r[1], d0, d1);
-    // non-WETH token priced in WETH; without a WETH side, token1 priced in token0
-    px = pool.wethSide === 1 ? p.token1PerToken0 : p.token0PerToken1;
-    depth = pool.wethSide === 1 ? r[1] : r[0];
+    // risky side priced in the quote side (q = 0: token1 in token0; q = 1: token0 in token1)
+    px = q === 0 ? p.token0PerToken1 : p.token1PerToken0;
+    depth = q === 0 ? r[0] : r[1];
   } else {
     const s0 = val<readonly [bigint, number]>(snap, pool.address, "slot0");
     const L = val<bigint>(snap, pool.address, "liquidity");
     if (!s0 || L === undefined) return null;
     liq = L;
     const p = v3PricesScaled18(s0[0], d0, d1);
-    px = pool.wethSide === 1 ? p.token1PerToken0 : p.token0PerToken1;
+    px = q === 0 ? p.token0PerToken1 : p.token1PerToken0;
     const vr = v3VirtualReserves(s0[0], L);
-    depth = pool.wethSide === 1 ? vr.reserve1 : vr.reserve0;
+    depth = q === 0 ? vr.reserve0 : vr.reserve1;
   }
-  return { at: now, block: snap.block.number.toString(), liq: liq.toString(), px: px.toString(), wethDepth: depth.toString() };
+  return { at: now, block: snap.block.number.toString(), liq: liq.toString(), px: px.toString(), wethDepth: depth.toString(), q };
 }
 
 /** Newest-first ring: ≤ 40 samples spaced ≥ (window + 4 min) / 38 apart; the head is always the latest read. */
@@ -376,15 +404,17 @@ export function pushSample(st: WatchState, s: PoolSample, windowMin: number, now
 
 function poolNames(w: Watch) {
   const p = w.meta.pool!;
-  const risky = p.wethSide === 0 ? p.token1 : p.token0;
-  const quote = p.wethSide === 0 ? p.token0 : p.wethSide === 1 ? p.token1 : p.token0;
-  const venue = p.kind === "uniswap-v3" ? `${chainName(w.chainId)} Uniswap v3` : "Aerodrome";
+  const { q } = poolOrientation(w);
+  const risky = q === 0 ? p.token1 : p.token0;
+  const quote = q === 0 ? p.token0 : p.token1;
+  const venue = p.kind === "uniswap-v3" ? `${chainName(w.chainId)} Uniswap v3` : p.kind === "aerodrome-cl" ? "Aerodrome Slipstream" : "Aerodrome";
   return { risky, quote, venue, pair: `${p.token0.symbol}/${p.token1.symbol}` };
 }
 
 function lpDrop(ctx: EvalContext, w: Watch, st: WatchState, r: Extract<RuleConfig, { type: "lp_liquidity_drop" }>, out: Out) {
   const pool = w.meta.pool;
-  const samples = (st.pool?.samples ?? []).filter((s) => s.at >= ctx.now - r.windowMin * 60_000);
+  const samples = pool ? orientedSamples(w, (st.pool?.samples ?? []).filter((s) => s.at >= ctx.now - r.windowMin * 60_000)) : [];
+  const qt = pool ? quoteThresholds(w) : null;
   const cur = samples[0];
   if (!pool || !cur || samples.length < 2 || cur.at !== ctx.now) {
     observe(out, r, false, null, cur && cur.at === ctx.now ? "collecting samples" : "pool read unavailable this tick");
@@ -395,8 +425,8 @@ function lpDrop(ctx: EvalContext, w: Watch, st: WatchState, r: Extract<RuleConfi
   const now = BigInt(cur.liq);
   const d = dropBps(peak, now);
   const observed = `liquidity ${d > 0 ? "−" : ""}${pctStr(d)} vs ${r.windowMin}-min peak`;
-  if (pool.wethSide !== null && BigInt(peakS.wethDepth) < DUST_POOL_WETH) {
-    observe(out, r, false, null, `${observed} · dust pool (< 0.05 WETH) ignored`);
+  if (qt && BigInt(peakS.wethDepth) < qt.dust) {
+    observe(out, r, false, null, `${observed} · dust pool (< ${fmtUnits(qt.dust, qt.decimals, 4)} ${qt.symbol}) ignored`);
     return;
   }
   if (d < r.dropBps) {
@@ -413,7 +443,8 @@ function lpDrop(ctx: EvalContext, w: Watch, st: WatchState, r: Extract<RuleConfi
   const n = poolNames(w);
   let sev: Severity = d >= 4000 ? "critical" : "warn";
   let what = "pulled";
-  if (burns.length === 0 && pool.kind === "uniswap-v3") {
+  const isCL = pool.kind !== "aerodrome-v2"; // Uniswap v3 or Aerodrome Slipstream: concentrated liquidity
+  if (burns.length === 0 && isCL) {
     sev = "warn";
     what = snap.logsOk ? "left the active range" : "dropped (Burn logs unavailable)";
   }
@@ -421,11 +452,11 @@ function lpDrop(ctx: EvalContext, w: Watch, st: WatchState, r: Extract<RuleConfi
   st.firing[r.id] = true;
   startCooldown(st, r, ctx.now);
   if (!fire(st, key)) return observe(out, r, false, null, observed);
-  const depthLine = pool.wethSide !== null ? ` · WETH depth ${fmtUnits(peakS.wethDepth, 18, 3)} → ${fmtUnits(cur.wethDepth, 18, 3)}` : "";
+  const depthLine = qt ? ` · ${qt.symbol} depth ${fmtUnits(peakS.wethDepth, qt.decimals, 3)} → ${fmtUnits(cur.wethDepth, qt.decimals, 3)}` : "";
   out.alerts.push(
     mkAlert(ctx, w, r, sev, `LP ${what} on ${n.pair} (${n.venue}): liquidity −${pctStr(d)} in ${minutes(cur.at - peakS.at)} min`, [
-      `${w.label}: ${pool.kind === "uniswap-v3" ? "active liquidity L" : "pool √k (swaps barely move it; LP removals do)"} −${pctStr(d)} vs the ${r.windowMin}-min peak${depthLine}`,
-      burns.length ? `${burns.length} Burn event${burns.length > 1 ? "s" : ""} on the pool in this window` : pool.kind === "uniswap-v3" ? "No Burn event in this window: price likely moved out of concentrated ranges" : "",
+      `${w.label}: ${isCL ? "active liquidity L" : "pool √k (swaps barely move it; LP removals do)"} −${pctStr(d)} vs the ${r.windowMin}-min peak${depthLine}`,
+      burns.length ? `${burns.length} Burn event${burns.length > 1 ? "s" : ""} on the pool in this window` : isCL ? "No Burn event in this window: price likely moved out of concentrated ranges" : "",
       `Block #${cur.block}`,
     ], key, { txHash: burns[0]?.transactionHash ?? null, evidenceAddress: pool.address })
   );
@@ -434,7 +465,9 @@ function lpDrop(ctx: EvalContext, w: Watch, st: WatchState, r: Extract<RuleConfi
 
 function priceMove(ctx: EvalContext, w: Watch, st: WatchState, r: Extract<RuleConfig, { type: "price_move" }>, out: Out) {
   const pool = w.meta.pool;
-  const samples = (st.pool?.samples ?? []).filter((s) => s.at >= ctx.now - r.windowMin * 60_000);
+  // Only samples with the SAME orientation are compared (a flipped orientation would read as a huge move).
+  const samples = pool ? orientedSamples(w, (st.pool?.samples ?? []).filter((s) => s.at >= ctx.now - r.windowMin * 60_000)) : [];
+  const qt = pool ? quoteThresholds(w) : null;
   const cur = samples[0];
   const old = samples[samples.length - 1];
   if (!pool || !cur || samples.length < 2 || cur.at !== ctx.now || BigInt(old.px) === 0n) {
@@ -443,8 +476,8 @@ function priceMove(ctx: EvalContext, w: Watch, st: WatchState, r: Extract<RuleCo
   }
   const mv = changeBps(BigInt(old.px), BigInt(cur.px));
   const observed = `${fmtBps(mv)} over ${minutes(cur.at - old.at)} min`;
-  if (pool.wethSide !== null && BigInt(cur.wethDepth) < PRICE_RULE_MIN_WETH) {
-    observe(out, r, false, null, `${observed} · thin pool (< 0.5 WETH) ignored`);
+  if (qt && BigInt(cur.wethDepth) < qt.thin) {
+    observe(out, r, false, null, `${observed} · thin pool (< ${fmtUnits(qt.thin, qt.decimals, 4)} ${qt.symbol}) ignored`);
     return;
   }
   if (Math.abs(mv) < r.moveBps) {
@@ -465,7 +498,7 @@ function priceMove(ctx: EvalContext, w: Watch, st: WatchState, r: Extract<RuleCo
   out.alerts.push(
     mkAlert(ctx, w, r, sev, `${n.risky.symbol} ${fmtBps(mv)} in ${minutes(cur.at - old.at)} min on ${n.venue}`, [
       `${fmtUnits(old.px, 18, 10)} → ${fmtUnits(cur.px, 18, 10)} ${n.quote.symbol} per ${n.risky.symbol}`,
-      pool.wethSide !== null ? `WETH depth now ${fmtUnits(cur.wethDepth, 18, 3)}` : "",
+      qt ? `${qt.symbol} depth now ${fmtUnits(cur.wethDepth, qt.decimals, 3)}` : "",
       `Block #${cur.block}`,
     ], key, { evidenceAddress: pool.address })
   );
@@ -523,6 +556,7 @@ function parityDrift(ctx: EvalContext, w: Watch, st: WatchState, r: Extract<Rule
     st.firing[kUnbacked] = true;
     const key = `parity:unbacked:${p.rhBlock}`;
     if (fire(st, key)) {
+      st.unbackedAlertId = alertId(w.id, key); // the recovery alert resolves THIS id (its key carries the block)
       out.alerts.push(mkAlert(ctx, w, r, "critical", `UNBACKED $VIBES on Robinhood: circulating exceeds Base locked by ${fmtUnits(absDelta, 18, 2)} VIBES`, [
         facts,
         "In-flight OFT transfers only ever make locked > circulating; the reverse means supply exists without backing",
@@ -535,7 +569,8 @@ function parityDrift(ctx: EvalContext, w: Watch, st: WatchState, r: Extract<Rule
   if (st.firing[kUnbacked]) {
     st.firing[kUnbacked] = false;
     const key = `parity:unbacked-resolved:${p.rhBlock}`;
-    if (fire(st, key)) out.alerts.push(mkAlert(ctx, w, r, "info", "RESOLVED: $VIBES backing restored on Robinhood", [facts], key, { ...ev, resolves: alertId(w.id, `parity:unbacked`) }));
+    if (fire(st, key)) out.alerts.push(mkAlert(ctx, w, r, "info", "RESOLVED: $VIBES backing restored on Robinhood", [facts], key, { ...ev, ...(st.unbackedAlertId ? { resolves: st.unbackedAlertId } : {}) }));
+    delete st.unbackedAlertId;
   }
 
   if (p.delta === 0n) {

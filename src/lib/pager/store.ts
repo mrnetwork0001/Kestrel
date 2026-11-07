@@ -16,18 +16,20 @@
  *   pager:tgoffset           STRING getUpdates offset (polling mode)
  *   pager:lock               STRING NX PX, tickId
  *   pager:desklock:{deskId}  STRING NX PX, short mutex for read-modify-write of a desk record
+ *   pager:itemlock:{item}    STRING NX PX, per-item delivery lock ("outbox:<itemId>")
  *   pager:status             STRING last TickSummary
  *   pager:ticklog            LIST   last 50 TickSummary (hash-chained by the tick)
  *
  * Desk keys are never stored, only deskId = base64url(sha256(deskKey))[0:22].
  * Store functions THROW on KV errors (never treat a failed read as "empty"), so callers can answer 503.
  */
+import "server-only";
 import { randomBytes } from "node:crypto";
 import { kvBatch, kvMode, kvOne, type KvOp } from "@/lib/kv";
 import { CAMPAIGN_STATES } from "@/lib/engine/escrow";
 import { fmtBps, fmtUnits, shortAddr } from "@/lib/format";
 import { deskIdFromKey, newDeskKey } from "@/lib/pager/desk-key";
-import { maxWatchesPerDesk } from "@/lib/pager/limits";
+import { maxDesksTotal, maxWatchesPerDesk } from "@/lib/pager/limits";
 import type {
   Desk,
   DeskPublic,
@@ -60,6 +62,8 @@ export const K = {
   tgoffset: "pager:tgoffset",
   lock: "pager:lock",
   deskLock: (deskId: string) => `pager:desklock:${deskId}`,
+  /** Per-item delivery lock ("outbox:<itemId>"), so the tick and the sleep route never send the same item twice. */
+  itemLock: (item: string) => `pager:itemlock:${item}`,
   status: "pager:status",
   ticklog: "pager:ticklog",
 } as const;
@@ -157,8 +161,28 @@ export async function createDesk(label: string | null, ipHash?: string): Promise
     policy: { sleepMode: "critical-only" },
     ...(ipHash ? { ipHash } : {}),
   };
-  await kvBatch([{ op: "hset", key: K.desk, fields: { [desk.id]: enc(desk) } }, bumpCfg], { atomic: true });
+  // Global desk cap: anonymous desks never expire on their own, so prune abandoned ones before refusing.
+  const cap = maxDesksTotal();
+  if ((await kvOne({ op: "hlen", key: K.desk })) >= cap) {
+    await pruneAbandonedDesks().catch(() => 0);
+    if ((await kvOne({ op: "hlen", key: K.desk })) >= cap) throw new StoreError("Night shift desk capacity reached, try again later", 503);
+  }
+  // No cfgver bump: a desk without watches is never loaded by the tick (loadForTick reads watch-referenced desks).
+  await kvOne({ op: "hset", key: K.desk, fields: { [desk.id]: enc(desk) } });
   return { deskKey, desk };
+}
+
+/** Abandoned desk: no watches, no delivery channel, not a system desk, older than this. */
+const ABANDONED_DESK_MS = 3 * 86_400_000;
+
+/** Deletes abandoned desks (no watches, no channel, > 3 days old). Returns how many were removed. */
+export async function pruneAbandonedDesks(now = Date.now()): Promise<number> {
+  const all = parseAll<Desk>(await kvOne({ op: "hgetall", key: K.desk }));
+  const dead = Object.values(all)
+    .filter((d) => !d.system && d.watchIds.length === 0 && !d.channels.telegram && !d.channels.webhook && now - d.createdAt > ABANDONED_DESK_MS)
+    .map((d) => d.id);
+  for (let i = 0; i < dead.length; i += 500) await kvOne({ op: "hdel", key: K.desk, fields: dead.slice(i, i + 500) });
+  return dead.length;
 }
 
 export async function getDesk(id: string): Promise<Desk | null> {
@@ -387,14 +411,19 @@ export async function loadForTick(now: number): Promise<TickLoad> {
   let cache = gc.__kestrelPagerCfg;
   let reloaded = false;
   if (!cache || cache.ver !== cfgver) {
-    const [watchHash, deskHash] = await kvBatch([
-      { op: "hgetall", key: K.watch },
-      { op: "hgetall", key: K.desk },
-    ] as const);
-    cache = { ver: cfgver, watches: Object.values(parseAll<Watch>(watchHash)), desks: parseAll<Desk>(deskHash) };
+    // Only desks that own a watch (HMGET), never the whole desk hash: thousands of abandoned anonymous desks
+    // must not be able to push this load past the KV timeout and stall every watch.
+    const watches = Object.values(parseAll<Watch>(await kvOne({ op: "hgetall", key: K.watch })));
+    const ids = [...new Set(watches.map((w) => w.deskId))];
+    const desks: Record<string, Desk> = {};
+    for (let i = 0; i < ids.length; i += 500) Object.assign(desks, await getDesks(ids.slice(i, i + 500)));
+    cache = { ver: cfgver, watches, desks };
     gc.__kestrelPagerCfg = cache;
     reloaded = true;
   }
+  // Desks due for a digest that own no watch (≤ 50 per tick) are read on demand.
+  const missingDue = due.filter((id) => !cache!.desks[id]);
+  const dueDesks = missingDue.length ? await getDesks(missingDue).catch(() => ({}) as Record<string, Desk>) : {};
   const live = new Set(cache.watches.map((w) => w.id));
   const allStates = parseAll<WatchState>(stateHash);
   const states: Record<string, WatchState> = {};
@@ -406,7 +435,7 @@ export async function loadForTick(now: number): Promise<TickLoad> {
     states,
     global: parse<PagerGlobal>(globalRaw) ?? blankGlobal(),
     dueDesks: due,
-    desks: cache.desks,
+    desks: missingDue.length ? { ...cache.desks, ...dueDesks } : cache.desks,
     cfgver,
   };
 }
@@ -476,6 +505,24 @@ export async function outboxUpdate(item: OutboxItem): Promise<void> {
   await outboxPut([item]);
 }
 
+/** One outbox item, or null when it was delivered/removed meanwhile. */
+export async function outboxGet(id: string): Promise<OutboxItem | null> {
+  return parse<OutboxItem>(await kvOne({ op: "hget", key: K.outbox, field: id }));
+}
+
+/**
+ * Per-item lock (SET NX PX). Resolves to a release token, or null when someone else holds it. Release with
+ * `releaseItemLock` (compare-and-delete), so an expired lock re-acquired by another worker is never freed by us.
+ */
+export async function tryItemLock(item: string, ttlMs = 60_000): Promise<string | null> {
+  const token = randomBytes(9).toString("base64url");
+  return (await kvOne({ op: "set", key: K.itemLock(item), value: token, px: ttlMs, nx: true })) ? token : null;
+}
+
+export async function releaseItemLock(item: string, token: string): Promise<void> {
+  await kvOne({ op: "delifeq", key: K.itemLock(item), value: token });
+}
+
 export async function outboxRemove(ids: string[]): Promise<void> {
   if (!ids.length) return;
   await kvOne({ op: "hdel", key: K.outbox, fields: ids });
@@ -485,6 +532,18 @@ export async function outboxRemove(ids: string[]): Promise<void> {
 
 export async function getSleep(deskId: string): Promise<SleepSession | null> {
   return parse<SleepSession>(await kvOne({ op: "get", key: K.sleep(deskId) }));
+}
+
+/** Sleep sessions for many desks in ONE round-trip (tick alert routing). */
+export async function getSleeps(deskIds: string[]): Promise<Record<string, SleepSession>> {
+  if (!deskIds.length) return {};
+  const vals = (await kvBatch(deskIds.map((id) => ({ op: "get" as const, key: K.sleep(id) })))) as (string | null)[];
+  const out: Record<string, SleepSession> = {};
+  deskIds.forEach((id, i) => {
+    const s = parse<SleepSession>(vals[i]);
+    if (s) out[id] = s;
+  });
+  return out;
 }
 
 /** Starts or replaces a session and (re)schedules its wake. */
@@ -501,6 +560,21 @@ export async function putSleep(s: SleepSession): Promise<void> {
 /** Updates a session only if it still exists (never resurrects one ended concurrently). */
 export async function updateSleep(s: SleepSession): Promise<boolean> {
   return kvOne({ op: "set", key: K.sleep(s.deskId), value: enc(s), xx: true });
+}
+
+/**
+ * Atomically claims (GETDEL) and clears a desk's sleep session + wake entry. Exactly one concurrent caller gets the
+ * session, so the "I'm awake" route and a tick's due-wake pass can never both build and send the same digest.
+ */
+export async function takeSleep(deskId: string): Promise<SleepSession | null> {
+  const [raw] = await kvBatch(
+    [
+      { op: "getdel", key: K.sleep(deskId) },
+      { op: "zrem", key: K.wake, members: [deskId] },
+    ] as const,
+    { atomic: true }
+  );
+  return parse<SleepSession>(raw);
 }
 
 export async function deleteSleep(deskId: string): Promise<void> {
@@ -713,7 +787,12 @@ function metricsFor(w: Watch, s: WatchState | null): Record<string, string> {
     m.nextTranche = s.escrow.nextTranche >= 7 ? "all released" : `#${s.escrow.nextTranche}`;
     if (s.escrow.challengeState) m.challenge = `state ${s.escrow.challengeState}`;
   }
-  if (s.peers && Object.keys(s.peers).length) m.peers = `${Object.keys(s.peers).length} OFT peer${Object.keys(s.peers).length > 1 ? "s" : ""} tracked`;
+  if (s.peers) {
+    // Only numeric keys are LayerZero peer eids ("30184"); the rest is lane state ("<chainId>:paused|pauser|limit|window")
+    // and adapter governance ("gov:<chainId>:owner|threshold|owners") kept by the bridge lane guard.
+    const peers = Object.keys(s.peers).filter((k) => /^\d+$/.test(k)).length;
+    if (peers) m.peers = `${peers} OFT peer${peers > 1 ? "s" : ""} tracked`;
+  }
   if (s.scan) m.band = `${s.scan.band} ${s.scan.score}/100`;
   return m;
 }

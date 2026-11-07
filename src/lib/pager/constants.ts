@@ -7,6 +7,8 @@ import type { Hex } from "./types";
  * Night-Shift Pager engine constants: event topics, legacy proxy slots, LayerZero wiring and the
  * minimal ABIs the batched probe pass needs. Topics are derived from canonical signatures at module
  * load (never hand-typed); the hex prefixes in the comments were verified against live logs.
+ *
+ * CLIENT-SAFE (viem + @/config only): imported by the client-safe `rules.ts` catalogue. Keep node:* / KV out.
  */
 export const T = {
   ERC20_APPROVAL: toEventSelector("event Approval(address indexed owner, address indexed spender, uint256 value)"), // 0x8c5be1e5…b925 (ERC-721 Approval shares topic0, 4 topics)

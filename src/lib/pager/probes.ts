@@ -1,8 +1,10 @@
+import "server-only";
 import { type Abi, type Address, getAddress, type Log } from "viem";
 import { CONTRACTS } from "@/config/contracts";
 import { AERODROME_FACTORY_ABI, AERODROME_POOL_ABI, ERC20_ABI, OWNABLE_ABI, SAFE_MULTISIG_ABI, VIBES_ESCROW_ABI } from "@/lib/abis";
 import { CL_POOL_ABI } from "@/lib/abis/pools-extra";
 import { inspectRawBytecode, parseAddressFromSlot } from "@/lib/bytecode-signatures";
+import { isRpcFailure } from "@/lib/engine/call-errors";
 import { getLogsChunked, supportsTopicOnlyLogs } from "@/lib/engine/logs";
 import { getPublicClientForChain } from "@/lib/rpc";
 import type { ChainId } from "@/lib/engine/types";
@@ -294,22 +296,41 @@ type LogFilter = { address?: Address[]; topics: (Hex | Hex[] | null)[] };
  * RH topic-only 30k, bisection on result caps, 429 retries). A partially covered window throws so the
  * snapshot reports logsOk=false (never "nothing happened" when we did not look).
  */
-async function chunkedLogs(chainId: ChainId, f: LogFilter, from: bigint, to: bigint, notes: string[]): Promise<Log[]> {
+/** Max bisection depth for a window whose logs exceed LOG_CAP (2^3 = 8 sub-windows of ≤ LOG_CAP each). */
+const LOG_SPLIT_DEPTH = 3;
+
+async function chunkedLogs(chainId: ChainId, f: LogFilter, from: bigint, to: bigint, notes: string[], deadline: number, depth = 0): Promise<Log[]> {
+  if (Date.now() > deadline) throw new Error("log window split budget exhausted (window too busy this tick)");
   const res = await getLogsChunked(
     chainId,
     { address: f.address, topics: f.topics, fromBlock: from, toBlock: to },
-    { maxLogs: LOG_CAP, timeBudgetMs: 8_000, concurrency: chainId === 4663 ? 1 : 2, noCache: true }
+    { maxLogs: LOG_CAP, timeBudgetMs: Math.max(2_000, Math.min(8_000, deadline - Date.now())), concurrency: chainId === 4663 ? 1 : 2, noCache: true }
   );
   if (res.unsupported) throw new Error(res.unsupported);
   if (!res.complete && !res.truncated) throw new Error(res.note || `logs incomplete (${res.failedRanges[0]?.error ?? "partial coverage"})`);
-  if (res.truncated) notes.push(`logs truncated at ${LOG_CAP} (newest kept)`);
-  return res.logs;
+  if (!res.truncated) return res.logs;
+  // Truncated: keeping only the newest LOG_CAP would silently skip older logs while the cursor advances past them.
+  // 1) A grouped filter is split per address, so a busy token never hides a quiet token's older logs.
+  if (f.address && f.address.length > 1) {
+    const out: Log[] = [];
+    for (const a of f.address) out.push(...(await chunkedLogs(chainId, { ...f, address: [a] }, from, to, notes, deadline, depth)));
+    return out;
+  }
+  // 2) Bisect the window until every sub-window is complete; past the depth cap the window is reported failed
+  //    (logsOk=false → the cursor holds) instead of half-read.
+  if (depth >= LOG_SPLIT_DEPTH || to <= from) throw new Error(`more than ${LOG_CAP} logs in a ${to - from + 1n}-block sub-window; window not fully read`);
+  const mid = from + (to - from) / 2n;
+  const older = await chunkedLogs(chainId, f, from, mid, notes, deadline, depth + 1);
+  const newer = await chunkedLogs(chainId, f, mid + 1n, to, notes, deadline, depth + 1);
+  if (depth === 0) notes.push(`busy log window split into sub-windows (> ${LOG_CAP} logs)`);
+  return [...older, ...newer];
 }
 
 async function fetchLogs(chainId: ChainId, plan: ReadPlan, from: bigint, to: bigint, notes: string[]): Promise<ChainSnapshot["logs"]> {
   // Topic-only (all tokens + NFTs) where the provider allows it: Robinhood always; Base only with BASE_LOGS_RPC_URL.
   const topicOnly = supportsTopicOnlyLogs(chainId);
   const sequential = chainId === 4663;
+  const deadline = Date.now() + 18_000; // whole log pass, incl. splitting busy windows (probe timeout is 25 s)
   const jobs: (() => Promise<{ k: keyof ChainSnapshot["logs"]; logs: Log[] }>)[] = [];
 
   // Approvals: one query per ≤100 owners (Base: also ≤100 token addresses per query)
@@ -318,23 +339,23 @@ async function fetchLogs(chainId: ChainId, plan: ReadPlan, from: bigint, to: big
     const ownerChunks = chunk(uniqAddrs(owners.map((o) => o.owner)).map(pad32), LOG_FILTER_FANOUT);
     if (topicOnly) {
       for (const oc of ownerChunks) {
-        jobs.push(async () => ({ k: "approvals", logs: await chunkedLogs(chainId, { topics: [[T.ERC20_APPROVAL, T.APPROVAL_FOR_ALL, T.PERMIT2_APPROVAL, T.PERMIT2_PERMIT], oc] }, from, to, notes) }));
+        jobs.push(async () => ({ k: "approvals", logs: await chunkedLogs(chainId, { topics: [[T.ERC20_APPROVAL, T.APPROVAL_FOR_ALL, T.PERMIT2_APPROVAL, T.PERMIT2_PERMIT], oc] }, from, to, notes, deadline) }));
       }
     } else {
       const addrs = uniqAddrs([PERMIT2, ...owners.flatMap((o) => o.tokens)]);
       for (const ac of chunk(addrs, LOG_ADDRESS_FANOUT[chainId])) {
         for (const oc of ownerChunks) {
-          jobs.push(async () => ({ k: "approvals", logs: await chunkedLogs(chainId, { address: ac, topics: [[T.ERC20_APPROVAL, T.APPROVAL_FOR_ALL, T.PERMIT2_APPROVAL, T.PERMIT2_PERMIT], oc] }, from, to, notes) }));
+          jobs.push(async () => ({ k: "approvals", logs: await chunkedLogs(chainId, { address: ac, topics: [[T.ERC20_APPROVAL, T.APPROVAL_FOR_ALL, T.PERMIT2_APPROVAL, T.PERMIT2_PERMIT], oc] }, from, to, notes, deadline) }));
         }
       }
     }
   }
   const tokens = uniqAddrs(plan.transferTokens.filter((t) => t.chainId === chainId).map((t) => t.token));
-  for (const tc of chunk(tokens, LOG_ADDRESS_FANOUT[chainId])) jobs.push(async () => ({ k: "transfers", logs: await chunkedLogs(chainId, { address: tc, topics: [T.TRANSFER] }, from, to, notes) }));
+  for (const tc of chunk(tokens, LOG_ADDRESS_FANOUT[chainId])) jobs.push(async () => ({ k: "transfers", logs: await chunkedLogs(chainId, { address: tc, topics: [T.TRANSFER] }, from, to, notes, deadline) }));
   const admins = uniqAddrs(plan.adminAddrs.filter((a) => a.chainId === chainId).map((a) => a.address));
-  for (const ac of chunk(admins, LOG_ADDRESS_FANOUT[chainId])) jobs.push(async () => ({ k: "admin", logs: await chunkedLogs(chainId, { address: ac, topics: [ADMIN_TOPICS] }, from, to, notes) }));
+  for (const ac of chunk(admins, LOG_ADDRESS_FANOUT[chainId])) jobs.push(async () => ({ k: "admin", logs: await chunkedLogs(chainId, { address: ac, topics: [ADMIN_TOPICS] }, from, to, notes, deadline) }));
   const pools = uniqAddrs(plan.burnPools.filter((p) => p.chainId === chainId).map((p) => p.pool));
-  for (const pc of chunk(pools, LOG_ADDRESS_FANOUT[chainId])) jobs.push(async () => ({ k: "burns", logs: await chunkedLogs(chainId, { address: pc, topics: [[T.AERO_BURN, T.V3_BURN]] }, from, to, notes) }));
+  for (const pc of chunk(pools, LOG_ADDRESS_FANOUT[chainId])) jobs.push(async () => ({ k: "burns", logs: await chunkedLogs(chainId, { address: pc, topics: [[T.AERO_BURN, T.V3_BURN]] }, from, to, notes, deadline) }));
 
   const res: ChainSnapshot["logs"] = { approvals: [], transfers: [], admin: [], burns: [] };
   const results: { k: keyof ChainSnapshot["logs"]; logs: Log[] }[] = [];
@@ -343,6 +364,9 @@ async function fetchLogs(chainId: ChainId, plan: ReadPlan, from: bigint, to: big
   for (const r of results) res[r.k].push(...r.logs);
   return res;
 }
+
+/** The chain's state could not be read at all: the probe fails (the tick reports the chain not-ok). */
+class ProbeReadError extends Error {}
 
 const tokenInfoCache = new Map<string, { info: TokenInfo; at: number }>();
 const TOKEN_TTL_MS = 6 * 3_600_000;
@@ -392,14 +416,27 @@ export async function probeChain(chainId: ChainId, plan: ReadPlan, cursor: bigin
   const runMulticall = async () => {
     if (!calls.length) return;
     try {
-      const res = await withRetry(() =>
-        client.multicall({ allowFailure: true, blockNumber: to, batchSize: 16_384, contracts: calls.map(({ address, abi, functionName, args }) => ({ address, abi, functionName, args })) as never })
-      );
-      (res as { status: string; result?: unknown }[]).forEach((r, i) => {
+      const read = (cs: typeof calls) =>
+        withRetry(() =>
+          client.multicall({ allowFailure: true, blockNumber: to, batchSize: 16_384, contracts: cs.map(({ address, abi, functionName, args }) => ({ address, abi, functionName, args })) as never })
+        ) as Promise<{ status: "success" | "failure"; result?: unknown; error?: unknown }[]>;
+      const res = await read(calls);
+      // allowFailure turns a 429/timeout on an aggregate3 call into per-call failures (no throw, no withRetry):
+      // re-read the RPC-failed calls once, then report what is still missing as a hard multicall error.
+      const failedIdx = res.flatMap((r, i) => (isRpcFailure(r) ? [i] : []));
+      if (failedIdx.length) {
+        const again = await read(failedIdx.map((i) => calls[i])).catch(() => null);
+        if (again) failedIdx.forEach((i, k) => (res[i] = again[k] ?? res[i]));
+      }
+      res.forEach((r, i) => {
         data.calls![callKey(calls[i])] = r.status === "success" ? { ok: true, result: r.result } : { ok: false };
       });
+      const stillFailed = res.filter((r) => isRpcFailure(r)).length;
+      if (stillFailed === res.length) throw new Error(`all ${res.length} state reads failed (RPC error)`);
+      if (stillFailed) errors.push(`multicall: ${stillFailed}/${res.length} reads failed (RPC)`);
     } catch (e) {
       errors.push(`multicall: ${errText(e).slice(0, 160)}`);
+      throw new ProbeReadError(`multicall: ${errText(e).slice(0, 160)}`);
     }
   };
   const runSlots = async () => {
@@ -481,6 +518,8 @@ export async function probeChain(chainId: ChainId, plan: ReadPlan, cursor: bigin
       const res = (await withRetry(() => client.multicall({ allowFailure: true, blockNumber: to, batchSize: 16_384, contracts: followCalls as never }))) as { status: string; result?: unknown }[];
       const syms: Record<string, string> = {};
       const decs: Record<string, number> = {};
+      const fuFailed = res.filter((r) => isRpcFailure(r as { status: "success" | "failure"; error?: unknown })).length;
+      if (fuFailed) errors.push(`follow-up multicall: ${fuFailed}/${res.length} reads failed (RPC)`);
       res.forEach((r, i) => {
         const f = follow[i];
         if (r.status !== "success") return;

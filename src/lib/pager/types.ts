@@ -1,6 +1,10 @@
 /**
  * Night-Shift Pager data model (spec section 5). Every pager module codes against these types.
  * All uint256 values are carried as decimal strings (never JS Number) so they survive JSON + Redis.
+ *
+ * CLIENT-SAFE: this module is types only (no runtime imports), so UI code may import from it. Keep it that way:
+ * the other client-safe pager modules are `rules.ts` (catalogue + validation) and `constants.ts`; everything else
+ * in src/lib/pager is marked `import "server-only"` (node:crypto / node:dns / node:http(s) / KV).
  */
 import type { ChainId, Severity, TargetKind, ThreatBand } from "@/lib/engine/types";
 
@@ -46,7 +50,9 @@ export interface Watch {
   rules: RuleConfig[];
   /** Static facts captured once at arm time, so the tick never re-classifies. */
   meta: {
-    pool?: { address: Hex; kind: "aerodrome-v2" | "uniswap-v3"; token0: TokenRef; token1: TokenRef; feeBps: number; wethSide: 0 | 1 | null };
+    pool?: { address: Hex; kind: "aerodrome-v2" | "aerodrome-cl" | "uniswap-v3"; token0: TokenRef; token1: TokenRef; feeBps: number; wethSide: 0 | 1 | null;
+             /** Quote side by ADDRESS (USDC > USDbC > WETH > cbBTC, engine/sides.ts); derived on the fly for older watches. */
+             quoteSide?: 0 | 1 | null };
     token?: TokenRef;
     proxy?: { slots: ("eip1967Impl" | "eip1967Admin" | "eip1967Beacon" | "ozImpl" | "ozAdmin")[]; hasOwnerFn: boolean; safe: Hex | null };
     approvalTokens?: Hex[];        // Base address filter (TRACKED_TOKENS ∪ user extras ∪ held at arm); RH uses topic-only
@@ -58,7 +64,13 @@ export interface Watch {
   updatedAt: number;
 }
 
-export interface PoolSample { at: number; block: string; liq: string; px: string /* non-WETH token price in WETH, 1e18 */; wethDepth: string }
+export interface PoolSample {
+  at: number; block: string; liq: string;
+  px: string;        /* risky token priced in the quote token (1e18); see `q` */
+  wethDepth: string; /* quote-side depth in raw quote units (historically WETH) */
+  /** Quote side the sample is oriented on (absent = legacy wethSide orientation). Samples of another orientation are never compared. */
+  q?: 0 | 1;
+}
 
 export interface WatchState {
   v: 1;
@@ -81,6 +93,7 @@ export interface WatchState {
   seen: string[];                                  // last 100 dedupe keys
   cooldownUntil: Record<string /* ruleId */, number>;
   firing: Record<string /* ruleId */, boolean>;    // hysteresis: condition currently true
+  unbackedAlertId?: string;                        // id of the fired "UNBACKED $VIBES" alert, resolved by the recovery page
   lastAlert: { ruleType: RuleType; title: string; severity: Severity; at: number } | null;
   alertCount: number;
 }
@@ -131,6 +144,8 @@ export interface OutboxItem {
   status: { telegram?: "pending" | "sent" | "failed"; webhook?: "pending" | "sent" | "failed" };
   attempts: number;
   createdAt: number;
+  /** Sleep Mode woke the desk for this page: retries keep the "Woke you because:" intro. */
+  wokeYou?: boolean;
 }
 
 export interface WatchDigestSnapshot {
@@ -158,6 +173,8 @@ export interface DigestPayload {
   checks: number; blocks: Partial<Record<ChainId, { from: string; to: string; count: string }>>;
   perWatch: { watchId: string; label: string; chainId: ChainId; severity: Severity; lines: string[]; actions: { label: string; href: string }[] }[];
   pagedCount: number; deferredCount: number;
+  /** Sleep policy of the session ("page-all" pages warnings too, so pagedCount is not only CRITICAL). */
+  policy?: SleepSession["policy"];
   brief: { text: string; source: "deterministic" | "0g-compute" | "anthropic"; model: string | null };
 }
 
