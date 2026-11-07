@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { CONTRACTS } from "@/config/contracts";
 import { CORS_HEADERS, json, preflight, rateLimited } from "@/lib/api";
+import { cached } from "@/lib/cache";
 import { errMsg, normalizeChainId, parseAddress } from "@/lib/engine/chain-utils";
 import { readEscrow } from "@/lib/engine/escrow";
 import { escrowFindings } from "@/lib/engine/findings";
@@ -11,6 +12,9 @@ import { simulateExit } from "@/lib/engine/sim";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+/** Max JSON-RPC messages per HTTP request; each message is charged one rate-limit unit. */
+const MAX_BATCH = 20;
 
 const SUPPORTED_VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
 
@@ -67,10 +71,10 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<un
     case "scan_contract": {
       const address = parseAddress(args.address);
       if (!address) throw new Error("`address` must be a valid 0x address");
-      return guardVerdict(chainId, address, "preview");
+      return cached(`guard:preview:${chainId}:${address.toLowerCase()}`, 30, () => guardVerdict(chainId, address, "preview"));
     }
     case "check_bridge_parity": {
-      const p = await getBridgeParity({ overnight: false });
+      const p = await cached("parity:lite", 15, () => getBridgeParity({ overnight: false }));
       return { verified: p.verified, lockedOnBaseRaw: p.lockedOnBase, rhCirculatingRaw: p.rhCirculating, deltaRaw: p.delta, spreadBps: p.spreadBps, cheaperVenue: p.cheaperVenue, feeDragBps: p.feeDragBps, netEdgeBps: p.netEdgeBps, baseBlock: p.base.number, robinhoodBlock: p.robinhood.number };
     }
     case "simulate_exit":
@@ -96,6 +100,10 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<un
 }
 
 async function handleOne(msg: RpcReq): Promise<object | null> {
+  if (!msg || typeof msg !== "object" || typeof msg.method !== "string") {
+    if (msg && typeof msg === "object" && ("result" in msg || "error" in msg)) return null; // client JSON-RPC response → 202
+    return { jsonrpc: "2.0", id: (msg as { id?: unknown } | null)?.id ?? null, error: { code: -32600, message: "Invalid Request" } };
+  }
   const id = msg.id ?? null;
   const isNotification = msg.id === undefined;
   if (msg.method?.startsWith("notifications/")) return null;
@@ -142,15 +150,24 @@ async function handleOne(msg: RpcReq): Promise<object | null> {
 
 /** Streamable HTTP MCP endpoint (JSON responses; no server-initiated SSE stream). */
 export async function POST(req: Request) {
-  if (rateLimited(req, 60)) return json({ jsonrpc: "2.0", id: null, error: { code: -32000, message: "Rate limited" } }, { status: 429 });
   let payload: unknown;
+  let parsed = true;
   try {
     payload = await req.json();
   } catch {
-    return json({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } }, { status: 400 });
+    parsed = false;
   }
   const batch = Array.isArray(payload);
-  const messages = (batch ? payload : [payload]) as RpcReq[];
+  const messages = (parsed ? (batch ? payload : [payload]) : []) as RpcReq[];
+  // One unit per JSON-RPC message (oversized batches are charged the cap, then rejected).
+  if (await rateLimited(req, 60, { cost: Math.min(Math.max(messages.length, 1), MAX_BATCH) })) {
+    return json({ jsonrpc: "2.0", id: null, error: { code: -32000, message: "Rate limited" } }, { status: 429 });
+  }
+  if (!parsed) return json({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } }, { status: 400 });
+  if (batch && (messages.length === 0 || messages.length > MAX_BATCH)) {
+    const message = messages.length ? `Invalid Request: batch of ${messages.length} exceeds the max of ${MAX_BATCH} messages` : "Invalid Request: empty batch";
+    return json({ jsonrpc: "2.0", id: null, error: { code: -32600, message } }, { status: 400 });
+  }
   const responses = (await Promise.all(messages.map(handleOne))).filter((r): r is object => r !== null);
   if (!responses.length) return new NextResponse(null, { status: 202, headers: CORS_HEADERS });
   return json(batch ? responses : responses[0]);
