@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { cache } from "react";
 import { LIVE_DEMO_PRESETS } from "@/config/contracts";
+import { cached } from "@/lib/cache";
 import { Workspace, type TabKey } from "@/components/app/workspace";
 import { normalizeChainId, parseAddress } from "@/lib/engine/chain-utils";
 import { scanTarget } from "@/lib/engine/scan";
@@ -13,10 +14,17 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const BASE_META: Metadata = {
   title: "Sentinel Workspace",
   description: "Live overnight threat scan, rug simulator, Base ↔ Robinhood parity radar, Vibestarter Backer Shield, Panic Bunker and Night-Shift Pager.",
+  alternates: { canonical: "/app" },
 };
 
-/** Request-scoped dedupe so generateMetadata and the page share one live scan. */
-const scanOnce = cache((chainId: ChainId, target: Address) => scanTarget(chainId, target, { useLlm: false }).catch(() => null));
+/**
+ * Request-scoped dedupe (generateMetadata + page share one call) on top of the shared 30s KV cache. The key matches
+ * /api/scan's (`scan:<chain>:<addr>:<llm>:<tokens>`), so SSR and the client's own /api/scan fetch reuse one fan-out,
+ * and concurrent cold visitors coalesce on one in-flight scan.
+ */
+const scanOnce = cache((chainId: ChainId, target: Address) =>
+  cached(`scan:${chainId}:${target.toLowerCase()}:0:`, 30, () => scanTarget(chainId, target, { useLlm: false })).catch(() => null)
+);
 
 export async function generateMetadata({ searchParams }: { searchParams: SearchParams }): Promise<Metadata> {
   const sp = await searchParams;
@@ -35,6 +43,7 @@ export async function generateMetadata({ searchParams }: { searchParams: SearchP
   return {
     title,
     description,
+    alternates: { canonical: "/app" },
     openGraph: { title: `Kestrel · ${title}`, description, type: "website", images },
     twitter: { card: "summary_large_image", title: `Kestrel · ${title}`, description, images },
   };

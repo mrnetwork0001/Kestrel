@@ -24,24 +24,24 @@ function PanelSkeleton({ title, rows }: { title: string; rows: number }) {
 
 export default function Loading() {
   return (
-    <div className="mx-auto max-w-[1400px] px-4 pb-10 pt-8" aria-busy="true" aria-live="polite">
-      <div className="panel flex flex-col gap-2 p-2 md:flex-row md:items-center">
-        <div className="flex shrink-0 overflow-hidden rounded-[2px] border hairline mono text-[11px] text-ink-3">
-          <span className="px-3 py-2">BASE 8453</span>
-          <span className="px-3 py-2">ROBINHOOD 4663</span>
+    <div className="mx-auto max-w-[1400px] px-4 pb-10 pt-8 max-[900px]:pt-4 max-[600px]:px-2.5" aria-busy="true" aria-live="polite">
+      <div className="panel flex flex-col gap-2 p-2 min-[901px]:flex-row min-[901px]:items-center">
+        <div className="flex shrink-0 overflow-hidden rounded-[2px] border hairline mono text-[11px] text-ink-3 max-[900px]:grid max-[900px]:grid-cols-2">
+          <span className="px-3 py-2 max-[900px]:flex max-[900px]:min-h-10 max-[900px]:items-center">BASE 8453</span>
+          <span className="px-3 py-2 max-[900px]:flex max-[900px]:min-h-10 max-[900px]:items-center">ROBINHOOD 4663</span>
         </div>
-        <p className="flex-1 px-2 py-2 mono text-[13px] text-ink-3">
+        <p className="min-w-0 flex-1 truncate px-2 py-2 mono text-[13px] text-ink-3">
           <span className="text-phosphor">&gt;_</span> <span className="cursor-blink">Reading Base and Robinhood Chain</span>
         </p>
-        <div className="rounded-[2px] bg-phosphor/30 px-5 py-2 mono text-[12px] font-semibold text-canvas">SCANNING…</div>
+        <div className="rounded-[2px] bg-phosphor/30 px-5 py-2 mono text-[12px] font-semibold text-canvas max-[900px]:flex max-[900px]:min-h-11 max-[900px]:items-center max-[900px]:justify-center">SCANNING…</div>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap gap-2 max-[600px]:flex-nowrap max-[600px]:overflow-hidden">
         {Array.from({ length: 5 }, (_, i) => (
-          <div key={i} className="h-[30px] w-40 animate-pulse rounded-[2px] border hairline" />
+          <div key={i} className="h-[30px] w-40 animate-pulse rounded-[2px] border hairline max-[900px]:h-10 max-[600px]:shrink-0" />
         ))}
       </div>
-      <div className="mt-6 h-[38px] border hairline bg-white/[0.02]" />
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
+      <div className="mt-6 h-[38px] border hairline bg-white/[0.02] max-[900px]:mt-4 max-[900px]:h-[46px]" />
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] max-[900px]:mt-4 max-[600px]:gap-4">
         <div className="space-y-6">
           <section className="panel">
             <header className="border-b hairline px-4 py-2.5">
