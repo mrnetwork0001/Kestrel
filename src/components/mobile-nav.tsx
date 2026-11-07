@@ -48,8 +48,11 @@ export function MobileNav({ items }: { items: NavItem[] }) {
       return;
     }
     wasOpen.current = true;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    // Lock the root, not body: html has overflow-x:hidden at <=900px, so body's overflow no longer
+    // propagates to the viewport, and locking body would also re-anchor the sticky bars to body.
+    const root = document.documentElement;
+    const prevOverflow = root.style.overflow;
+    root.style.overflow = "hidden";
     closeRef.current?.focus({ preventScroll: true });
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -75,7 +78,7 @@ export function MobileNav({ items }: { items: NavItem[] }) {
     };
     document.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = prevOverflow;
+      root.style.overflow = prevOverflow;
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
@@ -142,7 +145,7 @@ export function MobileNav({ items }: { items: NavItem[] }) {
                   <span aria-hidden className="text-[15px] leading-none">&times;</span> CLOSE
                 </button>
               </div>
-              <nav aria-label="Site" className="flex-1 overflow-y-auto px-2 py-3">
+              <nav aria-label="Site" className="flex-1 overflow-y-auto overscroll-contain px-2 py-3">
                 <p className="label px-3 pb-2">Navigate</p>
                 <ul>
                   {items.map((n) => {
