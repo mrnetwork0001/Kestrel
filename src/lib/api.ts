@@ -3,7 +3,7 @@ import { kvIncrWithExpiry, localIncrWithExpiry } from "@/lib/kv";
 
 export const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, X-PAYMENT, Authorization, Mcp-Session-Id, MCP-Protocol-Version",
   "Access-Control-Expose-Headers": "X-PAYMENT-RESPONSE, Mcp-Session-Id",
 } as const;
