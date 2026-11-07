@@ -1,6 +1,7 @@
 "use client";
 
-import { ChainBadge, cx, SEVERITY_COLOR } from "@/components/ui";
+import { ChainDot } from "@/components/editorial";
+import { cx, SEVERITY_COLOR } from "@/components/ui";
 import { fmtDuration } from "@/lib/format";
 import type { DigestPayload } from "@/lib/pager/types";
 import { Tag } from "./pager-ui";
@@ -26,7 +27,7 @@ export function DigestView({ digest, compact }: { digest: DigestPayload; compact
         &gt;_ WHILE YOU SLEPT · {hhmm(digest.startedAt)} → {hhmm(digest.endedAt)}
         {digest.tz ? ` (${digest.tz})` : ""} · {fmtDuration(dur)}
       </p>
-      <p className="text-[12.5px] leading-relaxed text-ink-2">
+      <p className="text-[13px] leading-relaxed text-ink-2">
         Kestrel ran <span className="tnum text-ink">{digest.checks.toLocaleString("en-US")}</span> checks
         {base ? (
           <>
@@ -39,16 +40,18 @@ export function DigestView({ digest, compact }: { digest: DigestPayload; compact
             <span className="tnum text-rh">{fmtCount(rh.count)}</span> Robinhood blocks
           </>
         ) : null}
-        . {digest.pagedCount} critical page{digest.pagedCount === 1 ? "" : "s"} sent · {digest.deferredCount} warning{digest.deferredCount === 1 ? "" : "s"} held for this digest.
+        . {digest.pagedCount} {digest.policy === "page-all" ? "page" : "critical page"}
+        {digest.pagedCount === 1 ? "" : "s"} sent · {digest.deferredCount} warning{digest.deferredCount === 1 ? "" : "s"} held for this digest.
       </p>
+      {digest.checks === 0 && <p className="mono text-[12px] text-warn">No sentinel checks ran during this window.</p>}
       {digest.perWatch.length > 0 && (
         <ul className={cx("space-y-2", compact && "space-y-1.5")}>
           {digest.perWatch.map((w) => (
-            <li key={w.watchId} className="border-l-2 border-white/10 pl-3">
-              <div className="flex flex-wrap items-center gap-2 text-[12.5px]">
+            <li key={w.watchId} className="border-l border-hair-strong pl-3">
+              <div className="flex flex-wrap items-center gap-2 text-[13px]">
                 <span className={cx("mono", SEVERITY_COLOR[w.severity])}>{w.severity === "info" ? "○" : "●"}</span>
                 <span className="text-ink">{w.label}</span>
-                <ChainBadge chainId={w.chainId} />
+                <ChainDot chainId={w.chainId} />
               </div>
               {w.lines.map((l, i) => (
                 <p key={i} className="mt-0.5 mono text-[11px] leading-relaxed text-ink-2">
@@ -61,7 +64,7 @@ export function DigestView({ digest, compact }: { digest: DigestPayload; compact
                     const h = safeHref(a.href);
                     return h ? (
                       <a key={i} href={h} className="mono text-[11px] text-crit hover:underline">
-                        {a.label} →
+                        {a.label}
                       </a>
                     ) : null;
                   })}
@@ -72,12 +75,12 @@ export function DigestView({ digest, compact }: { digest: DigestPayload; compact
         </ul>
       )}
       {digest.brief?.text && (
-        <div className="border hairline bg-canvas p-3">
+        <div className="border-l-2 border-phosphor/50 pl-3">
           <div className="flex items-center gap-2">
-            <p className="label text-[10px]">Morning desk brief</p>
+            <p className="t-kicker">Morning desk brief</p>
             <Tag>{digest.brief.source}</Tag>
           </div>
-          <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-2">{digest.brief.text}</p>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-ink-2">{digest.brief.text}</p>
         </div>
       )}
     </div>

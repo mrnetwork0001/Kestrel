@@ -24,7 +24,7 @@ function Slider({ label, value, min, max, step, fmt, onChange }: { label: string
   return (
     <label className="block">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="mono text-[10.5px] uppercase tracking-wider text-ink-3">{label}</span>
+        <span className="mono text-[11px] uppercase tracking-wider text-ink-meta">{label}</span>
         <span className="tnum text-[12px] text-ink">{fmt(value)}</span>
       </div>
       <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} className="mt-1.5 w-full" />
@@ -56,7 +56,7 @@ function RuleParams({ rule, set }: { rule: RuleConfig; set: (r: RuleConfig) => v
     case "escrow_window_closing":
       return (
         <div>
-          <p className="mono text-[10.5px] uppercase tracking-wider text-ink-3">Warn when time left crosses</p>
+          <p className="mono text-[11px] uppercase tracking-wider text-ink-meta">Warn when time left crosses</p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {MARK_OPTIONS.map((h) => {
               const on = rule.marksHours.includes(h);
@@ -66,7 +66,7 @@ function RuleParams({ rule, set }: { rule: RuleConfig; set: (r: RuleConfig) => v
                   type="button"
                   aria-pressed={on}
                   onClick={() => set({ ...rule, marksHours: on ? rule.marksHours.filter((x) => x !== h) : [...rule.marksHours, h].sort((a, b) => b - a) })}
-                  className={cx("rounded-[2px] border px-2 py-0.5 tnum text-[11px] max-[601px]:min-w-[48px]", on ? "border-phosphor/50 bg-phosphor/[0.08] text-phosphor" : "hairline text-ink-3 hover:text-ink")}
+                  className={cx("rounded-[2px] border px-2 py-0.5 tnum text-[11px] max-[601px]:min-w-[48px]", on ? "border-phosphor/50 bg-phosphor/[0.08] text-phosphor" : "hairline text-ink-meta hover:text-ink")}
                 >
                   {h}h
                 </button>
@@ -80,7 +80,7 @@ function RuleParams({ rule, set }: { rule: RuleConfig; set: (r: RuleConfig) => v
     case "wallet_new_approval":
       return (
         <div>
-          <p className="mono text-[10.5px] uppercase tracking-wider text-ink-3">Bounded approval to a known spender (Uniswap, Aerodrome, Permit2…)</p>
+          <p className="mono text-[11px] uppercase tracking-wider text-ink-meta">Bounded approval to a known spender (Uniswap, Aerodrome, Permit2…)</p>
           <div className="mt-1.5 flex gap-1.5">
             {(["warn", "ignore"] as const).map((v) => (
               <button
@@ -88,7 +88,7 @@ function RuleParams({ rule, set }: { rule: RuleConfig; set: (r: RuleConfig) => v
                 type="button"
                 aria-pressed={rule.knownSpenders === v}
                 onClick={() => set({ ...rule, knownSpenders: v })}
-                className={cx("rounded-[2px] border px-2 py-0.5 mono text-[11px] uppercase max-[601px]:flex-1", rule.knownSpenders === v ? "border-phosphor/50 bg-phosphor/[0.08] text-phosphor" : "hairline text-ink-3 hover:text-ink")}
+                className={cx("rounded-[2px] border px-2 py-0.5 mono text-[11px] uppercase max-[601px]:flex-1", rule.knownSpenders === v ? "border-phosphor/50 bg-phosphor/[0.08] text-phosphor" : "hairline text-ink-meta hover:text-ink")}
               >
                 {v}
               </button>
@@ -128,7 +128,7 @@ export function WatchEditor({ watch, mutations, onDone }: { watch: WatchView; mu
   return (
     <div className="mt-3 space-y-4 border-t hairline pt-4">
       <label className="block">
-        <span className="label text-[10px]">Label (plain text, 80 chars)</span>
+        <span className="t-kicker text-[11px]">Label (plain text, 80 chars)</span>
         <input value={label} maxLength={80} onChange={(e) => setLabel(e.target.value)} className={cx(inputCls, "mt-1.5")} />
       </label>
 
@@ -140,12 +140,12 @@ export function WatchEditor({ watch, mutations, onDone }: { watch: WatchView; mu
 
       <ul className="space-y-3">
         {rules.map((r, i) => (
-          <li key={r.id} className={cx("border hairline p-3", !r.enabled && "opacity-60")}>
+          <li key={r.id} className={cx("border-t border-hair py-3", !r.enabled && "opacity-60")}>
             <div className="flex items-start gap-3">
               <Switch checked={r.enabled} onChange={(v) => setRule(i, { ...r, enabled: v } as RuleConfig)} label={`${RULE_LABEL[r.type]} ${r.enabled ? "on" : "off"}`} className="mt-0.5" />
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] text-ink">{RULE_LABEL[r.type] ?? r.type}</p>
-                <p className="mt-0.5 text-[11.5px] leading-snug text-ink-3">{RULE_HELP[r.type]}</p>
+                <p className="mt-0.5 text-[11.5px] leading-snug text-ink-meta">{RULE_HELP[r.type]}</p>
               </div>
             </div>
             {r.enabled && (

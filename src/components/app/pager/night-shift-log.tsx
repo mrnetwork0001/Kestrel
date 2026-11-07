@@ -1,7 +1,8 @@
 "use client";
 
-import { ChainBadge, cx, Panel } from "@/components/ui";
-import { Dot, Note, Tag } from "./pager-ui";
+import { ChainDot } from "@/components/editorial";
+import { cx } from "@/components/ui";
+import { Tag, Dot, Note, Section } from "./pager-ui";
 import { ago, errStatus, errText, fmtBlock, toMs, useNow, usePagerStatus, type PagerStatus } from "./use-pager";
 
 function fmtCount(v: string | number | null | undefined): string {
@@ -47,11 +48,10 @@ export function NightShiftLog() {
   const stateText = !s ? (q.isLoading ? "CONNECTING" : "UNAVAILABLE") : !s.lastTick ? "NO TICK YET" : stale ? "STALE" : s.healthy === false ? "DEGRADED" : "LIVE";
 
   return (
-    <Panel
+    <Section
       title="Night-shift log · public proof-of-watch"
-      n="01"
       right={
-        <span className={cx("flex items-center gap-2 mono text-[11px] tracking-wider", tone === "phosphor" ? "text-phosphor" : tone === "warn" ? "text-warn" : "text-ink-3")}>
+        <span className={cx("flex items-center gap-2 mono text-[11px] tracking-wider", tone === "phosphor" ? "text-phosphor" : tone === "warn" ? "text-warn" : "text-ink-meta")}>
           <Dot tone={tone} live={stateText === "LIVE"} />
           {stateText}
         </span>
@@ -75,9 +75,9 @@ export function NightShiftLog() {
               ) : (
                 <span className="text-warn">No tick recorded yet: the scheduler has not run against this storage.</span>
               )}
-              <span className="text-ink-3"> ({cadenceText(cadence)})</span>
+              <span className="text-ink-meta"> ({cadenceText(cadence)})</span>
             </span>
-            {s.lastTick?.durationMs !== undefined && <span className="text-ink-3">pass took <span className="tnum text-ink-2">{fmtCount(s.lastTick.durationMs)} ms</span></span>}
+            {s.lastTick?.durationMs !== undefined && <span className="text-ink-meta">pass took <span className="tnum text-ink-2">{fmtCount(s.lastTick.durationMs)} ms</span></span>}
             {schedKind && <Tag tone={schedKind === "opportunistic-only" ? "warn" : "muted"} title={schedKind === "opportunistic-only" ? "No external scheduler has called the tick yet; ticks run when the status endpoint is visited." : undefined}>sched · {schedKind}</Tag>}
             {s.chain && s.chain.checked > 0 && (
               <Tag tone={s.chain.valid ? "phosphor" : "crit"} title={s.chain.algorithm}>
@@ -87,7 +87,7 @@ export function NightShiftLog() {
             {s.storage && <Tag tone={s.storage === "memory" ? "warn" : "muted"}>{s.storage === "memory" ? "dev memory" : s.storage}</Tag>}
           </div>
 
-          <div className="grid grid-cols-2 gap-px border hairline bg-white/[0.06] sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid grid-cols-2 border-t border-hair sm:grid-cols-3">
             <Cell label="Base head checked" value={fmtBlock(s.lastTick?.chains?.["8453"]?.block ?? null)} tone="base" />
             <Cell label="RH head checked" value={fmtBlock(s.lastTick?.chains?.["4663"]?.block ?? null)} tone="rh" />
             <Cell label="Checks total" value={fmtCount(s.checks ?? s.window?.ticks ?? s.last24h?.ticks)} />
@@ -104,16 +104,16 @@ export function NightShiftLog() {
 
           {s.log && s.log.length > 0 && (
             <div>
-              <p className="label mb-2">Recent ticks</p>
-              <ul className="divide-y divide-white/[0.06] border hairline">
+              <p className="t-kicker mb-2 text-ink-2">Recent ticks</p>
+              <ul className="divide-y divide-hair border-y border-hair">
                 {s.log.slice(0, 5).map((t) => (
-                  <li key={t.tickId} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 px-3 py-1.5 mono text-[11px]">
+                  <li key={t.tickId} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 py-2.5 mono text-[12px]">
                     <Dot tone={t.chains?.[8453]?.ok === false || t.chains?.[4663]?.ok === false ? "warn" : t.alerts > 0 ? "crit" : "phosphor"} />
                     <span className="min-w-0 truncate text-ink-2">
-                      <span className="tnum text-ink-3">{ago(t.startedAt, now)}</span> · {fmtBlock(t.chains?.[8453]?.to ?? null)} <span className="text-ink-3">/</span> {fmtBlock(t.chains?.[4663]?.to ?? null)} · {t.evaluated} eval · {t.alerts} alert{t.alerts === 1 ? "" : "s"}
-                      <span className="hidden text-ink-3 sm:inline"> · {fmtCount(t.durationMs)} ms · {t.reason}</span>
+                      <span className="tnum text-ink-meta">{ago(t.startedAt, now)}</span> · {fmtBlock(t.chains?.[8453]?.to ?? null)} <span className="text-ink-meta">/</span> {fmtBlock(t.chains?.[4663]?.to ?? null)} · {t.evaluated} eval · {t.alerts} alert{t.alerts === 1 ? "" : "s"}
+                      <span className="hidden text-ink-meta sm:inline"> · {fmtCount(t.durationMs)} ms · {t.reason}</span>
                     </span>
-                    <span className="tnum text-ink-3" title={t.hash}>
+                    <span className="tnum text-ink-meta" title={t.hash}>
                       {t.hash.slice(0, 8)}
                     </span>
                   </li>
@@ -124,14 +124,14 @@ export function NightShiftLog() {
 
           {s.systemDesk?.watches?.length ? (
             <div>
-              <p className="label mb-2">Public $VIBES system desk</p>
-              <ul className="divide-y divide-white/[0.06] border hairline">
+              <p className="t-kicker mb-2 text-ink-2">Public $VIBES system desk</p>
+              <ul className="divide-y divide-hair border-y border-hair">
                 {s.systemDesk.watches.map((w, i) => (
-                  <li key={`${w.label}-${i}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-[12px]">
+                  <li key={`${w.label}-${i}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-[13px]">
                     <Dot tone={w.status === "alerting" ? "crit" : w.status === "error" ? "warn" : w.status === "ok" ? "phosphor" : "muted"} />
                     <span className="min-w-0 truncate text-ink">{w.label}</span>
-                    <ChainBadge chainId={w.chainId} />
-                    <span className="ml-auto mono text-[11px] text-ink-3">{lastAlertText(w.lastAlert, now)}</span>
+                    <ChainDot chainId={w.chainId} />
+                    <span className="ml-auto mono text-[11px] text-ink-meta">{lastAlertText(w.lastAlert, now)}</span>
                   </li>
                 ))}
               </ul>
@@ -139,16 +139,16 @@ export function NightShiftLog() {
           ) : null}
         </div>
       )}
-    </Panel>
+    </Section>
   );
 }
 
 function Cell({ label, value, tone, title }: { label: string; value: string; tone?: "base" | "rh" | "warn"; title?: string }) {
   const c = tone === "base" ? "text-base" : tone === "rh" ? "text-rh" : tone === "warn" ? "text-warn" : "text-ink";
   return (
-    <div className="min-w-0 bg-surface px-3 py-2.5" title={title}>
-      <p className="label truncate text-[10px]">{label}</p>
-      <p className={cx("mt-1 truncate tnum text-[15px]", c)}>{value}</p>
+    <div className="min-w-0 border-b border-hair py-3 pr-3" title={title}>
+      <p className="t-kicker truncate">{label}</p>
+      <p className={cx("mt-1.5 truncate tnum text-[18px] leading-tight", c)}>{value}</p>
     </div>
   );
 }

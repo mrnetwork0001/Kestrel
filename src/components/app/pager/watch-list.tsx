@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { isAddress } from "viem";
 import { CONTRACTS } from "@/config/contracts";
-import { AddrLink, ChainBadge, cx, Panel, SEVERITY_COLOR } from "@/components/ui";
+import { AddrLink, ChainBadge, cx, SEVERITY_COLOR } from "@/components/ui";
 import { chainShort, shortAddr } from "@/lib/format";
 import type { WatchView } from "@/lib/pager/types";
-import { Btn, Dot, inputCls, Note, RULE_CHIP, Switch, Tag, type DotTone } from "./pager-ui";
+import { Tag, Btn, Dot, type DotTone, inputCls, Instrument, Note, RULE_CHIP, Switch } from "./pager-ui";
 import { WatchEditor } from "./watch-editor";
 import { ago, errStatus, errText, fmtBlock, hhmm, useNow, usePagerMutations } from "./use-pager";
 
@@ -117,10 +117,9 @@ export function WatchList({
   const arming = createWatch.isPending;
 
   return (
-    <Panel
+    <Instrument
       title="Watches"
-      n="03"
-      right={hasDesk && maxWatches !== null ? <span className="tnum text-[11px] text-ink-3">{watches.length} / {maxWatches}</span> : undefined}
+      right={hasDesk && maxWatches !== null ? <span className="tnum text-[11px] text-ink-meta">{watches.length} / {maxWatches}</span> : undefined}
     >
       {!hasDesk ? (
         <div className="space-y-2">
@@ -148,11 +147,11 @@ export function WatchList({
           {full && <Note tone="warn">This desk is at its {maxWatches}-watch limit. Delete a watch to arm another.</Note>}
 
           {formOpen && (
-            <div className="space-y-2 border hairline p-3">
+            <div className="space-y-2 border-t border-hair pt-3">
               <div className="flex flex-col gap-2 sm:flex-row">
                 <div className="flex shrink-0 overflow-hidden rounded-[2px] border hairline mono text-[11px]">
                   {[8453, 4663].map((c) => (
-                    <button key={c} type="button" onClick={() => setCid(c)} className={cx("flex-1 px-3 py-2 tracking-wider", cid === c ? (c === 4663 ? "bg-rh/15 text-rh" : "bg-base/15 text-base") : "text-ink-3 hover:text-ink")}>
+                    <button key={c} type="button" onClick={() => setCid(c)} className={cx("flex-1 px-3 py-2 tracking-wider", cid === c ? (c === 4663 ? "bg-rh/15 text-rh" : "bg-base/15 text-base") : "text-ink-meta hover:text-ink")}>
                       {c === 4663 ? "RH 4663" : "BASE 8453"}
                     </button>
                   ))}
@@ -172,7 +171,7 @@ export function WatchList({
           {watches.length === 0 ? (
             <Note>No watches yet. Arm the current target or follow the $VIBES bridge to start the night shift.</Note>
           ) : (
-            <ul className="divide-y divide-white/[0.06] border hairline">
+            <ul className="divide-y divide-hair border-y border-hair">
               {watches.map((w) => (
                 <WatchRow
                   key={w.id}
@@ -189,7 +188,7 @@ export function WatchList({
           )}
         </div>
       )}
-    </Panel>
+    </Instrument>
   );
 }
 
@@ -245,7 +244,7 @@ function WatchRow({
             <Note tone="warn" className="mt-2">All rules off: this watch checks state but never pages.</Note>
           )}
 
-          <div className="mt-2 space-y-0.5 mono text-[11px] text-ink-3">
+          <div className="mt-2 space-y-0.5 mono text-[11px] text-ink-meta">
             <p>
               {w.state.lastCheckedAt ? (
                 <>
@@ -268,7 +267,7 @@ function WatchRow({
             <dl className="mt-2 grid grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-2">
               {metrics.map(([k, v]) => (
                 <div key={k} className="flex min-w-0 justify-between gap-2 mono text-[11px]">
-                  <dt className="truncate text-ink-3">{k}</dt>
+                  <dt className="truncate text-ink-meta">{k}</dt>
                   <dd className="truncate tnum text-ink-2" title={v}>
                     {v}
                   </dd>

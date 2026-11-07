@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { cx, Panel } from "@/components/ui";
+import { cx } from "@/components/ui";
 import { fmtDuration } from "@/lib/format";
 import type { DeskPublic, SleepPublic } from "@/lib/pager/types";
 import { DigestView } from "./digest-view";
-import { Btn, Dot, inputCls, Note, Switch } from "./pager-ui";
+import { Btn, Dot, inputCls, Instrument, Note, Switch } from "./pager-ui";
 import { errText, hhmm, useNow, usePagerMutations, type SleepStopResponse } from "./use-pager";
 
 const MIN_H = 1;
@@ -61,9 +61,8 @@ export function SleepPanel({ desk, sleep, watchCount, mutations }: { desk: DeskP
   const wakeLeft = sleep && now !== null ? Math.max(0, (sleep.wakeAt - now) / 1000) : null;
 
   return (
-    <Panel
+    <Instrument
       title="Sleep mode"
-      n="05"
       right={
         sleeping ? (
           <span className="flex items-center gap-2 mono text-[11px] tracking-wider text-base">
@@ -79,9 +78,9 @@ export function SleepPanel({ desk, sleep, watchCount, mutations }: { desk: DeskP
         <div className="space-y-4">
           <p className="mono text-[12.5px] leading-relaxed text-ink">
             Sleeping since <span className="tnum">{hhmm(sleep.startedAt)}</span> · digest at <span className="tnum text-base">{hhmm(sleep.wakeAt)}</span>
-            {wakeLeft !== null && <span className="text-ink-3"> (in {fmtDuration(wakeLeft)})</span>}
+            {wakeLeft !== null && <span className="text-ink-meta"> (in {fmtDuration(wakeLeft)})</span>}
           </p>
-          <div className="grid grid-cols-3 gap-px border hairline bg-white/[0.06]">
+          <div className="grid grid-cols-3 border-y border-hair">
             <Mini label="Held for digest" value={String(sleep.deferredCount)} />
             <Mini label="Woke you" value={String(sleep.pagedCount)} tone={sleep.pagedCount > 0 ? "crit" : undefined} />
             <Mini label="Policy" value={sleep.policy === "critical-only" ? "CRIT ONLY" : "PAGE ALL"} />
@@ -107,10 +106,10 @@ export function SleepPanel({ desk, sleep, watchCount, mutations }: { desk: DeskP
         <div className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <label className="block sm:w-40">
-              <span className="label text-[10px]">Wake me at</span>
+              <span className="t-kicker text-[11px]">Wake me at</span>
               <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={cx(inputCls, "mt-1.5 tnum text-[14px] [color-scheme:dark]")} aria-label="Wake time" />
             </label>
-            <div className="min-w-0 flex-1 mono text-[11.5px] text-ink-3">
+            <div className="min-w-0 flex-1 mono text-[11.5px] text-ink-meta">
               <p>
                 Timezone <span className="text-ink-2">{tz ?? "unknown"}</span>
               </p>
@@ -154,15 +153,15 @@ export function SleepPanel({ desk, sleep, watchCount, mutations }: { desk: DeskP
           )}
         </div>
       )}
-    </Panel>
+    </Instrument>
   );
 }
 
 function Mini({ label, value, tone }: { label: string; value: string; tone?: "crit" }) {
   return (
-    <div className="min-w-0 bg-surface px-3 py-2">
-      <p className="label truncate text-[10px]">{label}</p>
-      <p className={cx("mt-0.5 tnum text-[15px]", tone === "crit" ? "text-crit" : "text-ink")}>{value}</p>
+    <div className="min-w-0 border-l border-hair py-2.5 pl-3 first:border-l-0 first:pl-0">
+      <p className="t-kicker truncate">{label}</p>
+      <p className={cx("mt-1 tnum text-[18px] leading-tight", tone === "crit" ? "text-crit" : "text-ink")}>{value}</p>
     </div>
   );
 }

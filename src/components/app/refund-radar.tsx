@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { type Address, BaseError, ContractFunctionRevertedError, getAddress } from "viem";
 import { useAccount, useConnect, usePublicClient, useSwitchChain, useWriteContract } from "wagmi";
-import { Countdown } from "@/components/countdown";
-import { cx, Stat, TxLink } from "@/components/ui";
+import { cx, TxLink } from "@/components/ui";
 import { fmtUnits, fmtUtc } from "@/lib/format";
 import type { EscrowReport } from "@/lib/engine/types";
 import { VS_ESCROW_EXTRA_ABI } from "@/lib/vibestarter/abis";
@@ -25,6 +24,19 @@ function decodeErr(e: unknown): string {
   return e instanceof Error ? e.message.slice(0, 200) : String(e).slice(0, 200);
 }
 
+const FIG_TONE = { phosphor: "text-phosphor", warn: "text-warn", crit: "text-crit" } as const;
+
+/** Unboxed figure, split from its neighbours by whitespace only (PAPER: no borders, no fills). */
+function Fig({ label, value, sub, tone }: { label: string; value: ReactNode; sub?: ReactNode; tone?: keyof typeof FIG_TONE }) {
+  return (
+    <div className="min-w-0">
+      <p className="t-kicker">{label}</p>
+      <p className={cx("mt-2 tnum text-[22px] leading-tight [overflow-wrap:anywhere] max-[601px]:text-[18px]", tone ? FIG_TONE[tone] : "text-ink")}>{value}</p>
+      {sub && <p className="mt-1 mono text-[12px] leading-snug text-ink-meta">{sub}</p>}
+    </div>
+  );
+}
+
 type WalletRefund = { contributed: bigint; refundClaimed: boolean; merkleClaimed: boolean | null };
 
 /** Refund Radar: live refund economics for Failed / Refunding escrows + a per-wallet check and simulate-then-sign claim. */
@@ -35,33 +47,31 @@ export function RefundRadar({ e }: { e: EscrowReport }) {
   const dec = e.tokenDecimals ?? 18;
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Stat label="Refund mode" value={r.mode === "contributor" ? "Contributor" : "Holder (merkle)"} sub={<span className="mono">{r.claimFunction}</span>} />
-        <Stat label="ETH still in escrow" value={`${fmtUnits(r.escrowBalance, 18, 4)} Ξ`} tone={r.allClaimed ? "phosphor" : "warn"} />
+      <div className="grid grid-cols-2 gap-x-6 gap-y-5 md:grid-cols-4">
+        <Fig label="Refund mode" value={r.mode === "contributor" ? "Contributor" : "Holder (merkle)"} sub={<span className="mono">{r.claimFunction}</span>} />
+        <Fig label="ETH still in escrow" value={`${fmtUnits(r.escrowBalance, 18, 4)} Ξ`} tone={r.allClaimed ? "phosphor" : "warn"} />
         {r.mode === "holder" ? (
           <>
-            <Stat label="Unclaimed refunds" value={r.unclaimedEthEstimate != null ? `${fmtUnits(r.unclaimedEthEstimate, 18, 4)} Ξ` : "unavailable"} sub={r.redeemedBps != null ? `${(r.redeemedBps / 100).toFixed(2)}% of snapshot supply redeemed` : undefined} tone="warn" />
-            <Stat label={`ETH per 1M ${sym}`} value={r.ethPerMillionTokens != null ? `${fmtUnits(r.ethPerMillionTokens, 18, 6)} Ξ` : "unavailable"} sub={r.frozenEthBalance != null && r.frozenTotalSupply != null ? `${fmtUnits(r.frozenEthBalance, 18, 4)} Ξ over ${fmtUnits(r.frozenTotalSupply, dec, 0)} ${sym}` : undefined} />
+            <Fig label="Unclaimed refunds" value={r.unclaimedEthEstimate != null ? `${fmtUnits(r.unclaimedEthEstimate, 18, 4)} Ξ` : "unavailable"} sub={r.redeemedBps != null ? `${(r.redeemedBps / 100).toFixed(2)}% of snapshot supply redeemed` : undefined} tone="warn" />
+            <Fig label={`ETH per 1M ${sym}`} value={r.ethPerMillionTokens != null ? `${fmtUnits(r.ethPerMillionTokens, 18, 6)} Ξ` : "unavailable"} sub={r.frozenEthBalance != null && r.frozenTotalSupply != null ? `${fmtUnits(r.frozenEthBalance, 18, 4)} Ξ over ${fmtUnits(r.frozenTotalSupply, dec, 0)} ${sym}` : undefined} />
           </>
         ) : (
           <>
-            <Stat label="Deadline" value="None" sub="Failed escrows have no sweep" />
-            <Stat label="Status" value={r.allClaimed ? "All claimed" : "Open"} tone={r.allClaimed ? "phosphor" : "warn"} />
+            <Fig label="Deadline" value="None" sub="Failed escrows have no sweep" />
+            <Fig label="Status" value={r.allClaimed ? "All claimed" : "Open"} tone={r.allClaimed ? "phosphor" : "warn"} />
           </>
         )}
       </div>
       {r.sweepAfter && (
-        <div className="border border-warn/40 bg-warn/[0.05] p-4 max-[601px]:p-3">
-          <p className="label text-warn">Holder refund window closes in</p>
-          <p className="mt-2 tnum text-[28px] text-warn max-[601px]:text-[24px]">
-            <Countdown to={r.sweepAfter} initialNow={e.oracleTime} />
-          </p>
-          <p className="mt-1 text-[12px] text-ink-2">
+        <div className="border-l-2 border-warn pl-4">
+          <p className="t-kicker text-warn">Holder refund window closes</p>
+          <p className="mt-2 tnum text-[22px] text-warn max-[601px]:text-[18px]">{r.sweepAfter > e.oracleTime ? fmtUtc(r.sweepAfter) : "closed · sweep allowed"}</p>
+          <p className="mt-1 max-w-[70ch] text-[13px] leading-relaxed text-ink-2">
             Refunding started {fmtUtc(r.refundingStartTime ?? 0)}; after {fmtUtc(r.sweepAfter)} the admin may call sweepResidualEth() and unclaimed ETH goes to the platform wallet (REFUND_SWEEP_DELAY = 180 days, read onchain).
           </p>
         </div>
       )}
-      <p className="text-[12px] text-ink-2">{r.note}</p>
+      <p className="max-w-[70ch] text-[14px] leading-relaxed text-ink-2">{r.note}</p>
       <WalletRefundCheck e={e} />
     </div>
   );
@@ -137,13 +147,13 @@ function WalletRefundCheck({ e }: { e: EscrowReport }) {
   };
 
   return (
-    <div className="border hairline p-4 max-[601px]:p-3">
-      <p className="label">Your refund · wallet check</p>
+    <div className="border-t border-hair pt-4">
+      <p className="t-kicker">Your refund · wallet check</p>
       {!isConnected || !address ? (
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="text-[12px] text-ink-3">Connect a wallet to read your contribution and refund status from the escrow (read-only until you choose to sign).</span>
+          <span className="text-[12px] text-ink-meta">Connect a wallet to read your contribution and refund status from the escrow (read-only until you choose to sign).</span>
           {connectors.map((c) => (
-            <button key={c.uid} onClick={() => connect({ connector: c, chainId })} disabled={connecting} className="rounded-[2px] border border-hair-strong px-3 py-1.5 mono text-[11px] text-ink hover:border-phosphor/60 hover:text-phosphor disabled:opacity-40 max-[601px]:flex-1">
+            <button key={c.uid} onClick={() => connect({ connector: c, chainId })} disabled={connecting} className="rounded-[2px] border border-hair-strong min-h-[40px] px-3 py-1.5 mono text-[12px] text-ink hover:border-phosphor/60 hover:text-phosphor disabled:opacity-40 max-[601px]:flex-1">
               {c.name}
             </button>
           ))}
@@ -151,36 +161,36 @@ function WalletRefundCheck({ e }: { e: EscrowReport }) {
       ) : readErr ? (
         <p className="mt-2 mono text-[12px] text-crit">Wallet read failed: {readErr}</p>
       ) : !w ? (
-        <p className="mt-2 mono text-[12px] text-ink-3 cursor-blink">Reading getContribution({address.slice(0, 8)}…)</p>
+        <p className="mt-2 mono text-[12px] text-ink-meta cursor-blink">Reading getContribution({address.slice(0, 8)}…)</p>
       ) : (
         <div className="mt-3 space-y-3 text-[12px]">
           <dl className="grid grid-cols-[auto_minmax(0,1fr)] [overflow-wrap:anywhere] gap-x-4 gap-y-1">
-            <dt className="text-ink-3">Contributed</dt>
+            <dt className="text-ink-meta">Contributed</dt>
             <dd className="tnum text-ink">{fmtUnits(w.contributed, 18, 6)} Ξ</dd>
             {r.mode === "contributor" ? (
               <>
-                <dt className="text-ink-3">Refund</dt>
-                <dd className={w.refundClaimed ? "text-phosphor" : w.contributed > 0n ? "text-warn" : "text-ink-3"}>{w.contributed === 0n ? "nothing owed — not a contributor" : w.refundClaimed ? "already claimed" : "unclaimed"}</dd>
+                <dt className="text-ink-meta">Refund</dt>
+                <dd className={w.refundClaimed ? "text-phosphor" : w.contributed > 0n ? "text-warn" : "text-ink-meta"}>{w.contributed === 0n ? "nothing owed — not a contributor" : w.refundClaimed ? "already claimed" : "unclaimed"}</dd>
               </>
             ) : (
               <>
-                <dt className="text-ink-3">Holder refund</dt>
+                <dt className="text-ink-meta">Holder refund</dt>
                 <dd className={w.merkleClaimed ? "text-phosphor" : "text-ink-2"}>{w.merkleClaimed == null ? "unavailable" : w.merkleClaimed ? "already claimed" : "not claimed yet"}</dd>
               </>
             )}
           </dl>
           {r.mode === "contributor" && w.contributed > 0n && !w.refundClaimed && (
             <div className="flex flex-wrap items-center gap-2 max-[601px]:grid max-[601px]:grid-cols-1">
-              <button onClick={simulate} disabled={sim.status === "pending"} className="rounded-[2px] border border-hair-strong px-3 py-1.5 mono text-[11px] text-ink hover:border-phosphor/60 hover:text-phosphor disabled:opacity-40 max-[901px]:min-h-[44px]">
+              <button onClick={simulate} disabled={sim.status === "pending"} className="rounded-[2px] border border-hair-strong min-h-[40px] px-3 py-1.5 mono text-[12px] text-ink hover:border-phosphor/60 hover:text-phosphor disabled:opacity-40 max-[901px]:min-h-[44px]">
                 {sim.status === "pending" ? "simulating…" : "1 · Simulate claimContributorRefund()"}
               </button>
-              <button onClick={claim} disabled={sim.status !== "ok" || tx.status === "signing" || tx.status === "sent"} className="rounded-[2px] border border-phosphor/50 px-3 py-1.5 mono text-[11px] text-phosphor hover:bg-phosphor/10 disabled:opacity-30 max-[901px]:min-h-[44px]">
+              <button onClick={claim} disabled={sim.status !== "ok" || tx.status === "signing" || tx.status === "sent"} className="rounded-[2px] border border-phosphor/50 px-3 py-1.5 mono text-[12px] text-phosphor hover:bg-phosphor/10 disabled:opacity-30 max-[901px]:min-h-[44px]">
                 2 · Sign claim
               </button>
             </div>
           )}
           {r.mode === "holder" && (
-            <p className="text-ink-3">
+            <p className="text-ink-meta">
               Holder refunds need a merkle proof from Vibestarter&apos;s refund tree (no public proof endpoint), so the claim runs on the raise page.{" "}
               {e.vibestarterUrl && (
                 <a href={e.vibestarterUrl} target="_blank" rel="noreferrer" className="text-warn hover:underline">
@@ -189,9 +199,9 @@ function WalletRefundCheck({ e }: { e: EscrowReport }) {
               )}
             </p>
           )}
-          {sim.message && <p className={cx("mono text-[11px] [overflow-wrap:anywhere]", sim.status === "ok" ? "text-phosphor" : "text-crit")}>{sim.message}</p>}
+          {sim.message && <p className={cx("mono text-[12px] [overflow-wrap:anywhere]", sim.status === "ok" ? "text-phosphor" : "text-crit")}>{sim.message}</p>}
           {tx.status !== "idle" && (
-            <p className={cx("mono text-[11px]", tx.status === "failed" ? "text-crit" : tx.status === "confirmed" ? "text-phosphor" : "text-ink-2")}>
+            <p className={cx("mono text-[12px]", tx.status === "failed" ? "text-crit" : tx.status === "confirmed" ? "text-phosphor" : "text-ink-2")}>
               {tx.status === "signing" ? "Confirm in your wallet…" : tx.status === "sent" ? "Sent — waiting for confirmation " : tx.message}
               {tx.hash && <TxLink chainId={e.chainId} hash={tx.hash} label=" tx ↗" />}
             </p>

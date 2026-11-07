@@ -14,6 +14,40 @@ const VARIANT: Record<Variant, string> = {
   quiet: "border hairline text-ink-2 hover:border-hair-strong hover:text-ink",
 };
 
+/**
+ * INSTRUMENT chrome for the pager forms (desk, watches, delivery, sleep, live test): today's .panel look with a
+ * numberless bracket label. `n` is accepted and ignored (spec §1.3 rule 4: no numbered labels).
+ */
+export function Instrument({ title, right, children, className }: { title?: string; n?: string; right?: ReactNode; children: ReactNode; className?: string }) {
+  return (
+    <section className={cx("panel min-w-0 max-w-full max-[901px]:overflow-x-clip", className)}>
+      {title && (
+        <header className="flex items-center justify-between gap-3 border-b border-hair px-5 py-3 max-[601px]:flex-wrap max-[601px]:gap-y-1 max-[601px]:px-3">
+          <h3 className="t-kicker min-w-0 text-ink-2">[ {title} ]</h3>
+          {right}
+        </header>
+      )}
+      <div className="p-5 max-[601px]:p-3">{children}</div>
+    </section>
+  );
+}
+
+/**
+ * PAPER section for the pager's logs (night-shift log, recent pages): a 1px strong top rule, kicker title, right meta.
+ * No border and no fill; rows inside are ruled with hairlines.
+ */
+export function Section({ title, right, children, className }: { title: string; n?: string; right?: ReactNode; children: ReactNode; className?: string }) {
+  return (
+    <section className={cx("min-w-0 border-t border-hair-strong pt-4", className)}>
+      <header className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        <h3 className="t-kicker text-ink-2">{title}</h3>
+        {right}
+      </header>
+      {children}
+    </section>
+  );
+}
+
 export function Btn({ variant = "ghost", size = "md", className, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: "sm" | "md" }) {
   return (
     <button
@@ -21,9 +55,10 @@ export function Btn({ variant = "ghost", size = "md", className, ...rest }: Butt
       {...rest}
       className={cx(
         "inline-flex items-center justify-center gap-1.5 rounded-[2px] mono tracking-wider transition-colors disabled:cursor-not-allowed disabled:opacity-40",
-        size === "sm" ? "px-2 py-1 text-[10.5px]" : "px-3.5 py-2 text-[12px]",
+        size === "sm" ? "px-2 py-1 text-[11px]" : "min-h-[40px] px-3.5 py-2 text-[12px]",
         // <=900px: every button is >=36px (globals.css); primary actions get the 44px touch target.
         variant === "primary" && "max-[901px]:min-h-[44px]",
+        "press",
         VARIANT[variant],
         className
       )}
@@ -64,16 +99,16 @@ export function Dot({ tone, live, className }: { tone: DotTone; live?: boolean; 
 }
 
 const TAG_TONE: Record<DotTone, string> = {
-  phosphor: "border-phosphor/30 text-phosphor",
-  warn: "border-warn/40 text-warn",
-  crit: "border-crit/40 text-crit",
-  muted: "border-hair-strong text-ink-3",
-  base: "border-base/30 text-base",
+  phosphor: "text-phosphor",
+  warn: "text-warn",
+  crit: "text-crit",
+  muted: "text-ink-meta",
+  base: "text-base",
 };
 
 export function Tag({ tone = "muted", children, className, title }: { tone?: DotTone; children: ReactNode; className?: string; title?: string }) {
   return (
-    <span title={title} className={cx("inline-flex items-center gap-1 whitespace-nowrap rounded-[2px] border px-1.5 py-0.5 mono text-[10px] uppercase tracking-wider", TAG_TONE[tone], className)}>
+    <span title={title} className={cx("inline-flex items-center gap-1 whitespace-nowrap mono text-[11px] uppercase tracking-wider", TAG_TONE[tone], className)}>
       {children}
     </span>
   );
@@ -103,11 +138,11 @@ export function Switch({ checked, onChange, label, disabled, className }: { chec
 }
 
 export const inputCls =
-  "w-full min-w-0 rounded-[2px] border hairline bg-canvas px-3 py-2 mono text-[12px] text-ink placeholder:text-ink-3 focus:border-phosphor/50 focus:outline-none disabled:opacity-50 max-[901px]:min-h-[44px] max-[901px]:text-[16px]";
+  "w-full min-w-0 rounded-[2px] border hairline bg-canvas px-3 py-2 mono text-[12px] text-ink placeholder:text-ink-meta focus:border-phosphor/50 focus:outline-none disabled:opacity-50 max-[901px]:min-h-[44px] max-[901px]:text-[16px]";
 
 export function Note({ tone = "muted", children, className }: { tone?: "muted" | "warn" | "crit" | "phosphor"; children: ReactNode; className?: string }) {
-  const c = { muted: "text-ink-3", warn: "text-warn", crit: "text-crit", phosphor: "text-phosphor" }[tone];
-  return <p className={cx("mono text-[11px] leading-relaxed", c, className)}>{children}</p>;
+  const c = { muted: "text-ink-meta", warn: "text-warn", crit: "text-crit", phosphor: "text-phosphor" }[tone];
+  return <p className={cx("mono text-[12px] leading-relaxed", c, className)}>{children}</p>;
 }
 
 export const RULE_LABEL: Record<RuleType, string> = {

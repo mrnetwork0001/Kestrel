@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type Abi, type Address, BaseError, ContractFunctionRevertedError, encodeFunctionData, getAddress, type Hex, parseUnits } from "viem";
 import { useAccount, useCapabilities, useConnect, usePublicClient, useSendCalls, useSwitchChain, useWaitForCallsStatus, useWriteContract } from "wagmi";
-import { AddrLink, cx, Panel, Stat, TxLink } from "@/components/ui";
+import { AddrLink, cx, Panel, TxLink } from "@/components/ui";
+import { DataList, type DataRow } from "@/components/data/data-list";
 import { ERC20_ABI } from "@/lib/abis";
-import { explorerBlock, fmtDuration, fmtUnits, fmtUtc, shortAddr } from "@/lib/format";
+import { explorerBlock, fmtUnits, fmtUtc, shortAddr } from "@/lib/format";
 import {
   CHALLENGE_CHAIN_CONFIG,
   decodeRevertData,
@@ -25,7 +26,7 @@ const ROUTER_ABI = [...ROUTER_CLAIM_ABI, ...ESCROW_CHALLENGE_COMMON_ABI.filter((
 const TOKEN_ABI = [...ERC20_ABI, ...ESCROW_CHALLENGE_COMMON_ABI.filter((x) => x.type === "error")] as Abi;
 
 const PHASE_STYLE: Record<ChallengePhase, string> = {
-  NOT_FUNDED: "border-hair-strong text-ink-3",
+  NOT_FUNDED: "border-hair-strong text-ink-meta",
   FAILED: "border-hair-strong text-ink-2",
   AWAITING_UNLOCK: "border-base/40 text-base",
   AWAITING_REQUEST: "border-base/50 text-base",
@@ -70,15 +71,25 @@ function decodeErr(e: unknown): string {
   return e instanceof Error ? e.message.slice(0, 220) : String(e).slice(0, 220);
 }
 
-function Until({ to, now0, done = "elapsed" }: { to: number; now0: number; done?: string }) {
-  const [now, setNow] = useState(now0);
-  useEffect(() => {
-    setNow(Math.floor(Date.now() / 1000));
-    const id = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000);
-    return () => clearInterval(id);
-  }, []);
-  const left = to - now;
-  return <span>{left > 0 ? fmtDuration(left) : done}</span>;
+/**
+ * The Backer Shield's NEXT figure holds the tab's single live countdown; the co-pilot shows fixed UTC dates instead.
+ * `now0` is the escrow oracle time from the same read, so past/future is decided on chain time, not the browser clock.
+ */
+function UtcAt({ to, now0, done = "elapsed" }: { to: number; now0: number; done?: string }) {
+  return <span>{to > now0 ? fmtUtc(to) : done}</span>;
+}
+
+const FIG_TONE = { phosphor: "text-phosphor", warn: "text-warn", crit: "text-crit", base: "text-base", rh: "text-rh" } as const;
+
+/** Unboxed figure (kicker label, mono value, meta sub-line): the co-pilot is one instrument, so nothing inside it gets a box. */
+function Fig({ label, value, sub, tone }: { label: string; value: ReactNode; sub?: ReactNode; tone?: keyof typeof FIG_TONE }) {
+  return (
+    <div className="min-w-0">
+      <p className="t-kicker">{label}</p>
+      <p className={cx("mt-2 tnum text-[20px] leading-tight [overflow-wrap:anywhere] max-[601px]:text-[18px]", tone ? FIG_TONE[tone] : "text-ink")}>{value}</p>
+      {sub && <p className="mt-1 mono text-[12px] leading-snug text-ink-meta">{sub}</p>}
+    </div>
+  );
 }
 
 /** Captured at module load: the workspace rewrites the query string on mount, so read `dryrun=1` before that. */
@@ -129,16 +140,16 @@ export function ChallengeCopilot({ escrow, chainId }: { escrow: string; chainId:
     staleTime: 10_000,
   });
 
-  if (error && !r) return <Panel title="Backer Challenge Co-pilot" n="07"><p className="mono text-[12px] text-crit">Co-pilot read failed: {error.message}</p></Panel>;
-  if (!r) return <Panel title="Backer Challenge Co-pilot" n="07"><p className="mono text-[12px] text-ink-3 cursor-blink">Reading challenge state, bond economics and trust surface live</p></Panel>;
+  if (error && !r) return <Panel title="Live // Backer Challenge Co-pilot"><p className="mono text-[12px] text-crit">Co-pilot read failed: {error.message}</p></Panel>;
+  if (!r) return <Panel title="Live // Backer Challenge Co-pilot"><p className="mono text-[12px] text-ink-meta cursor-blink">Reading challenge state, bond economics and trust surface live</p></Panel>;
 
   return (
     <Panel
-      title="Backer Challenge Co-pilot"
-      n="07"
+      title="Live // Backer Challenge Co-pilot"
+     
       className="max-[601px]:border-x-0"
       right={
-        <span className="whitespace-nowrap mono text-[10px] text-ink-3">
+        <span className="whitespace-nowrap mono text-[11px] text-ink-meta">
           {isFetching ? "refreshing…" : <a href={explorerBlock(r.chainId, r.block.number)} target="_blank" rel="noreferrer" className="hover:text-ink">block #{BigInt(r.block.number).toLocaleString("en-US")} ↗</a>}
         </span>
       }
@@ -153,7 +164,7 @@ export function ChallengeCopilot({ escrow, chainId }: { escrow: string; chainId:
         <DryRun r={r} />
         <Actions r={r} address={address} isConnected={isConnected} walletChainId={walletChainId} onDone={() => qc.invalidateQueries({ queryKey: ["challenge", cid, escrow.toLowerCase()] })} />
         <RulesAndTrust r={r} />
-        <p className="border-t hairline pt-3 mono text-[10px] leading-relaxed text-ink-3">
+        <p className="border-t hairline pt-3 mono text-[11px] leading-relaxed text-ink-meta">
           Kestrel never adjudicates or recommends challenging; not financial advice. Every figure above is read live from {r.chainId === 4663 ? "Robinhood Chain" : "Base"} at block #{BigInt(r.block.number).toLocaleString("en-US")} (escrow oracle time {fmtUtc(r.oracleTime)}).
           {r.notes.map((n) => ` ${n}`).join("")}
         </p>
@@ -168,34 +179,34 @@ function StatusStrip({ r }: { r: CopilotReport }) {
   return (
     <div>
       <div className="flex flex-wrap items-center gap-3">
-        <span className={cx("rounded-[2px] border px-2 py-1 mono text-[11px] tracking-wider", PHASE_STYLE[r.phase])}>● {r.phase.replace(/_/g, " ")}</span>
-        <span className="mono text-[11px] text-ink-3">{r.gen === "v1" ? "v1 escrow · Vibestarter terms signature gate" : r.gen === "v2" ? "v2 escrow · on-chain eligibility credential gate" : "unrecognized escrow"}</span>
+        <span className={cx("mono text-[12px] tracking-wider", PHASE_STYLE[r.phase])}>● {r.phase.replace(/_/g, " ")}</span>
+        <span className="mono text-[11px] text-ink-meta">{r.gen === "v1" ? "v1 escrow · Vibestarter terms signature gate" : r.gen === "v2" ? "v2 escrow · on-chain eligibility credential gate" : "unrecognized escrow"}</span>
         {r.impl && <AddrLink chainId={r.chainId} address={r.impl} label={`impl ${shortAddr(r.impl, 4)}`} className="text-[11px]" />}
       </div>
       <p className="mt-2 text-[13px] text-ink-2">{r.phaseDetail}</p>
       <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
         {n ? (
           <>
-            <Stat
-              label={n.requestedAt > 0 ? "Window closes in" : "Tranche unlocks in"}
-              value={n.requestedAt > 0 && n.windowEndsAt ? <Until to={n.windowEndsAt} now0={r.oracleTime} done="window closed" /> : <Until to={n.unlockTime} now0={r.oracleTime} done="unlocked · awaiting request" />}
+            <Fig
+              label={n.requestedAt > 0 ? "Window closes" : `T${n.tranche} unlocks`}
+              value={n.requestedAt > 0 && n.windowEndsAt ? <UtcAt to={n.windowEndsAt} now0={r.oracleTime} done="window closed" /> : <UtcAt to={n.unlockTime} now0={r.oracleTime} done="unlocked · awaiting request" />}
               tone={r.phase === "WINDOW_OPEN" ? "warn" : "base"}
-              sub={n.requestedAt > 0 && n.windowEndsAt ? `closes ${fmtUtc(n.windowEndsAt)}` : `T${n.tranche} unlock ${fmtUtc(n.unlockTime)}`}
+              sub="countdown: see Next above"
             />
-            <Stat label={`Next tranche · T${n.tranche}`} value={eth(n.amountWei)} sub={n.claimed ? "claimed" : n.challenged ? "under challenge" : "not yet paid"} />
-            <Stat label={`Bond · ${(n.thresholdBps / 100).toFixed(2)}% of supply`} value={`${fmtUnits(n.bond, r.token.decimals, 0)} ${sym}`} sub={n.bondEthSpot ? `≈ ${eth(n.bondEthSpot)} at spot${n.bondEthExit ? ` · ${eth(n.bondEthExit)} if sold` : ""}` : "spot value unavailable"} />
-            <Stat label="Slash at risk (20%)" value={`${fmtUnits(n.slashAtRisk, r.token.decimals, 0)} ${sym}`} tone="crit" sub={n.slashEthSpot ? `≈ ${eth(n.slashEthSpot)} burned if rejected` : "burned to 0xdead if rejected"} />
+            <Fig label={`Next tranche · T${n.tranche}`} value={eth(n.amountWei)} sub={n.claimed ? "claimed" : n.challenged ? "under challenge" : "not yet paid"} />
+            <Fig label={`Bond · ${(n.thresholdBps / 100).toFixed(2)}% of supply`} value={`${fmtUnits(n.bond, r.token.decimals, 0)} ${sym}`} sub={n.bondEthSpot ? `≈ ${eth(n.bondEthSpot)} at spot${n.bondEthExit ? ` · ${eth(n.bondEthExit)} if sold` : ""}` : "spot value unavailable"} />
+            <Fig label="Slash at risk (20%)" value={`${fmtUnits(n.slashAtRisk, r.token.decimals, 0)} ${sym}`} tone="crit" sub={n.slashEthSpot ? `≈ ${eth(n.slashEthSpot)} burned if rejected` : "burned to 0xdead if rejected"} />
           </>
         ) : (
           <>
-            <Stat label="Onchain state" value={r.stateLabel} tone={[4, 5, 6].includes(r.state) ? "crit" : undefined} />
-            <Stat label="Escrow ETH" value={eth(r.escrowEth.balance)} />
-            <Stat label="Challenges filed" value={r.challengeSeq} />
-            <Stat label="Token" value={sym} sub={`${fmtUnits(r.token.totalSupply, r.token.decimals, 0)} supply`} />
+            <Fig label="Onchain state" value={r.stateLabel} tone={[4, 5, 6].includes(r.state) ? "crit" : undefined} />
+            <Fig label="Escrow ETH" value={eth(r.escrowEth.balance)} />
+            <Fig label="Challenges filed" value={r.challengeSeq} />
+            <Fig label="Token" value={sym} sub={`${fmtUnits(r.token.totalSupply, r.token.decimals, 0)} supply`} />
           </>
         )}
       </div>
-      <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 mono text-[11px] text-ink-3">
+      <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 mono text-[11px] text-ink-meta">
         <span>
           adjudicator{" "}
           {r.admin ? <AddrLink chainId={r.chainId} address={r.admin} /> : "unavailable"}{" "}
@@ -217,23 +228,23 @@ function LiveChallenge({ r }: { r: CopilotReport }) {
   const [full, setFull] = useState(false);
   const reason = full ? c.reason : c.reason.slice(0, 280);
   return (
-    <div className={cx("border p-4 max-[601px]:p-3", c.active ? "border-crit/50 bg-crit/[0.05]" : "hairline")}>
-      <p className={cx("label", c.active ? "text-crit" : "text-ink-3")}>{c.active ? `Live challenge #${c.seq} · tranche ${c.tranche}` : `Previous challenge #${c.seq} · ${c.stateLabel}`}</p>
+    <div className={cx("border-l-2 pl-4", c.active ? "border-crit" : "border-hair-strong")}>
+      <p className={cx("t-kicker", c.active ? "text-crit" : "text-ink-meta")}>{c.active ? `Live challenge #${c.seq} · tranche ${c.tranche}` : `Previous challenge #${c.seq} · ${c.stateLabel}`}</p>
       <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Stat label="Challenger" value={<AddrLink chainId={r.chainId} address={c.challenger} />} />
-        <Stat label="Bond staked" value={`${fmtUnits(c.bond, r.token.decimals, 0)} ${r.token.symbol}`} />
-        <Stat label="Filed" value={fmtUtc(c.filedAt).slice(5)} />
-        <Stat label={c.active ? "Expirable in" : "State"} value={c.active ? <Until to={c.deadline} now0={r.oracleTime} done="expirable now" /> : c.stateLabel} tone={c.active ? "crit" : undefined} sub={c.active ? `adjudication deadline ${fmtUtc(c.deadline)}` : undefined} />
+        <Fig label="Challenger" value={<AddrLink chainId={r.chainId} address={c.challenger} />} />
+        <Fig label="Bond staked" value={`${fmtUnits(c.bond, r.token.decimals, 0)} ${r.token.symbol}`} />
+        <Fig label="Filed" value={fmtUtc(c.filedAt).slice(5)} />
+        <Fig label={c.active ? "Expirable after" : "State"} value={c.active ? <UtcAt to={c.deadline} now0={r.oracleTime} done="expirable now" /> : c.stateLabel} tone={c.active ? "crit" : undefined} sub={c.active ? "adjudication deadline" : undefined} />
       </div>
       <p className="mt-3 whitespace-pre-wrap break-words text-[12px] text-ink-2">&ldquo;{reason}{!full && c.reason.length > 280 ? "…" : ""}&rdquo;</p>
-      {c.reason.length > 280 && <button onClick={() => setFull((v) => !v)} className="mt-1 mono text-[10px] text-ink-3 hover:text-ink">{full ? "collapse" : "show full reason"}</button>}
+      {c.reason.length > 280 && <button onClick={() => setFull((v) => !v)} className="mt-1 mono text-[11px] text-ink-meta hover:text-ink">{full ? "collapse" : "show full reason"}</button>}
       {r.votes && (
         <div className="mt-3 border-t hairline pt-3 mono text-[11px] text-ink-2">
           <p>
             support {r.votes.support} ({fmtUnits(r.votes.supportWeight, r.token.decimals, 0)} {r.token.symbol}) · oppose {r.votes.oppose} ({fmtUnits(r.votes.opposeWeight, r.token.decimals, 0)} {r.token.symbol})
             {r.wallet && ` · your vote: ${["none", "support", "oppose"][r.wallet.currentVote]}`}
           </p>
-          <p className="mt-1 text-[10px] text-ink-3">{r.votes.note}{r.votes.complete ? "" : ` Logs scanned from block ${r.votes.scannedFromBlock} only.`}</p>
+          <p className="mt-1 text-[11px] text-ink-meta">{r.votes.note}{r.votes.complete ? "" : ` Logs scanned from block ${r.votes.scannedFromBlock} only.`}</p>
         </div>
       )}
     </div>
@@ -242,13 +253,13 @@ function LiveChallenge({ r }: { r: CopilotReport }) {
 
 function CheckRow({ s }: { s: ReadinessStep }) {
   return (
-    <li className="flex items-start gap-2 text-[12px] max-[601px]:flex-wrap max-[601px]:gap-y-0.5">
-      <span className={cx("w-4 shrink-0 mono", s.status === "pass" ? "text-phosphor" : s.status === "fail" ? "text-crit" : "text-ink-3")}>{s.status === "pass" ? "✓" : s.status === "fail" ? "✗" : "?"}</span>
-      <span className="min-w-0 flex-1 text-ink-2">
+    <li className="flex items-start gap-2 text-[13px] max-[601px]:flex-wrap max-[601px]:gap-y-0.5">
+      <span className={cx("w-4 shrink-0 mono", s.status === "pass" ? "text-phosphor" : s.status === "fail" ? "text-crit" : "text-ink-meta")}>{s.status === "pass" ? "✓" : s.status === "fail" ? "✗" : "?"}</span>
+      <span className="min-w-0 flex-1 text-ink">
         {s.label}
-        {s.detail && <span className="text-ink-3"> · {s.detail}</span>}
+        {s.detail && <span className="text-ink-2"> · {s.detail}</span>}
       </span>
-      <span className={cx("shrink-0 mono text-[10px] max-[601px]:basis-full max-[601px]:pl-6 max-[601px]:[overflow-wrap:anywhere]", s.status === "fail" ? "text-crit" : "text-ink-3")}>{s.revert}</span>
+      <span className={cx("shrink-0 mono text-[12px] max-[601px]:basis-full max-[601px]:pl-6 max-[601px]:[overflow-wrap:anywhere]", s.status === "fail" ? "text-crit" : "text-ink-meta")}>{s.revert}</span>
     </li>
   );
 }
@@ -258,55 +269,55 @@ function Position({ r, isConnected }: { r: CopilotReport; isConnected: boolean }
   const w = r.wallet;
   const firstFail = r.raiseChecklist.find((s) => s.status === "fail" && s.id !== "allowance");
   return (
-    <div className="border hairline p-4 max-[601px]:p-3">
-      <p className="label">Your position · readiness in contract revert order</p>
+    <div className="min-w-0 border-t border-hair pt-4">
+      <p className="t-kicker">Your position · readiness in contract revert order</p>
       {!isConnected ? (
         <div className="mt-3">
-          <p className="text-[12px] text-ink-3">Read-only so far. Connect a wallet to check your credential, cooldown, bond balance and claimable funds. Nothing is signed by connecting.</p>
+          <p className="text-[13px] text-ink-2">Read-only so far. Connect a wallet to check your credential, cooldown, bond balance and claimable funds. Nothing is signed by connecting.</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {connectors.map((c) => (
-              <button key={c.uid} onClick={() => connect({ connector: c, chainId: r.chainId === 4663 ? 4663 : 8453 })} disabled={isPending} className="rounded-[2px] border border-hair-strong px-3 py-1.5 mono text-[11px] text-ink hover:border-phosphor/60 hover:text-phosphor disabled:opacity-40">
+              <button key={c.uid} onClick={() => connect({ connector: c, chainId: r.chainId === 4663 ? 4663 : 8453 })} disabled={isPending} className="rounded-[2px] border border-hair-strong px-3 py-1.5 mono text-[12px] text-ink hover:border-phosphor/60 hover:text-phosphor disabled:opacity-40">
                 {c.name}
               </button>
             ))}
           </div>
         </div>
       ) : w ? (
-        <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[12px] max-[901px]:grid-cols-[auto_minmax(0,1fr)] max-[901px]:[overflow-wrap:anywhere] max-[601px]:gap-x-3">
-          <dt className="text-ink-3">Wallet</dt>
-          <dd><AddrLink chainId={r.chainId} address={w.address} /> <span className="mono text-[11px] text-ink-3">{fmtUnits(w.nativeBalance, 18, 5)} Ξ gas</span></dd>
-          <dt className="text-ink-3">{r.token.symbol}</dt>
-          <dd className="tnum text-ink">{fmtUnits(w.balance, r.token.decimals, 2)}{r.next && <span className="text-ink-3"> / bond {fmtUnits(r.next.bond, r.token.decimals, 0)}</span>}</dd>
-          <dt className="text-ink-3">Allowance → escrow</dt>
+        <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[13px] max-[901px]:grid-cols-[auto_minmax(0,1fr)] max-[901px]:[overflow-wrap:anywhere] max-[601px]:gap-x-3">
+          <dt className="text-ink-2">Wallet</dt>
+          <dd><AddrLink chainId={r.chainId} address={w.address} /> <span className="mono text-[12px] text-ink-meta">{fmtUnits(w.nativeBalance, 18, 5)} Ξ gas</span></dd>
+          <dt className="text-ink-2">{r.token.symbol}</dt>
+          <dd className="tnum text-ink">{fmtUnits(w.balance, r.token.decimals, 2)}{r.next && <span className="text-ink-meta"> / bond {fmtUnits(r.next.bond, r.token.decimals, 0)}</span>}</dd>
+          <dt className="text-ink-2">Allowance → escrow</dt>
           <dd className="tnum text-ink-2">{fmtUnits(w.allowance, r.token.decimals, 2)}</dd>
-          <dt className="text-ink-3">{r.gen === "v1" ? "Terms nonce" : "Credential"}</dt>
+          <dt className="text-ink-2">{r.gen === "v1" ? "Terms nonce" : "Credential"}</dt>
           <dd className={cx(r.gen === "v1" ? "text-ink-2" : w.eligible ? "text-phosphor" : "text-warn")}>
             {r.gen === "v1" ? `nonce ${w.v1Nonce ?? "unavailable"} · signature must come from Vibestarter` : w.credential ? `tier ${w.credential.tier} · expires ${fmtUtc(w.credential.expiresAt).slice(0, 10)}${w.eligible ? " · eligible" : " · not eligible"}` : w.eligible ? "eligible" : "no live credential"}
           </dd>
-          <dt className="text-ink-3">Contribution</dt>
+          <dt className="text-ink-2">Contribution</dt>
           <dd className="text-ink-2">{w.contribution && BigInt(w.contribution.amount) > 0n ? `${eth(w.contribution.amount)}${w.contribution.refundClaimed ? " · refund claimed" : ""}` : "none"}</dd>
-          <dt className="text-ink-3">Backer tokens</dt>
+          <dt className="text-ink-2">Backer tokens</dt>
           <dd className="text-ink-2">{w.claimableTokens == null ? "unavailable" : w.hasClaimedTokens ? "claimed" : `${fmtUnits(w.claimableTokens, r.token.decimals, 2)} claimable`}</dd>
-          <dt className="text-ink-3">Cooldown</dt>
-          <dd className="text-ink-2">{w.cooldownEndsAt ? <Until to={w.cooldownEndsAt} now0={r.oracleTime} done="elapsed" /> : "never challenged"}</dd>
+          <dt className="text-ink-2">Cooldown</dt>
+          <dd className="text-ink-2">{w.cooldownEndsAt ? <UtcAt to={w.cooldownEndsAt} now0={r.oracleTime} done="elapsed" /> : "never challenged"}</dd>
         </dl>
       ) : (
-        <p className="mt-3 mono text-[11px] text-ink-3 cursor-blink">Reading wallet</p>
+        <p className="mt-3 mono text-[12px] text-ink-meta cursor-blink">Reading wallet</p>
       )}
-      <ol className="mt-4 space-y-1.5 border-t hairline pt-3">
+      <ol className="mt-4 space-y-2 border-t hairline pt-3">
         {r.raiseChecklist.map((s) => <CheckRow key={s.id} s={s} />)}
       </ol>
-      <p className="mt-3 mono text-[11px]">
+      <p className="mt-3 mono text-[12px]">
         {w?.canRaise.ok ? (
           <span className="text-phosphor">Predicted: raiseChallenge would succeed{w.canRaise.needsApproval ? " (after approve)" : ""}.</span>
         ) : firstFail ? (
           <span className="text-warn">Predicted revert: {firstFail.revert} — {REVERT_TEXT[firstFail.revert] ?? firstFail.label}</span>
         ) : (
-          <span className="text-ink-3">{w?.canRaise.reason ?? "Connect a wallet for the full prediction."}</span>
+          <span className="text-ink-meta">{w?.canRaise.reason ?? "Connect a wallet for the full prediction."}</span>
         )}
       </p>
       {w?.ethCallProbe && (
-        <p className="mt-1 mono text-[10px] text-ink-3">
+        <p className="mt-1 mono text-[12px] text-ink-meta">
           eth_call from your wallet now → raiseChallenge: {w.ethCallProbe.raise.ok ? "would succeed" : w.ethCallProbe.raise.revert} · supportChallenge: {w.ethCallProbe.support.ok ? "would succeed" : w.ethCallProbe.support.revert}
         </p>
       )}
@@ -331,25 +342,25 @@ function OutcomeCalculator({ r }: { r: CopilotReport }) {
   const refund = snap && units != null && BigInt(snap.frozenTotalSupply) > 0n ? (units * BigInt(snap.frozenEthBalance)) / BigInt(snap.frozenTotalSupply) : null;
   const n = r.next;
   return (
-    <div className="border hairline p-4 max-[601px]:p-3">
-      <p className="label">Outcome calculator</p>
+    <div className="min-w-0 border-t border-hair pt-4">
+      <p className="t-kicker">Outcome calculator</p>
       {n ? (
-        <ul className="mt-3 space-y-1.5 text-[12px] text-ink-2">
+        <ul className="mt-3 space-y-2 text-[13px] leading-relaxed text-ink-2">
           <li><span className="text-crit">If you challenge and the admin rejects:</span> you lose {fmtUnits(n.slashAtRisk, dec, 0)} {r.token.symbol}{n.slashEthSpot ? ` (≈ ${eth(n.slashEthSpot)})` : ""}, 80% of the bond comes back.</li>
           <li><span className="text-phosphor">If upheld:</span> the full bond is returned, the raise freezes and every holder can claim pro-rata ETH.</li>
           <li><span className="text-ink">If nobody rules within {Math.round(r.constants.adjudicationWindow / 3600)}h:</span> anyone can expire it; the full bond is returned, no slash.</li>
         </ul>
       ) : (
-        <p className="mt-3 text-[12px] text-ink-3">No challengeable tranche in state {r.stateLabel}.</p>
+        <p className="mt-3 text-[13px] text-ink-meta">No challengeable tranche in state {r.stateLabel}.</p>
       )}
       <div className="mt-4 border-t hairline pt-3">
-        <label className="label" htmlFor="kest-calc">Refund estimate if a challenge is upheld</label>
+        <label className="t-kicker" htmlFor="kest-calc">Refund estimate if a challenge is upheld</label>
         <div className="mt-2 flex items-center gap-2 max-[601px]:flex-wrap">
-          <input id="kest-calc" value={amt} onChange={(e) => setAmt(e.target.value)} inputMode="decimal" placeholder={`${r.token.symbol} amount`} className="w-44 rounded-[2px] border border-hair-strong bg-transparent px-2 py-1.5 mono text-[12px] text-ink focus:border-phosphor/60 focus:outline-none max-[901px]:text-[16px] max-[601px]:w-full" />
-          <span className="mono text-[11px] text-ink-3">{r.token.symbol} →</span>
+          <input id="kest-calc" value={amt} onChange={(e) => setAmt(e.target.value)} inputMode="decimal" placeholder={`${r.token.symbol} amount`} className="w-44 rounded-[2px] border border-hair-strong bg-transparent px-2 py-1.5 mono text-[14px] text-ink focus:border-phosphor/60 focus:outline-none max-[901px]:text-[16px] max-[601px]:w-full" />
+          <span className="mono text-[12px] text-ink-meta">{r.token.symbol} →</span>
           <span className="tnum text-[16px] text-ink">{snap ? (refund != null ? eth(refund.toString(), 6) : "enter an amount") : "unavailable"}</span>
         </div>
-        <p className="mt-2 mono text-[10px] leading-relaxed text-ink-3">
+        <p className="mt-2 mono text-[12px] leading-relaxed text-ink-meta">
           {snap
             ? `amount × frozenEthBalance (${eth(snap.frozenEthBalance)}) / frozenTotalSupply (${fmtUnits(snap.frozenTotalSupply, dec, 0)} ${r.token.symbol}), both computed by the escrow's own upholdChallenge() in eth_simulateV1 at block ${snap.block}. Estimate: the final figure is set at the real freeze and shrinks with every tranche paid before it.`
             : "Unavailable: an uphold snapshot only exists for Funded escrows with a challengeable tranche."}
@@ -393,10 +404,10 @@ function DryRun({ r }: { r: CopilotReport }) {
   }
   const sc = res?.scenarios.find((s) => s.outcome === tab) ?? res?.scenarios[0];
   return (
-    <div className="border border-phosphor/25 bg-phosphor/[0.02] p-4 max-[601px]:p-3">
+    <div className="border-t border-phosphor/40 pt-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="label text-phosphor">Challenge Dry-Run · no wallet needed</p>
+          <p className="t-kicker text-phosphor">Challenge Dry-Run · no wallet needed</p>
           <p className="mt-1 max-w-2xl text-[12px] text-ink-2">
             No 72-hour window is open right now, so Kestrel runs the deployed escrow code itself in <span className="mono">eth_simulateV1</span> with a few storage slots overridden: a synthetic challenger files, holders vote, then the admin rejects, upholds, or nobody rules.
           </p>
@@ -415,25 +426,25 @@ function DryRun({ r }: { r: CopilotReport }) {
           {res.reason && <p className="mt-2 text-[12px] text-warn">{res.reason}</p>}
           <div className="mt-3 flex flex-wrap gap-1">
             {res.scenarios.map((s) => (
-              <button key={s.outcome} onClick={() => setTab(s.outcome)} className={cx("rounded-[2px] border px-3 py-1.5 mono text-[11px] max-[601px]:flex-[1_1_45%]", tab === s.outcome ? "border-phosphor/60 text-phosphor" : "border-hair-strong text-ink-3 hover:text-ink")}>
+              <button key={s.outcome} onClick={() => setTab(s.outcome)} className={cx("rounded-[2px] border px-3 py-1.5 mono text-[11px] max-[601px]:flex-[1_1_45%]", tab === s.outcome ? "border-phosphor/60 text-phosphor" : "border-hair-strong text-ink-meta hover:text-ink")}>
                 {s.ok ? "✓" : "✗"} {s.title}
               </button>
             ))}
           </div>
           {sc && <Scenario sc={sc} res={res} />}
           <div className="mt-3">
-            <button onClick={() => setShowOv((v) => !v)} className="mono text-[10px] text-ink-3 hover:text-ink">{showOv ? "hide" : "show"} {res.overrides.length} storage overrides</button>
+            <button onClick={() => setShowOv((v) => !v)} className="mono text-[11px] text-ink-meta hover:text-ink">{showOv ? "hide" : "show"} {res.overrides.length} storage overrides</button>
             {showOv && (
               <ul className="mt-2 space-y-1">
                 {res.overrides.map((o) => (
-                  <li key={o.address + o.slot} className="break-all mono text-[10px] text-ink-3">
-                    <AddrLink chainId={res.chainId} address={o.address} className="text-[10px]" /> slot {o.slot.slice(0, 10)}…{o.slot.slice(-6)} := {o.value.length > 40 ? `${o.value.slice(0, 18)}…${o.value.slice(-8)}` : o.value} · <span className="text-ink-2">{o.why}</span>
+                  <li key={o.address + o.slot} className="break-all mono text-[11px] text-ink-meta">
+                    <AddrLink chainId={res.chainId} address={o.address} className="text-[11px]" /> slot {o.slot.slice(0, 10)}…{o.slot.slice(-6)} := {o.value.length > 40 ? `${o.value.slice(0, 18)}…${o.value.slice(-8)}` : o.value} · <span className="text-ink-2">{o.why}</span>
                   </li>
                 ))}
               </ul>
             )}
           </div>
-          <p className="mt-3 mono text-[10px] leading-relaxed text-ink-3">{res.disclaimer}</p>
+          <p className="mt-3 mono text-[11px] leading-relaxed text-ink-meta">{res.disclaimer}</p>
         </div>
       )}
     </div>
@@ -460,8 +471,8 @@ function Scenario({ sc, res }: { sc: DryRunScenario; res: DryRunResult }) {
       {facts.length > 0 && (
         <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
           {facts.map((x) => (
-            <div key={x.k} className="min-w-0 border hairline px-3 py-2 max-[601px]:px-2">
-              <p className="mono text-[10px] text-ink-3">{x.k}</p>
+            <div key={x.k} className="min-w-0 border-l border-hair py-1 pl-3 max-[601px]:pl-2">
+              <p className="mono text-[11px] text-ink-meta">{x.k}</p>
               <p className="mt-0.5 tnum text-[13px] text-ink [overflow-wrap:anywhere]">{x.v}</p>
             </div>
           ))}
@@ -472,18 +483,18 @@ function Scenario({ sc, res }: { sc: DryRunScenario; res: DryRunResult }) {
           const good = s.expectFailure ? s.status === "failure" : s.status === "success";
           return (
             <li key={i} className={cx("grid grid-cols-[28px_1fr] gap-2 border-l-2 py-1 pl-2 text-[11px] max-[901px]:grid-cols-[auto_minmax(0,1fr)] max-[901px]:[overflow-wrap:anywhere]", s.kind === "action" ? (good ? "border-phosphor/50" : "border-crit/60") : "border-white/10")}>
-              <span className="mono text-ink-3">b{s.block}</span>
+              <span className="mono text-ink-meta">b{s.block}</span>
               <div className="min-w-0">
-                <p className={cx(s.kind === "action" ? "text-ink" : "text-ink-3")}>
-                  {s.label} <span className="mono text-[10px] text-ink-3">· {s.actorLabel}</span>
+                <p className={cx(s.kind === "action" ? "text-ink" : "text-ink-meta")}>
+                  {s.label} <span className="mono text-[11px] text-ink-meta">· {s.actorLabel}</span>
                 </p>
-                <p className="break-all mono text-[10px] text-ink-3">
+                <p className="break-all mono text-[11px] text-ink-meta">
                   {s.call} → <span className={good ? "text-phosphor" : "text-crit"}>{s.status}</span>
                   {s.gasUsed && s.kind === "action" ? ` · gas ${Number(s.gasUsed).toLocaleString("en-US")}` : ""}
                   {s.revert ? ` · ${s.revert}` : ""}
                   {s.decoded && s.kind !== "action" ? ` · ${s.decoded.slice(0, 140)}` : ""}
                 </p>
-                {s.events.length > 0 && <p className="break-all mono text-[10px] text-ink-3">events: {s.events.map((e) => e.split("(")[0]).join(", ")}</p>}
+                {s.events.length > 0 && <p className="break-all mono text-[11px] text-ink-meta">events: {s.events.map((e) => e.split("(")[0]).join(", ")}</p>}
               </div>
             </li>
           );
@@ -605,18 +616,18 @@ function Actions({ r, address, isConnected, walletChainId, onDone }: { r: Copilo
   const disabledAll = !isConnected || !address || r.gen === "unknown";
 
   return (
-    <div className="border hairline p-4 max-[601px]:p-3">
+    <div className="min-w-0 border-t border-hair pt-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="label">Actions · simulate first, then sign</p>
+        <p className="t-kicker">Actions · simulate first, then sign</p>
         {isConnected && (
-          <span className="mono text-[10px] text-ink-3">
+          <span className="mono text-[11px] text-ink-meta">
             EIP-5792 {caps.isLoading ? "probing…" : atomic ? <span className="text-phosphor">atomic batch supported · approve + raise in 1 signature</span> : <span className="text-warn">not supported · sequential signing</span>}
           </span>
         )}
       </div>
 
       {v1 ? (
-        <div className="mt-3 border border-warn/40 bg-warn/[0.04] p-3 text-[12px] text-ink-2">
+        <div className="mt-3 border-l-2 border-warn pl-3 text-[13px] text-ink-2">
           This is the Genesis (v1) escrow: raiseChallenge / supportChallenge / opposeChallenge each require an EIP-712 TermsAcceptance signature that only Vibestarter&apos;s backend can issue (SIWE session + Starter Card + checks). Kestrel will not fake it.
           <a href={r.vibestarterUrl} target="_blank" rel="noreferrer" className="mt-2 block mono text-[12px] text-warn hover:underline max-[901px]:flex max-[901px]:min-h-[36px] max-[901px]:items-center">Continue on Vibestarter ↗</a>
         </div>
@@ -628,10 +639,10 @@ function Actions({ r, address, isConnected, walletChainId, onDone }: { r: Copilo
             </p>
           )}
           <div className="mt-3 grid gap-4 lg:grid-cols-2 max-[601px]:gap-3">
-            <div className="border hairline p-3">
+            <div className="border-t border-hair pt-3">
               <p className="text-[13px] text-ink">Raise a challenge</p>
-              <textarea value={reason} onChange={(e) => setReason(e.target.value)} maxLength={1000} rows={3} placeholder="Why should this tranche be withheld? (plain text, stored on-chain, max 1000 chars)" className="mt-2 w-full rounded-[2px] border border-hair-strong bg-transparent p-2 text-[12px] text-ink placeholder:text-ink-3 focus:border-phosphor/60 focus:outline-none" />
-              <p className="mono text-[10px] text-ink-3">{reason.length}/1000 · bundle: {calls.raise.map((c) => c.functionName).join(" → ")}</p>
+              <textarea value={reason} onChange={(e) => setReason(e.target.value)} maxLength={1000} rows={3} placeholder="Why should this tranche be withheld? (plain text, stored on-chain, max 1000 chars)" className="mt-2 w-full rounded-[2px] border border-hair-strong bg-transparent p-2 text-[12px] text-ink placeholder:text-ink-meta focus:border-phosphor/60 focus:outline-none" />
+              <p className="mono text-[11px] text-ink-meta">{reason.length}/1000 · bundle: {calls.raise.map((c) => c.functionName).join(" → ")}</p>
               <label className="mt-2 flex items-start gap-2 text-[11px] text-crit">
                 <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} className="mt-0.5" />
                 <span>
@@ -639,12 +650,12 @@ function Actions({ r, address, isConnected, walletChainId, onDone }: { r: Copilo
                 </span>
               </label>
               <ActButtons k="raise" st={st.raise} verdict={w?.canRaise} disabled={disabledAll || !reason.trim()} signDisabled={!ack} atomicLabel={calls.raise.length > 1 ? (atomic ? "SIGN 1 ATOMIC BUNDLE" : `SIGN ${calls.raise.length} TXS`) : "SIGN"} onSim={() => simulate("raise")} onSign={() => sign("raise")} chainId={r.chainId} />
-              {batchId && <p className="mt-1 mono text-[10px] text-ink-2">bundle {shortAddr(batchId, 6)} · {batch.data?.status ?? "pending…"}</p>}
+              {batchId && <p className="mt-1 mono text-[11px] text-ink-2">bundle {shortAddr(batchId, 6)} · {batch.data?.status ?? "pending…"}</p>}
             </div>
-            <div className="border hairline p-3">
+            <div className="border-t border-hair pt-3">
               <p className="text-[13px] text-ink">Support / oppose the pending challenge</p>
-              <input value={ctx} onChange={(e) => setCtx(e.target.value)} maxLength={1000} placeholder="Optional context (plain text, emitted on-chain)" className="mt-2 w-full rounded-[2px] border border-hair-strong bg-transparent p-2 text-[12px] text-ink placeholder:text-ink-3 focus:border-phosphor/60 focus:outline-none" />
-              <p className="mt-1 mono text-[10px] text-ink-3">Votes are evidence for the admin; the contract does not count them.</p>
+              <input value={ctx} onChange={(e) => setCtx(e.target.value)} maxLength={1000} placeholder="Optional context (plain text, emitted on-chain)" className="mt-2 w-full rounded-[2px] border border-hair-strong bg-transparent p-2 text-[12px] text-ink placeholder:text-ink-meta focus:border-phosphor/60 focus:outline-none" />
+              <p className="mt-1 mono text-[11px] text-ink-meta">Votes are evidence for the admin; the contract does not count them.</p>
               <div className="mt-2 grid gap-2">
                 <ActButtons k="support" st={st.support} verdict={w?.canSupport} disabled={disabledAll} label="Support" onSim={() => simulate("support")} onSign={() => sign("support")} chainId={r.chainId} />
                 <ActButtons k="oppose" st={st.oppose} verdict={w?.canOppose} disabled={disabledAll} label="Oppose" onSim={() => simulate("oppose")} onSign={() => sign("oppose")} chainId={r.chainId} />
@@ -655,23 +666,23 @@ function Actions({ r, address, isConnected, walletChainId, onDone }: { r: Copilo
       )}
 
       <div className="mt-4 grid gap-4 md:grid-cols-3 max-[601px]:gap-3">
-        <div className="border hairline p-3">
+        <div className="border-t border-hair pt-3">
           <p className="text-[13px] text-ink">Expire a stale challenge</p>
-          <p className="mt-1 text-[11px] text-ink-3">Permissionless after the {Math.round(r.constants.adjudicationWindow / 3600)}h adjudication window: full bond back to the challenger, no slash.</p>
+          <p className="mt-1 text-[11px] text-ink-meta">Permissionless after the {Math.round(r.constants.adjudicationWindow / 3600)}h adjudication window: full bond back to the challenger, no slash.</p>
           <ActButtons k="expire" st={st.expire} verdict={w?.canExpire} disabled={!isConnected || !address} onSim={() => simulate("expire")} onSign={() => sign("expire")} chainId={r.chainId} />
         </div>
-        <div className="border hairline p-3">
+        <div className="border-t border-hair pt-3">
           <p className="text-[13px] text-ink">Claim contributor refund</p>
-          <p className="mt-1 text-[11px] text-ink-3">Failed raises only: returns the ETH you contributed.</p>
+          <p className="mt-1 text-[11px] text-ink-meta">Failed raises only: returns the ETH you contributed.</p>
           <ActButtons k="refund" st={st.refund} verdict={w?.canClaimRefund} disabled={!isConnected || !address} onSim={() => simulate("refund")} onSign={() => sign("refund")} chainId={r.chainId} />
         </div>
-        <div className="border hairline p-3">
+        <div className="border-t border-hair pt-3">
           <p className="text-[13px] text-ink">Claim backer tokens</p>
-          <p className="mt-1 text-[11px] text-ink-3">Launch router claimTokens({r.token.symbol}) for backers who have not claimed yet.</p>
+          <p className="mt-1 text-[11px] text-ink-meta">Launch router claimTokens({r.token.symbol}) for backers who have not claimed yet.</p>
           <ActButtons k="claim" st={st.claim} verdict={w?.canClaimTokens} disabled={!isConnected || !address} onSim={() => simulate("claim")} onSign={() => sign("claim")} chainId={r.chainId} />
         </div>
       </div>
-      {!isConnected && <p className="mt-3 mono text-[11px] text-ink-3">Connect a wallet above to simulate. Every Sign button stays disabled until its simulation passes.</p>}
+      {!isConnected && <p className="mt-3 mono text-[11px] text-ink-meta">Connect a wallet above to simulate. Every Sign button stays disabled until its simulation passes.</p>}
     </div>
   );
 }
@@ -701,7 +712,7 @@ function ActButtons({
   const canSign = st.sim === "ok" && !signDisabled && st.tx !== "signing" && st.tx !== "sent";
   return (
     <div className="mt-2">
-      {verdict && !verdict.ok && <p className="mb-1 mono text-[10px] text-ink-3">predicted: {verdict.predictedRevert ? `${verdict.predictedRevert} — ` : ""}{verdict.reason}</p>}
+      {verdict && !verdict.ok && <p className="mb-1 mono text-[11px] text-ink-meta">predicted: {verdict.predictedRevert ? `${verdict.predictedRevert} — ` : ""}{verdict.reason}</p>}
       <div className="flex flex-wrap items-center gap-2 max-[601px]:grid max-[601px]:grid-cols-1">
         <button onClick={onSim} disabled={disabled || st.sim === "pending"} className="rounded-[2px] border border-hair-strong px-3 py-1.5 mono text-[11px] text-ink hover:border-phosphor/60 hover:text-phosphor disabled:cursor-not-allowed disabled:opacity-30 max-[901px]:min-h-[44px]">
           {st.sim === "pending" ? "simulating…" : `1 · SIMULATE${label ? ` ${label.toUpperCase()}` : ""}`}
@@ -711,13 +722,13 @@ function ActButtons({
         </button>
       </div>
       {st.sim !== "idle" && st.sim !== "pending" && (
-        <p className={cx("mt-1 break-words mono text-[10px]", st.sim === "ok" ? "text-phosphor" : "text-crit")}>
+        <p className={cx("mt-1 break-words mono text-[11px]", st.sim === "ok" ? "text-phosphor" : "text-crit")}>
           sim: {st.simMsg}
           {st.gas && st.gas.length > 0 && ` · gas ${st.gas.map((g) => Number(g).toLocaleString("en-US")).join(" + ")}`}
         </p>
       )}
       {st.tx !== "idle" && (
-        <p className={cx("mt-1 break-words mono text-[10px]", st.tx === "confirmed" ? "text-phosphor" : st.tx === "failed" ? "text-crit" : "text-warn")}>
+        <p className={cx("mt-1 break-words mono text-[11px]", st.tx === "confirmed" ? "text-phosphor" : st.tx === "failed" ? "text-crit" : "text-warn")}>
           tx: {st.tx}
           {st.hashes?.map((h) => (
             <span key={h}> · <TxLink chainId={chainId} hash={h} /></span>
@@ -733,51 +744,63 @@ function ActButtons({
 
 function RulesAndTrust({ r }: { r: CopilotReport }) {
   const k = r.constants;
+  const rules: [string, ReactNode][] = [
+    ["Challenge window", `${k.challengeWindow / 3600}h after the founder calls requestTranche`],
+    ["Bond", "0.25% of supply (T1-T2), 0.50% (T3-T4), 1.00% (T5-T6); pulled with transferFrom"],
+    ["Slash if rejected", `${k.slashBps / 100}% of the bond burned to 0xdead`],
+    ["If upheld", "bond returned, raise Frozen, pro-rata ETH refunds via merkle root"],
+    ["Unruled", `anyone may expire after ${k.adjudicationWindow / 3600}h: full bond back`],
+    ["Cooldown", `${k.cooldown / 86400} days per challenger`],
+    ["Votes", "recorded per wallet, not weighted or tallied on-chain"],
+  ];
+  const trust: DataRow[] = [
+    {
+      label: "Adjudicator",
+      value: r.admin ? <AddrLink chainId={r.chainId} address={r.admin} className="text-[14px]" /> : "unavailable",
+      sub: r.adminIsContract === false ? "EOA · one key upholds/rejects" : r.adminSafe ? `Safe ${r.adminSafe.threshold}-of-${r.adminSafe.owners.length}` : r.adminIsContract ? "contract" : undefined,
+      tone: r.adminIsContract === false ? "warn" : undefined,
+    },
+    ...(r.trust.platformSafe
+      ? [{ label: "Platform wallet", value: <AddrLink chainId={8453} address={r.trust.platformSafe.address} className="text-[14px]" />, sub: `Safe ${r.trust.platformSafe.threshold ?? "?"}-of-${r.trust.platformSafe.owners.length}` }]
+      : []),
+    { label: r.gen === "v1" ? "Terms signer" : "Credential attestor", value: <AddrLink chainId={r.chainId} address={r.trust.termsSigner ?? r.wallet?.credential?.attestor ?? r.trust.backendSigner} className="text-[14px]" />, sub: "single EOA" },
+    { label: "Time oracle", value: k.timeOracle == null ? "unavailable" : k.timeOracle === "0x0000000000000000000000000000000000000000" ? "none (block.timestamp)" : <AddrLink chainId={r.chainId} address={k.timeOracle} className="text-[14px]" /> },
+    { label: "Platform fee", value: k.platformFeeBps == null ? "unavailable" : `${(k.platformFeeBps / 100).toFixed(2)}% per tranche` },
+    {
+      label: "Escrow ETH",
+      value: eth(r.escrowEth.balance),
+      sub: r.escrowEth.pendingPlatformFees && BigInt(r.escrowEth.pendingPlatformFees) > 0n ? `${eth(r.escrowEth.pendingPlatformFees)} pending fees` : undefined,
+    },
+  ];
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <div className="border hairline p-4 max-[601px]:p-3">
-        <p className="label">Rules · read live from the escrow</p>
-        <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[12px] max-[901px]:grid-cols-[auto_minmax(0,1fr)] max-[901px]:[overflow-wrap:anywhere] max-[601px]:gap-x-3">
-          <dt className="text-ink-3">Challenge window</dt>
-          <dd className="text-ink-2">{k.challengeWindow / 3600}h after the founder calls requestTranche</dd>
-          <dt className="text-ink-3">Bond</dt>
-          <dd className="text-ink-2">0.25% of supply (T1-T2), 0.50% (T3-T4), 1.00% (T5-T6); pulled with transferFrom</dd>
-          <dt className="text-ink-3">Slash if rejected</dt>
-          <dd className="text-ink-2">{k.slashBps / 100}% of the bond burned to 0xdead</dd>
-          <dt className="text-ink-3">If upheld</dt>
-          <dd className="text-ink-2">bond returned, raise Frozen, pro-rata ETH refunds via merkle root</dd>
-          <dt className="text-ink-3">Unruled</dt>
-          <dd className="text-ink-2">anyone may expire after {k.adjudicationWindow / 3600}h: full bond back</dd>
-          <dt className="text-ink-3">Cooldown</dt>
-          <dd className="text-ink-2">{k.cooldown / 86400} days per challenger</dd>
-          <dt className="text-ink-3">Votes</dt>
-          <dd className="text-ink-2">recorded per wallet, not weighted or tallied on-chain</dd>
-        </dl>
-        <p className="mt-3 mono text-[10px] text-ink-3">
-          Docs: <a className="hover:text-ink" href="https://app.vibestarter.xyz/docs/tranches" target="_blank" rel="noreferrer">/docs/tranches ↗</a> · <a className="hover:text-ink" href="https://app.vibestarter.xyz/docs/escrow" target="_blank" rel="noreferrer">/docs/escrow ↗</a> · <a className="hover:text-ink" href={r.vibestarterUrl} target="_blank" rel="noreferrer">raise page ↗</a>
-        </p>
+    <details className="group border-t border-hair pt-1">
+      <summary className="flex min-h-[44px] cursor-pointer list-none items-center gap-2 text-[13px] text-ink-2 hover:text-ink [&::-webkit-details-marker]:hidden">
+        <span aria-hidden="true" className="inline-block mono transition-transform group-open:rotate-90">›</span>
+        Rules &amp; trust surface · read live from the escrow
+      </summary>
+      <div className="grid gap-x-8 gap-y-6 pb-2 pt-3 md:grid-cols-2">
+        <div className="min-w-0">
+          <p className="t-kicker">Rules</p>
+          <dl className="mt-2 divide-y divide-hair text-[13px] [overflow-wrap:anywhere]">
+            {rules.map(([dt, dd]) => (
+              <div key={dt} className="grid grid-cols-[128px_minmax(0,1fr)] gap-x-4 py-2 max-[601px]:grid-cols-1 max-[601px]:gap-y-0.5">
+                <dt className="text-ink-2">{dt}</dt>
+                <dd className="text-ink">{dd}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-3 text-[13px] text-ink-2">
+            Docs:{" "}
+            <a className="ink-link hover:text-ink" href="https://app.vibestarter.xyz/docs/tranches" target="_blank" rel="noreferrer">/docs/tranches ↗</a> ·{" "}
+            <a className="ink-link hover:text-ink" href="https://app.vibestarter.xyz/docs/escrow" target="_blank" rel="noreferrer">/docs/escrow ↗</a> ·{" "}
+            <a className="ink-link hover:text-ink" href={r.vibestarterUrl} target="_blank" rel="noreferrer">raise page ↗</a>
+          </p>
+        </div>
+        <div className="min-w-0">
+          <p className="t-kicker">Trust surface · facts only</p>
+          <DataList rows={trust} dense className="mt-2" />
+        </div>
       </div>
-      <div className="border hairline p-4 max-[601px]:p-3">
-        <p className="label">Trust surface · facts only</p>
-        <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[12px] max-[901px]:grid-cols-[auto_minmax(0,1fr)] max-[901px]:[overflow-wrap:anywhere] max-[601px]:gap-x-3">
-          <dt className="text-ink-3">Adjudicator</dt>
-          <dd className="text-ink-2">{r.admin ? <AddrLink chainId={r.chainId} address={r.admin} /> : "unavailable"} {r.adminIsContract === false ? "· EOA (one key upholds/rejects)" : r.adminSafe ? `· Safe ${r.adminSafe.threshold}-of-${r.adminSafe.owners.length}` : r.adminIsContract ? "· contract" : ""}</dd>
-          {r.trust.platformSafe && (
-            <>
-              <dt className="text-ink-3">Platform wallet</dt>
-              <dd className="text-ink-2"><AddrLink chainId={8453} address={r.trust.platformSafe.address} /> · Safe {r.trust.platformSafe.threshold ?? "?"}-of-{r.trust.platformSafe.owners.length}</dd>
-            </>
-          )}
-          <dt className="text-ink-3">{r.gen === "v1" ? "Terms signer" : "Credential attestor"}</dt>
-          <dd className="text-ink-2"><AddrLink chainId={r.chainId} address={r.trust.termsSigner ?? r.wallet?.credential?.attestor ?? r.trust.backendSigner} /> · single EOA</dd>
-          <dt className="text-ink-3">Time oracle</dt>
-          <dd className="text-ink-2">{k.timeOracle == null ? "unavailable" : k.timeOracle === "0x0000000000000000000000000000000000000000" ? "none (block.timestamp)" : <AddrLink chainId={r.chainId} address={k.timeOracle} />}</dd>
-          <dt className="text-ink-3">Platform fee</dt>
-          <dd className="text-ink-2">{k.platformFeeBps == null ? "unavailable" : `${(k.platformFeeBps / 100).toFixed(2)}% per tranche`}</dd>
-          <dt className="text-ink-3">Escrow ETH</dt>
-          <dd className="text-ink-2">{eth(r.escrowEth.balance)}{r.escrowEth.pendingPlatformFees && BigInt(r.escrowEth.pendingPlatformFees) > 0n ? ` · ${eth(r.escrowEth.pendingPlatformFees)} pending fees` : ""}</dd>
-        </dl>
-      </div>
-    </div>
+    </details>
   );
 }

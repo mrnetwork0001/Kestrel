@@ -2,9 +2,9 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { cx, Panel } from "@/components/ui";
+import { cx } from "@/components/ui";
 import type { DeskPublic, WatchView } from "@/lib/pager/types";
-import { Btn, CopyButton, Dot, inputCls, Note, Tag } from "./pager-ui";
+import { Tag, Btn, CopyButton, Dot, inputCls, Instrument, Note } from "./pager-ui";
 import { errText, pollTelegramLink, toMs, usePagerMutations, usePagerStatus, type TelegramLinkStart } from "./use-pager";
 
 const POLL_MS = 2_000;
@@ -147,7 +147,7 @@ export function DeliveryPanel({
   const anyChannel = !!(tg?.linked || wh);
 
   return (
-    <Panel title="Delivery" n="04">
+    <Instrument title="Delivery">
       {!hasDesk ? (
         <Note>Open a desk to link Telegram or a webhook. Pages carry a 1-click deep link into the Panic Bunker.</Note>
       ) : (
@@ -155,7 +155,7 @@ export function DeliveryPanel({
           {/* Telegram */}
           <section>
             <div className="flex items-center justify-between gap-2">
-              <p className="label">Telegram</p>
+              <p className="t-kicker">Telegram</p>
               {tg?.linked && !tg.disabledReason && <Tag tone="phosphor">linked</Tag>}
               {tg?.disabledReason && <Tag tone="crit">disabled</Tag>}
             </div>
@@ -188,7 +188,7 @@ export function DeliveryPanel({
                   </Btn>
                 )}
                 {link.phase === "waiting" && (
-                  <div className="space-y-2 border border-base/30 bg-base/[0.04] p-3">
+                  <div className="space-y-2 border-l-2 border-base pl-3">
                     <p className="mono text-[12px] text-ink">
                       <Dot tone="base" live className="mr-2 align-middle" />
                       Waiting for /start in Telegram…
@@ -209,7 +209,7 @@ export function DeliveryPanel({
                 {link.phase === "linked" && <Note tone="phosphor">Linked{link.username ? ` · @${link.username}` : ""}. Critical pages ring; warnings arrive silently.</Note>}
                 {link.phase === "expired" && <Note tone="warn">Link expired before Telegram confirmed it. Create a new link.</Note>}
                 {link.phase === "error" && <Note tone="crit">Telegram linking unavailable: {link.message}</Note>}
-                <button type="button" onClick={() => setAdvanced((v) => !v)} className="block mono text-[10.5px] uppercase tracking-wider text-ink-3 hover:text-ink">
+                <button type="button" onClick={() => setAdvanced((v) => !v)} className="block mono text-[11px] uppercase tracking-wider text-ink-meta hover:text-ink">
                   {advanced ? "− hide advanced" : "+ advanced: manual chat ID"}
                 </button>
                 {advanced && (
@@ -230,7 +230,7 @@ export function DeliveryPanel({
           {/* Webhook */}
           <section className="border-t hairline pt-4">
             <div className="flex items-center justify-between gap-2">
-              <p className="label">Webhook</p>
+              <p className="t-kicker">Webhook</p>
               {wh && <Tag tone={wh.disabledReason ? "crit" : wh.failures > 0 ? "warn" : "phosphor"}>{wh.kind}</Tag>}
             </div>
             {wh && (
@@ -238,7 +238,7 @@ export function DeliveryPanel({
                 <p className="mono text-[12px] text-ink">
                   <Dot tone={wh.disabledReason ? "crit" : wh.failures > 0 ? "warn" : "phosphor"} className="mr-2 align-middle" />
                   {wh.host}
-                  <span className="text-ink-3"> · {wh.failures} consecutive failure{wh.failures === 1 ? "" : "s"}</span>
+                  <span className="text-ink-meta"> · {wh.failures} consecutive failure{wh.failures === 1 ? "" : "s"}</span>
                 </p>
                 {wh.disabledReason && <Note tone="crit">Disabled: {wh.disabledReason}</Note>}
               </div>
@@ -280,7 +280,7 @@ export function DeliveryPanel({
                 </Btn>
               </div>
             )}
-            {showSecret && effectiveSecret && <p className="mt-2 break-all border hairline bg-canvas p-2 mono text-[11px] text-ink-2">{effectiveSecret}</p>}
+            {showSecret && effectiveSecret && <p className="mt-2 break-all bg-canvas p-2 mono text-[11px] text-ink-2">{effectiveSecret}</p>}
             {wh?.kind === "generic" && !effectiveSecret && <Note className="mt-1.5">The signing secret is shown only right after saving or rotating. Rotate to see a new one.</Note>}
           </section>
 
@@ -307,6 +307,6 @@ export function DeliveryPanel({
           </section>
         </div>
       )}
-    </Panel>
+    </Instrument>
   );
 }

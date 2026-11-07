@@ -1,15 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { cx, Panel } from "@/components/ui";
+import { cx } from "@/components/ui";
 import type { DeskPublic } from "@/lib/pager/types";
-import { Btn, CopyButton, Dot, inputCls, Note, Tag } from "./pager-ui";
+import { Tag, Btn, CopyButton, Dot, inputCls, Instrument, Note } from "./pager-ui";
 import { DESK_KEY_RE, errStatus, errText, usePagerMutations } from "./use-pager";
 
 /**
- * 02 · Your desk. A desk is an anonymous watch-set owned by a random desk key (kst_…) stored only in this
+ * Your desk. A desk is an anonymous watch-set owned by a random desk key (kst_…) stored only in this
  * browser. No login, no wallet. The key is shown in full once at creation; afterwards it can still be copied.
  */
+const DESK_STEPS: [string, string][] = [
+  ["Watches", "Arm rules on any Base or Robinhood Chain address: LP liquidity drop, Base ↔ RH spread, OFT parity drift, new approvals, proxy upgrades, a 72h escrow challenge window opening."],
+  ["Delivery", "Link Telegram or a signed webhook. Every page carries a 1-click /rescue deep link into the Panic Bunker."],
+  ["Sleep mode", "Freeze a snapshot, hold warnings, page only CRITICAL, and get one \"While You Slept\" digest at your wake time."],
+];
+
 export function DeskPanel({
   deskKey,
   setKey,
@@ -71,7 +77,7 @@ export function DeskPanel({
   const deviceUrl = deskKey && typeof window !== "undefined" ? `${window.location.origin}/app?tab=pager#desk=${deskKey}` : "";
 
   return (
-    <Panel title="Your desk" n="02" right={desk ? <Tag tone={desk.storage === "memory" ? "warn" : "phosphor"}>{desk.storage === "memory" ? "dev memory" : "upstash"}</Tag> : undefined}>
+    <Instrument title="Your desk" right={desk ? <Tag tone={desk.storage === "memory" ? "warn" : "phosphor"}>{desk.storage === "memory" ? "dev memory" : "upstash"}</Tag> : undefined}>
       {!deskKey && (
         <div className="space-y-4">
           <p className="text-[13px] leading-relaxed text-ink-2">
@@ -103,14 +109,28 @@ export function DeskPanel({
           {importErr && <Note tone="crit">{importErr}</Note>}
           {createDesk.error && <Note tone="crit">Could not open a desk: {errText(createDesk.error)}</Note>}
           <Note>Anyone with the desk key can edit this desk&apos;s alerts. It cannot touch your funds: Kestrel never asks for a private key or a signature to watch.</Note>
+          <div className="border-t border-hair pt-4">
+            <p className="t-kicker">Once the desk is open</p>
+            <ol className="mt-2 divide-y divide-hair">
+              {DESK_STEPS.map(([title, body], i) => (
+                <li key={title} className="grid grid-cols-[28px_minmax(0,1fr)] gap-x-3 py-3">
+                  <span className="mono text-[13px] tnum text-ink-meta">{i + 1}</span>
+                  <span className="min-w-0">
+                    <span className="block text-[15px] text-ink">{title}</span>
+                    <span className="mt-0.5 block text-[13px] leading-relaxed text-ink-2">{body}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
         </div>
       )}
 
       {deskKey && (
         <div className="space-y-4">
           {freshKey === deskKey && (
-            <div className="border border-warn/40 bg-warn/[0.04] p-3">
-              <p className="label text-warn">Desk key · shown once</p>
+            <div className="border-l-2 border-warn pl-3">
+              <p className="t-kicker text-warn">Desk key · shown once</p>
               <p className="mt-2 break-all mono text-[12px] text-ink">{freshKey}</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <CopyButton text={freshKey} label="COPY KEY" variant="ghost" size="md" />
@@ -195,14 +215,14 @@ export function DeskPanel({
           )}
         </div>
       )}
-    </Panel>
+    </Instrument>
   );
 }
 
 function Field({ label, value, title }: { label: string; value: string; title?: string }) {
   return (
     <div className="min-w-0" title={title}>
-      <dt className="label text-[10px]">{label}</dt>
+      <dt className="t-kicker text-[11px]">{label}</dt>
       <dd className={cx("mt-1 truncate tnum text-[13px] text-ink")}>{value}</dd>
     </div>
   );

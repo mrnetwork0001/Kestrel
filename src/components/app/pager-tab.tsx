@@ -38,7 +38,7 @@ export function PagerTab({ target, chainId }: { target: string; chainId: number 
   }, [key]);
 
   const reveal = () => {
-    if (typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches) {
       document.getElementById("pager-eval")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
@@ -75,12 +75,13 @@ export function PagerTab({ target, chainId }: { target: string; chainId: number 
   };
 
   return (
-    <div className="space-y-6">
-      <NightShiftLog />
-
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-        <div className="min-w-0 space-y-6">
-          <DeskPanel deskKey={key} setKey={setKey} desk={desk} loading={deskQ.isLoading} error={key ? deskQ.error : null} imported={imported} mutations={mutations} />
+    <div className="grid min-w-0 grid-cols-1 gap-x-8 gap-y-8 min-[901px]:grid-cols-12">
+      {/* Left 7: the instruments (desk, watches, delivery, sleep, live test pager). */}
+      <div className="min-w-0 space-y-6 min-[901px]:col-span-7">
+        <DeskPanel deskKey={key} setKey={setKey} desk={desk} loading={deskQ.isLoading} error={key ? deskQ.error : null} imported={imported} mutations={mutations} />
+        {/* Watches, delivery and sleep only exist once a desk does; before that the desk panel lists what they will do. */}
+        {hasDesk && (
+          <>
           <WatchList
             hasDesk={hasDesk}
             watches={watches}
@@ -91,20 +92,18 @@ export function PagerTab({ target, chainId }: { target: string; chainId: number 
             onTest={runTest}
             testingId={testingId}
           />
-        </div>
-        <div className="min-w-0 space-y-6">
           <DeliveryPanel deskKey={key} desk={desk} watches={watches} mutations={mutations} onTest={runTest} testingId={testingId} />
           <SleepPanel desk={desk} sleep={data?.sleep ?? null} watchCount={watches.length} mutations={mutations} />
-        </div>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
+          </>
+        )}
         <div id="pager-eval" className="min-w-0 scroll-mt-4">
           <EvaluationPanel evaluation={evaluation} pending={evalPending} error={evalErr} hasDesk={hasDesk} target={target} chainId={chainId} onPreview={preview} />
         </div>
-        <div className="min-w-0">
-          <RecentPages hasDesk={hasDesk} items={[...(data?.digests ?? []), ...(data?.recentAlerts ?? [])]} />
-        </div>
+      </div>
+      {/* Right 5: the ruled logs (public proof-of-watch, this desk's recent pages). */}
+      <div className="min-w-0 space-y-10 min-[901px]:col-span-5">
+        <NightShiftLog />
+        <RecentPages hasDesk={hasDesk} items={[...(data?.digests ?? []), ...(data?.recentAlerts ?? [])]} />
       </div>
     </div>
   );

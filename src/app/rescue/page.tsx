@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { cache, type ReactNode, Suspense } from "react";
+import { cache, Suspense } from "react";
 import type { Address } from "viem";
 import { PanicBunker } from "@/components/app/panic-bunker";
-import { AddrLink, BandBadge, ChainBadge, SectionLabel } from "@/components/ui";
+import { TargetMasthead } from "@/components/app/shell/target-masthead";
+import { InkLink, Kicker, SkeletonRows, Wrap } from "@/components/editorial";
+import { DEMO_RESCUE_WALLET } from "@/config/demo";
 import { inspectRawBytecode } from "@/lib/bytecode-signatures";
 import { cached } from "@/lib/cache";
-import { normalizeChainId, parseAddress } from "@/lib/engine/chain-utils";
-import { scanTarget } from "@/lib/engine/scan";
+import { parseAddress, parseChainId } from "@/lib/engine/chain-utils";
+import { cachedScan } from "@/lib/engine/scan";
 import type { ChainId, ScanResult } from "@/lib/engine/types";
 import { readLiveExposure } from "@/lib/rescue/live-approvals";
 import { basePublicClient } from "@/lib/rpc";
@@ -27,9 +28,12 @@ export const maxDuration = 60;
 
 type SP = Promise<Record<string, string | string[] | undefined>>;
 
-/** Same key as /api/scan and /app, so a pager click, the workspace and the API share one cached scan. */
-const scanOnce = cache((chainId: ChainId, target: Address): Promise<ScanResult | null> =>
-  cached(`scan:${chainId}:${target.toLowerCase()}:0:`, 30, () => scanTarget(chainId, target, { useLlm: false })).catch(() => null)
+/**
+ * Same key as /api/scan and /app, so a pager click, the workspace and the API share one cached scan. cachedScan never
+ * stores a degraded scan; a degraded result is still rendered here, with the failed reads named in the masthead.
+ */
+const scanOnce = cache((chainId: ChainId, target: Address): Promise<{ result: ScanResult; degraded: string[] } | null> =>
+  cachedScan(chainId, target, { useLlm: false }).catch(() => null)
 );
 
 const liveOnce = cache((target: Address) =>
@@ -50,73 +54,109 @@ function str(v: string | string[] | undefined) {
 
 export default async function RescuePage({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
-  const target = parseAddress(str(sp.target));
-  const chainId = normalizeChainId(str(sp.chain) ?? 8453);
+  const rawTarget = str(sp.target);
+  const target = parseAddress(rawTarget);
+  const chainId = parseChainId(str(sp.chain), 8453);
   const revoke = str(sp.revoke);
   const revokeOnly = revoke && /^0x[0-9a-fA-F]{40}:0x[0-9a-fA-F]{40}$/.test(revoke) ? revoke : null;
   const fromPager = str(sp.from) === "pager";
 
   return (
-    <div className="mx-auto max-w-[1400px] px-4 pb-10 pt-10 max-[601px]:px-3 max-[601px]:pt-6">
-      <SectionLabel n="05">Panic Bunker · EIP-5792 atomic rescue</SectionLabel>
-      <h1 className="mt-4 font-serif text-[36px] leading-[1.05] text-ink sm:text-[44px] max-[601px]:text-[32px]">One signature. Every risky approval gone.</h1>
-      <p className="mt-4 max-w-2xl text-[14px] leading-relaxed text-ink-2">
-        Kestrel builds a rescue bundle — <span className="mono text-ink">approve(spender, 0)</span> for each ERC-20 allowance, a single{" "}
-        <span className="mono text-ink">Permit2.lockdown()</span> for Permit2 sub-allowances, and optional Aerodrome unwinds to USDC — then simulates every call
-        with <span className="mono text-ink">simulateContract</span> before you sign. Smart Wallets execute it atomically via{" "}
-        <span className="mono text-ink">wallet_sendCalls</span>; standard EOAs get a guided sequential flow.
-      </p>
-      {fromPager && <p className="mt-6 border border-warn/40 bg-warn/[0.06] px-4 py-2.5 mono text-[12px] text-warn">Opened from a Night-Shift Pager alert.</p>}
-      {target ? (
+    <div className="pb-16 max-[601px]:pb-10">
+      <Wrap className="pt-10 pb-8 max-[601px]:pt-6 max-[601px]:pb-6">
+        <p className="t-kicker text-crit">[ LIVE // PANIC BUNKER ]</p>
+        <h1 className="mt-4 max-w-[22ch] font-serif text-[clamp(32px,3.6vw,52px)] leading-[1.04] tracking-[-0.01em] text-ink [text-wrap:balance]">One signature. Every risky approval gone.</h1>
+        <p className="mt-4 max-w-[68ch] text-[16px] leading-relaxed text-ink-2">
+          Kestrel builds a rescue bundle: <span className="mono text-[14px] text-ink">approve(spender, 0)</span> for each ERC-20 allowance, a single <span className="mono text-[14px] text-ink">Permit2.lockdown()</span> for Permit2 sub-allowances, and optional Aerodrome unwinds to USDC. It simulates every call with{" "}
+          <span className="mono text-[14px] text-ink">simulateContract</span> before you sign. Smart Wallets execute it atomically via <span className="mono text-[14px] text-ink">wallet_sendCalls</span>; standard EOAs get a guided sequential flow.
+        </p>
+        {fromPager && (
+          <p className="mt-6 border-l-2 border-warn pl-4 mono text-[13px] text-warn" role="status">
+            Opened from a Night-Shift Pager alert.
+          </p>
+        )}
+      </Wrap>
+
+      {!chainId ? (
+        <Wrap className="pt-2">
+          <div className="border-t border-hair-strong pt-6">
+            <Kicker tone="warn">Unsupported chain · {str(sp.chain)}</Kicker>
+            <p className="mt-4 max-w-[40ch] font-serif text-[22px] leading-snug text-ink">Kestrel reads Base 8453 or Robinhood Chain 4663.</p>
+            <p className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-[14px]">
+              {target && <InkLink href={`/rescue?target=${target}&chain=8453`}>Open this address on Base</InkLink>}
+              <InkLink href="/rescue">Back to the Panic Bunker</InkLink>
+            </p>
+          </div>
+        </Wrap>
+      ) : target ? (
         <>
-          <Suspense fallback={<TargetBar chainId={chainId} target={target} />}>
+          <Suspense fallback={<TargetMasthead scan={null} target={target} chainId={chainId} loading share={false} />}>
             <TargetSummary chainId={chainId} target={target} />
           </Suspense>
-          <div className="mt-8">
-            <Suspense fallback={<p className="mono text-[12px] text-ink-3 cursor-blink">Reading the deep-linked target live from Base</p>}>
+          <Wrap className="pt-8">
+            <p className="mb-6 flex flex-wrap gap-x-6 gap-y-1 text-[14px] text-ink-2">
+              <InkLink href={`/app?target=${target}&chain=${chainId}&tab=briefing`}>Full briefing for this target</InkLink>
+              <InkLink href={`/app?target=${target}&chain=${chainId}&tab=chaos`}>Simulate the exit</InkLink>
+            </p>
+            <Suspense fallback={<SkeletonRows rows={4} heights={[56, 48, 48, 48]} caption="Reading the deep-linked target live from Base" />}>
               <TargetBunker chainId={chainId} target={target} revokeOnly={revokeOnly} />
             </Suspense>
-          </div>
+          </Wrap>
         </>
       ) : (
-        <div className="mt-8">
-          <PanicBunker />
-        </div>
+        <Wrap className="pt-2">
+          <form action="/rescue" method="get" className="panel flex min-h-[48px] items-stretch max-[601px]:flex-col">
+            <label htmlFor="rescue-target" className="flex shrink-0 items-center gap-2 border-r border-hair px-4 mono text-[13px] text-phosphor max-[601px]:border-r-0 max-[601px]:border-b max-[601px]:py-2">
+              <span aria-hidden="true">&gt;_</span>
+              <span className="text-ink-meta">wallet on Base</span>
+            </label>
+            <input
+              id="rescue-target"
+              name="target"
+              required
+              pattern="^0x[0-9a-fA-F]{40}$"
+              placeholder="Paste any 0x wallet address"
+              defaultValue={rawTarget ?? ""}
+              autoComplete="off"
+              spellCheck={false}
+              className="min-w-0 flex-1 bg-transparent px-4 py-3 mono text-[14px] text-ink placeholder:text-ink-meta focus:outline-none max-[901px]:text-[16px]"
+            />
+            <input type="hidden" name="chain" value="8453" />
+            <button type="submit" className="btn-outline press shrink-0 rounded-none border-0 border-l border-hair px-5 max-[601px]:min-h-[48px] max-[601px]:border-l-0 max-[601px]:border-t">
+              READ APPROVALS
+            </button>
+          </form>
+          <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[14px] text-ink-2">
+            {rawTarget && !target && <span className="mono text-[13px] text-crit">Not a valid 0x address.</span>}
+            <span className="text-ink-meta">No wallet handy?</span>
+            <InkLink href={`/rescue?target=${DEMO_RESCUE_WALLET.address}&chain=8453`}>Preview the {DEMO_RESCUE_WALLET.label} live</InkLink>
+          </p>
+          <div className="mt-8">
+            <PanicBunker />
+          </div>
+        </Wrap>
       )}
-    </div>
-  );
-}
-
-function TargetBar({ chainId, target, children }: { chainId: number; target: string; children?: ReactNode }) {
-  return (
-    <div className="mt-6 flex flex-wrap items-center gap-3 border hairline bg-surface px-4 py-3 text-[13px] max-[601px]:gap-x-2 max-[601px]:gap-y-1.5 max-[601px]:px-3">
-      <span className="label">Deep-linked target</span>
-      <ChainBadge chainId={chainId} />
-      <AddrLink chainId={chainId} address={target} n={6} />
-      {children}
     </div>
   );
 }
 
 async function TargetSummary({ chainId, target }: { chainId: ChainId; target: Address }) {
-  const scan = await scanOnce(chainId, target);
+  const r = await scanOnce(chainId, target);
+  const notice =
+    chainId !== 8453 ? (
+      <p className="max-w-[34ch] text-[13px] leading-relaxed text-warn min-[901px]:text-right">Panic Bunker executes on Base; Robinhood Chain targets are shown read-only.</p>
+    ) : undefined;
   return (
-    <TargetBar chainId={chainId} target={target}>
-      {scan ? (
-        <>
-          <BandBadge band={scan.band} />
-          <span className="text-ink-2">
-            {scan.score}/100 · {scan.target.label} · block #{BigInt(scan.block.number).toLocaleString("en-US")}
-          </span>
-          <Link href={`/app?target=${target}&chain=${chainId}&tab=${scan.target.kind === "pool" || scan.target.kind === "token" ? "chaos" : "briefing"}`} className="mono text-[11px] text-phosphor hover:underline max-[901px]:inline-flex max-[901px]:min-h-[36px] max-[901px]:items-center">
-            {scan.target.kind === "pool" || scan.target.kind === "token" ? "simulate exit →" : "full briefing →"}
-          </Link>
-        </>
-      ) : (
-        <span className="mono text-[11px] text-ink-3">live scan unavailable right now</span>
-      )}
-      {chainId !== 8453 && <span className="text-warn">Panic Bunker executes on Base; Robinhood Chain targets are shown read-only.</span>}
-    </TargetBar>
+    <TargetMasthead
+      scan={r?.result ?? null}
+      target={target}
+      chainId={chainId}
+      loading={false}
+      error={r ? null : "Live scan unavailable right now. The rescue below still reads allowances directly from Base."}
+      degraded={r?.degraded ?? []}
+      notice={notice}
+      share={false}
+    />
   );
 }
 
@@ -130,7 +170,7 @@ async function TargetBunker({ chainId, target, revokeOnly }: { chainId: ChainId;
     const live = await liveOnce(target);
     return <PanicBunker previewAddress={target} previewChainId={8453} initialLive={live} revokeOnly={revokeOnly} />;
   }
-  const scan = await scanOnce(8453, target);
+  const scan = (await scanOnce(8453, target))?.result ?? null;
   const kind = scan?.target.kind ?? "contract";
   if (kind === "wallet" || kind === "contract") {
     // Contract accounts (Safe multisigs, smart wallets) are rescued too: their allowances are read the same way.
