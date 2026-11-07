@@ -1,5 +1,3 @@
-import { lookup } from "node:dns/promises";
-import { isIP } from "node:net";
 import { apiError, json, preflight, rateLimited } from "@/lib/api";
 import { CONTRACTS } from "@/config/contracts";
 import { errMsg, normalizeChainId, parseAddress } from "@/lib/engine/chain-utils";
@@ -7,7 +5,12 @@ import { readAllEscrows } from "@/lib/engine/escrow";
 import { getBridgeParity } from "@/lib/engine/parity";
 import { readPool } from "@/lib/engine/pools";
 import { fmtBps, fmtDuration, fmtUnits, shortAddr } from "@/lib/format";
-import { siteUrl } from "@/lib/site";
+import { deliverTelegram, deliverWebhook } from "@/lib/pager/deliver";
+import { absUrl, rescueHref } from "@/lib/pager/links";
+import { renderNotice } from "@/lib/pager/render";
+import { assertSafeWebhook } from "@/lib/pager/ssrf";
+import { getTgChat } from "@/lib/pager/store";
+import { tgBotUsername, tgConfigured } from "@/lib/pager/telegram";
 
 export const runtime = "nodejs";
 export const maxDuration = 45;
@@ -20,30 +23,12 @@ interface Body {
   rules?: { lpDropPct?: number; maxSpreadBps?: number; watchChallengeWindows?: boolean; parityDrift?: boolean };
 }
 
-function isPrivateIp(ip: string): boolean {
-  if (ip.includes(":")) {
-    const l = ip.toLowerCase();
-    return l === "::1" || l.startsWith("fc") || l.startsWith("fd") || l.startsWith("fe80") || l.startsWith("::ffff:127.") || l.startsWith("::ffff:10.") || l.startsWith("::ffff:192.168.");
-  }
-  const [a, b] = ip.split(".").map(Number);
-  return a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127);
-}
-
-/** SSRF guard: https only, no credentials, public DNS resolution only. */
-async function assertSafeWebhook(raw: string): Promise<URL> {
-  const u = new URL(raw);
-  if (u.protocol !== "https:") throw new Error("Webhook must use https://");
-  if (u.username || u.password) throw new Error("Webhook URL must not embed credentials");
-  const host = u.hostname;
-  if (host === "localhost" || host.endsWith(".local") || host.endsWith(".internal")) throw new Error("Webhook host not allowed");
-  const addrs = isIP(host) ? [{ address: host }] : await lookup(host, { all: true });
-  if (!addrs.length || addrs.some((a) => isPrivateIp(a.address))) throw new Error("Webhook resolves to a private address");
-  return u;
-}
-
 /**
  * POST /api/pager/test — evaluates the user's armed rules against LIVE chain state and dispatches a
  * real Night-Shift Pager alert (webhook and/or Telegram) with a 1-click /rescue deep link.
+ * Webhooks go through the shared SSRF guard (re-checked and IP-pinned at send time). Telegram only delivers to a
+ * chat that has linked itself via the bot's /start deep link, so the bot cannot be used to message strangers.
+ * With no destination the response carries `dryRun: true` (nothing was sent).
  */
 export async function POST(req: Request) {
   if (await rateLimited(req, 6)) return apiError("Rate limited — max 6 test pages per minute.", 429);
@@ -88,7 +73,9 @@ export async function POST(req: Request) {
       ...(rules.watchChallengeWindows ? [{ rule: "Vibestarter 72h challenge window open", fired: openWindows.length > 0, observed: openWindows.length ? `${openWindows.length} open` : "none" }] : []),
     ];
 
-    const deepLink = `${siteUrl(req)}/rescue?target=${target}&chain=${chainId}`;
+    // Canonical origin only (never the request Host); /rescue is the Base Panic Bunker.
+    const rescuePath = rescueHref(chainId === 8453 ? target : null);
+    const deepLink = absUrl(rescuePath);
     const fired = triggers.filter((t) => t.fired);
     const lines = [
       `>_ KESTREL NIGHT-SHIFT PAGER · TEST`,
@@ -99,41 +86,39 @@ export async function POST(req: Request) {
     ];
     const message = lines.join("\n");
 
+    // Same message, rendered per channel (Telegram HTML / Discord / Slack / generic JSON) with escaping.
+    const rendered = renderNotice({
+      event: "test",
+      severity: fired.length ? "warn" : "info",
+      headline: lines[0],
+      lines: lines.slice(1, -1),
+      links: [{ label: "Open Panic Bunker", href: rescuePath }],
+      data: { triggers, deepLink, base: parity.base, robinhood: parity.robinhood },
+    });
+    const deliveryId = `test:${Date.now().toString(36)}`;
+
     const delivered: { channel: string; ok: boolean; status: number | null; error?: string }[] = [];
     if (webhook) {
-      try {
-        const res = await fetch(webhook, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "User-Agent": "Kestrel-Pager/1.0" },
-          // `content` → Discord, `text` → Slack; structured payload for custom receivers
-          body: JSON.stringify({ content: message, text: message, kestrel: { triggers, deepLink, base: parity.base, robinhood: parity.robinhood } }),
-          redirect: "error",
-          signal: AbortSignal.timeout(8_000),
-        });
-        delivered.push({ channel: `webhook ${webhook.hostname}`, ok: res.ok, status: res.status });
-      } catch (e) {
-        delivered.push({ channel: `webhook ${webhook.hostname}`, ok: false, status: null, error: errMsg(e) });
-      }
+      const d = await deliverWebhook({ url: webhook.toString() }, rendered, { deliveryId });
+      delivered.push({ channel: d.target, ok: d.ok, status: d.status, ...(d.error ? { error: d.error } : {}) });
     }
     if (tgChat) {
-      const token = process.env.TELEGRAM_BOT_TOKEN;
-      if (!token) {
+      if (!tgConfigured()) {
         delivered.push({ channel: "telegram", ok: false, status: null, error: "TELEGRAM_BOT_TOKEN not configured on server" });
+      } else if (!(await getTgChat(tgChat).catch(() => null))) {
+        const bot = await tgBotUsername().catch(() => null);
+        delivered.push({
+          channel: "telegram",
+          ok: false,
+          status: null,
+          error: `Chat not linked. Open a desk in the Night-Shift Pager and press LINK TELEGRAM${bot ? ` (t.me/${bot})` : ""}; Kestrel only messages chats that started the bot through a link.`,
+        });
       } else {
-        try {
-          const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: tgChat, text: message, disable_web_page_preview: true }),
-            signal: AbortSignal.timeout(8_000),
-          });
-          delivered.push({ channel: "telegram", ok: res.ok, status: res.status });
-        } catch (e) {
-          delivered.push({ channel: "telegram", ok: false, status: null, error: errMsg(e) });
-        }
+        const d = await deliverTelegram(tgChat, rendered);
+        delivered.push({ channel: "telegram", ok: d.ok, status: d.status, ...(d.error ? { error: d.error } : {}) });
       }
     }
-    return json({ triggers, message, deepLink, delivered });
+    return json({ triggers, message, deepLink, delivered, ...(!webhook && !tgChat ? { dryRun: true } : {}) });
   } catch (e) {
     return apiError(`Pager evaluation failed: ${errMsg(e)}`, 502);
   }
