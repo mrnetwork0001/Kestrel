@@ -23,15 +23,15 @@ export function ParityTab() {
   const notional = p.arbNotionalWei ?? "100000000000000000";
   const notionalLabel = `${fmtUnits(notional, 18, 4)} Ξ`;
   return (
-    <div className="space-y-6 max-[600px]:space-y-4">
+    <div className="space-y-6 max-[601px]:space-y-4">
       <Panel
         title="$VIBES LayerZero OFT · 1:1 proof of reserve"
         n="01"
         right={<span className="mono text-[10px] text-ink-3">{isFetching ? "refreshing…" : `auto-refresh 30s · ${new Date(dataUpdatedAt).toISOString().slice(11, 19)} UTC`}</span>}
       >
-        <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] max-[600px]:gap-4">
-          <div className="min-w-0 border hairline p-4 max-[600px]:p-3">
-            <div className="flex items-center justify-between"><ChainBadge chainId={8453} /><a href={explorerBlock(8453, p.base.number)} target="_blank" rel="noreferrer" className="mono text-[10px] text-ink-3 hover:text-ink max-[900px]:py-2.5">#{BigInt(p.base.number).toLocaleString("en-US")} ↗</a></div>
+        <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] max-[601px]:gap-4">
+          <div className="min-w-0 border hairline p-4 max-[601px]:p-3">
+            <div className="flex items-center justify-between"><ChainBadge chainId={8453} /><a href={explorerBlock(8453, p.base.number)} target="_blank" rel="noreferrer" className="mono text-[10px] text-ink-3 hover:text-ink max-[901px]:py-2.5">#{BigInt(p.base.number).toLocaleString("en-US")} ↗</a></div>
             <Stat className="mt-4" label="Locked in Base OFT adapter" value={fmtUnits(p.lockedOnBase, 18, 6)} tone="base" sub="VIBES.balanceOf(BaseAdapter)" />
             <AddrLink chainId={8453} address={CONTRACTS.base.vibesBridgeAdapter} className="mt-2 inline-block text-[11px]" />
           </div>
@@ -44,8 +44,8 @@ export function ParityTab() {
               {verdict === "IN_FLIGHT" ? ` · ${p.pendingPackets} packet${p.pendingPackets === 1 ? "" : "s"}` : ""}
             </p>
           </div>
-          <div className="min-w-0 border hairline p-4 max-[600px]:p-3">
-            <div className="flex items-center justify-between"><ChainBadge chainId={4663} /><a href={explorerBlock(4663, p.robinhood.number)} target="_blank" rel="noreferrer" className="mono text-[10px] text-ink-3 hover:text-ink max-[900px]:py-2.5">#{BigInt(p.robinhood.number).toLocaleString("en-US")} ↗</a></div>
+          <div className="min-w-0 border hairline p-4 max-[601px]:p-3">
+            <div className="flex items-center justify-between"><ChainBadge chainId={4663} /><a href={explorerBlock(4663, p.robinhood.number)} target="_blank" rel="noreferrer" className="mono text-[10px] text-ink-3 hover:text-ink max-[901px]:py-2.5">#{BigInt(p.robinhood.number).toLocaleString("en-US")} ↗</a></div>
             <Stat className="mt-4" label="Circulating on Robinhood Chain" value={fmtUnits(p.rhCirculating, 18, 6)} tone="rh" sub="totalSupply() − balanceOf(ReserveAdapter)" />
             <p className="mt-2 mono text-[11px] text-ink-3">
               supply {fmtCompact(p.rhTotalSupply, 18)} − reserve {fmtCompact(p.rhReserve, 18)} · <AddrLink chainId={4663} address={CONTRACTS.robinhood.vibesReserveAdapter} label="adapter" />
@@ -57,14 +57,14 @@ export function ParityTab() {
         </p>
       </Panel>
 
-      <div className="grid gap-6 lg:grid-cols-2 max-[600px]:gap-4">
+      <div className="grid gap-6 lg:grid-cols-2 max-[601px]:gap-4">
         <Panel title="Cross-venue dislocation" n="02">
-          <div className="grid grid-cols-2 gap-6 max-[600px]:gap-4">
+          <div className="grid grid-cols-2 gap-6 max-[601px]:gap-4">
             <Stat label="Base Aerodrome · VIBES per WETH" value={fmtCompact(p.baseVibesPerWeth, 18)} tone="base" sub={p.basePool ? <AddrLink chainId={8453} address={p.basePool.address} /> : "unavailable"} />
             <Stat label="RH Uniswap v3 · VIBES per WETH" value={fmtCompact(p.rhVibesPerWeth, 18)} tone="rh" sub={p.rhPool ? <AddrLink chainId={4663} address={p.rhPool.address} /> : "unavailable"} />
           </div>
           <div className="mt-6 border-t hairline pt-4">
-            <div className="flex items-end gap-4 max-[600px]:flex-wrap max-[600px]:gap-y-1">
+            <div className="flex items-end gap-4 max-[601px]:flex-wrap max-[601px]:gap-y-1">
               <Stat label="Spread" value={p.spreadBps != null ? fmtBps(p.spreadBps) : "—"} tone={spreadAbs >= 300 ? "warn" : undefined} />
               <p className="mb-1 text-[12px] text-ink-3">{p.cheaperVenue ? `VIBES trades cheaper on ${p.cheaperVenue === "base" ? "Base" : "Robinhood Chain"}.` : "Venues aligned."}</p>
             </div>

@@ -42,7 +42,7 @@ function Row({ k, v, tone }: { k: ReactNode; v: ReactNode; tone?: "ok" | "warn" 
   const cls = tone === "ok" ? "text-phosphor" : tone === "warn" ? "text-warn" : tone === "crit" ? "text-crit" : tone === "dim" ? "text-ink-3" : "text-ink";
   return (
     <>
-      <dt className="min-w-0 text-ink-3 max-[600px]:max-w-[52vw]">{k}</dt>
+      <dt className="min-w-0 text-ink-3 max-[601px]:max-w-[52vw]">{k}</dt>
       <dd className={cx("min-w-0 text-right break-words", cls)}>{v}</dd>
     </>
   );
@@ -63,7 +63,7 @@ function LaneCard({ lane, ethUsd, rhSupply }: { lane: OftLane; ethUsd: EthUsdQuo
   const fb = lane.feeBreakdown;
   const capBps = c && rhSupply > 0n ? Number((limit * 10_000n) / rhSupply) : null;
   return (
-    <div className="min-w-0 border hairline p-4 max-[600px]:p-3">
+    <div className="min-w-0 border hairline p-4 max-[601px]:p-3">
       <div className="flex flex-wrap items-center gap-2">
         <ChainBadge chainId={lane.srcChainId} />
         <span className="mono text-[12px] text-ink-3">→</span>

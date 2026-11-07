@@ -100,7 +100,7 @@ export function BridgeEscapePanel(props: {
       n={n}
       right={<span className={`mono text-[10px] ${halted ? "text-crit" : saturated ? "text-warn" : "text-ink-3"}`}>{halted ? "BRIDGE PAUSED" : saturated ? "LANE SATURATED (SIMULATED)" : "LIVE HEADROOM"}</span>}
     >
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 max-[600px]:gap-4">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 max-[601px]:gap-4">
         <Stat
           label="LayerZero fee (1 message)"
           value={`${fmtUnits(fee, 18, 7)} Ξ`}

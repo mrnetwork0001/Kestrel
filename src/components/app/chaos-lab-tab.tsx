@@ -125,8 +125,8 @@ export function ChaosLabTab({ scan }: { scan: ScanResult | null }) {
         : `${(whaleBps / 100).toFixed(1)}% of supply`;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] max-[600px]:gap-4">
-      <div className="min-w-0 space-y-6 max-[600px]:space-y-4">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] max-[601px]:gap-4">
+      <div className="min-w-0 space-y-6 max-[601px]:space-y-4">
         <Panel title="Pool under test" n="01">
           <div className="flex flex-wrap gap-2">
             {pools.map((p) => (
@@ -140,13 +140,13 @@ export function ChaosLabTab({ scan }: { scan: ScanResult | null }) {
                     setScenario("custom");
                   }
                 }}
-                className={cx("flex max-w-full items-center gap-2 rounded-[2px] border px-2.5 py-1.5 text-left text-[12px] max-[900px]:min-h-10", p.pool.address === selected.address ? "border-phosphor/50 text-ink" : "hairline text-ink-3 hover:text-ink")}>
+                className={cx("flex max-w-full items-center gap-2 rounded-[2px] border px-2.5 py-1.5 text-left text-[12px] max-[901px]:min-h-10", p.pool.address === selected.address ? "border-phosphor/50 text-ink" : "hairline text-ink-3 hover:text-ink")}>
                 <ChainBadge chainId={p.pool.chainId} />
                 {p.pool.token0.symbol}/{p.pool.token1.symbol} · {p.pool.kind === "uniswap-v3" ? "Uni v3" : "Aerodrome"}
               </button>
             ))}
           </div>
-          <div className="mt-4 grid grid-cols-3 gap-4 max-[600px]:gap-3">
+          <div className="mt-4 grid grid-cols-3 gap-4 max-[601px]:gap-3">
             <Stat label={`${s.weth.symbol} depth`} value={fmtUnits(s.reserveWeth, s.weth.decimals, 3)} />
             <Stat label={`${s.token.symbol} depth`} value={fmtCompact(s.reserveToken, s.token.decimals)} />
             <Stat label="Fee" value={`${(selected.feeBps / 100).toFixed(2)}%`} />
@@ -166,7 +166,7 @@ export function ChaosLabTab({ scan }: { scan: ScanResult | null }) {
                   onClick={() => apply(sc)}
                   disabled={!!why}
                   title={why ?? sc.note}
-                  className={cx("rounded-[2px] border px-3 py-2 text-left text-[12px] disabled:opacity-30 max-[900px]:min-h-11", scenario === sc.key ? "border-phosphor/50 bg-phosphor/[0.05] text-ink" : "hairline text-ink-2 hover:text-ink")}
+                  className={cx("rounded-[2px] border px-3 py-2 text-left text-[12px] disabled:opacity-30 max-[901px]:min-h-11", scenario === sc.key ? "border-phosphor/50 bg-phosphor/[0.05] text-ink" : "hairline text-ink-2 hover:text-ink")}
                 >
                   {sc.label}
                 </button>
@@ -185,17 +185,17 @@ export function ChaosLabTab({ scan }: { scan: ScanResult | null }) {
           <div className="mt-5 space-y-5">
             <label className="block">
               <div className="flex justify-between gap-3"><span className="label">LP removal shock</span><span className="tnum text-[13px] text-ink">{(lp / 100).toFixed(0)}%</span></div>
-              <input type="range" min={0} max={9000} step={500} value={lp} onChange={(e) => { setLp(Number(e.target.value)); setScenario("custom"); }} className="mt-2 w-full max-[900px]:h-7" />
+              <input type="range" min={0} max={9000} step={500} value={lp} onChange={(e) => { setLp(Number(e.target.value)); setScenario("custom"); }} className="mt-2 w-full max-[901px]:h-7" />
             </label>
             <label className="block">
               <div className="flex justify-between gap-3">
                 <span className="label shrink-0">Whale market dump</span>
                 <span className="min-w-0 text-right tnum text-[13px] text-ink">{whaleLabel}</span>
               </div>
-              <input type="range" min={0} max={1000} step={25} value={whaleBps} onChange={(e) => { setWhaleBps(Number(e.target.value)); setUseTop(false); setFlood(false); setScenario("custom"); }} className="mt-2 w-full max-[900px]:h-7" />
+              <input type="range" min={0} max={1000} step={25} value={whaleBps} onChange={(e) => { setWhaleBps(Number(e.target.value)); setUseTop(false); setFlood(false); setScenario("custom"); }} className="mt-2 w-full max-[901px]:h-7" />
             </label>
             {bridgeReady && (
-              <label className="flex items-start gap-2 text-[12px] text-ink-2">
+              <label className="flex items-start gap-2 text-[12px] text-ink-2 max-[901px]:min-h-9 max-[901px]:py-1">
                 <input
                   type="checkbox"
                   checked={saturated}
@@ -203,7 +203,7 @@ export function ChaosLabTab({ scan }: { scan: ScanResult | null }) {
                     setSaturated(e.target.checked);
                     setScenario("custom");
                   }}
-                  className="mt-0.5 accent-phosphor max-[900px]:h-5 max-[900px]:w-5 max-[900px]:shrink-0"
+                  className="mt-0.5 accent-phosphor max-[901px]:h-5 max-[901px]:w-5 max-[901px]:shrink-0"
                 />
                 <span>
                   Saturate outbound OFT lane
@@ -218,16 +218,16 @@ export function ChaosLabTab({ scan }: { scan: ScanResult | null }) {
                 onChange={(e) => setPositionStr(e.target.value)}
                 placeholder={`${fmtUnits(defaultPosition, s.token.decimals, 0)} (1% of pool depth)`}
                 inputMode="decimal"
-                className="mt-2 w-full rounded-[2px] border hairline bg-canvas px-3 py-2 mono text-[13px] text-ink placeholder:text-ink-3 focus:border-phosphor/50 focus:outline-none max-[900px]:min-h-11 max-[900px]:text-[16px]"
+                className="mt-2 w-full rounded-[2px] border hairline bg-canvas px-3 py-2 mono text-[13px] text-ink placeholder:text-ink-3 focus:border-phosphor/50 focus:outline-none max-[901px]:min-h-11 max-[901px]:text-[16px]"
               />
             </label>
           </div>
         </Panel>
       </div>
 
-      <div className="min-w-0 space-y-6 max-[600px]:space-y-4">
+      <div className="min-w-0 space-y-6 max-[601px]:space-y-4">
         <Panel title="Exit outcome" n="03" right={<span className="mono text-[10px] text-ink-3">{selected.reservesAreVirtual ? (whaleAmount + position > s.reserveToken / 10n ? "UNI V3 ACTIVE-RANGE · INDICATIVE AT THIS SIZE" : "UNI V3 ACTIVE-RANGE MATH") : "x·y=k EXACT"}</span>}>
-          <div className="grid grid-cols-2 gap-6 max-[600px]:gap-4">
+          <div className="grid grid-cols-2 gap-6 max-[601px]:gap-4">
             <Stat label="Exit before shock" value={`${fmtUnits(sim.baselineExitWeth, s.weth.decimals, 5)} ${s.weth.symbol}`} sub={`price impact ${fmtBps(impact, false)}${usd(sim.baselineExitWeth)}`} />
             <Stat label="Exit after shock" value={`${fmtUnits(sim.postShockExitWeth, s.weth.decimals, 5)} ${s.weth.symbol}`} sub={usdOfWei(sim.postShockExitWeth, ethUsd) ?? undefined} tone={sev} />
             <Stat label="Drawdown" value={fmtBps(-sim.drawdownBps)} sub={ethUsd && sim.baselineExitWeth > sim.postShockExitWeth ? `−${usdOfWei(sim.baselineExitWeth - sim.postShockExitWeth, ethUsd)}` : undefined} tone={sev} />
@@ -239,11 +239,11 @@ export function ChaosLabTab({ scan }: { scan: ScanResult | null }) {
             </p>
           )}
           <div className="mt-6 border-t hairline pt-4">
-            <div className="mb-3 flex items-baseline justify-between gap-2 max-[600px]:flex-wrap">
+            <div className="mb-3 flex items-baseline justify-between gap-2 max-[601px]:flex-wrap">
               <p className="label">Exit value vs LP removal (current whale setting)</p>
               <span className="mono text-[10px] text-ink-3">max {fmtUnits(maxOut, s.weth.decimals, 5)} {s.weth.symbol}</span>
             </div>
-            <div className="flex h-32 items-stretch gap-1.5 max-[900px]:h-[220px] max-[600px]:h-[200px] max-[600px]:gap-1" role="img" aria-label={`Exit value in ${s.weth.symbol} at 0% to 90% LP removal`}>
+            <div className="flex h-32 items-stretch gap-1.5 max-[901px]:h-[220px] max-[601px]:h-[200px] max-[601px]:gap-1" role="img" aria-label={`Exit value in ${s.weth.symbol} at 0% to 90% LP removal`}>
               {curve.map((c) => {
                 const h = Number((c.out * 1000n) / maxOut) / 10;
                 const active = lp >= c.lp * 100 && lp < c.lp * 100 + 1000;
