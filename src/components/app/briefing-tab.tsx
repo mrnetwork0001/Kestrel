@@ -1,250 +1,336 @@
 "use client";
 
 import Link from "next/link";
-import { AddrLink, BandBadge, ChainBadge, cx, Panel, ScoreGauge, SEVERITY_COLOR, Stat, TxLink } from "@/components/ui";
-import { explorerBlock, fmtBps, fmtCompact, fmtUnits, fmtUtc } from "@/lib/format";
-import type { ScanResult } from "@/lib/engine/types";
-import { ShareCard } from "@/components/share-card";
-import { useBrief } from "./use-api";
 import { useState } from "react";
+import { AddrLink, cx, Panel, SEVERITY_COLOR, TxLink } from "@/components/ui";
+import { Kicker, SkeletonRows } from "@/components/editorial";
+import { DataList, type DataRow } from "@/components/data/data-list";
+import { explorerBlock, fmtBps, fmtCompact, fmtUnits } from "@/lib/format";
+import type { ParityVerdict, ScanResult } from "@/lib/engine/types";
+import { useBrief } from "./use-api";
+
+const VERDICT_LABEL: Record<ParityVerdict, string> = { EXACT: "EXACT 1:1", IN_FLIGHT: "IN FLIGHT", OVER_BACKED: "OVER BACKED", UNBACKED: "UNBACKED" };
+
+/** Split a brief into its first sentence (standfirst) and the remainder, with plain string ops only. */
+function splitBrief(text: string): [string, string] {
+  const t = text.trim();
+  const i = t.indexOf(". ");
+  if (i < 0) return [t, ""];
+  return [t.slice(0, i + 1), t.slice(i + 2).trim()];
+}
+
+const SEV_WORD = { critical: "CRIT", warn: "WARN", info: "INFO" } as const;
 
 export function BriefingTab({ scan, loading, error, onScan }: { scan: ScanResult | null; loading: boolean; error: string | null; onScan: (a: string, c: number) => void }) {
   const [wantAi, setWantAi] = useState(false);
   const ai = useBrief(scan?.target.address ?? "", scan?.target.chainId ?? 8453, wantAi && !!scan);
 
-  if (error && !scan) return <Panel><p className="mono text-[13px] text-crit">Scan failed: {error}</p></Panel>;
-  if (!scan) return <Panel><p className="mono text-[13px] text-ink-3 cursor-blink">Reading Base and Robinhood Chain</p></Panel>;
+  if (error && !scan)
+    return (
+      <div className="border-t border-hair-strong pt-4">
+        <p className="mono text-[13px] text-crit [overflow-wrap:anywhere]">Scan failed: {error}</p>
+      </div>
+    );
+  if (!scan) return <SkeletonRows rows={6} caption="Reading Base & Robinhood Chain" />;
 
   const brief = ai.data?.brief ?? scan.brief;
+  const [stand, rest] = splitBrief(brief.text);
   const t = scan.target;
+  const blockNo = BigInt(scan.block.number).toLocaleString("en-US");
+  const pointSum = scan.findings.reduce((s, f) => s + f.points, 0);
+  const capped = pointSum !== scan.score;
+  const degraded = scan.findings.find((f) => f.id === "scan-degraded");
+  const sourceLabel = brief.source === "deterministic" ? "RULE-BASED · LIVE FACTS" : `${brief.source === "0g-compute" ? "0G COMPUTE" : "ANTHROPIC"}${brief.model ? ` · ${brief.model}` : ""}`;
 
   return (
-    <div className={cx("grid gap-6 transition-opacity lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] max-[601px]:gap-4", loading && "opacity-60")}>
-      {/* LEFT: verdict */}
-      <div className="min-w-0 space-y-6 max-[601px]:space-y-4">
-        <Panel
-          title="Overnight threat score"
-          n="01"
-          right={<a href={explorerBlock(t.chainId, scan.block.number)} target="_blank" rel="noreferrer" className="shrink-0 mono text-[11px] text-ink-3 hover:text-ink max-[901px]:py-2.5">#{BigInt(scan.block.number).toLocaleString("en-US")} ↗</a>}
-        >
-          <div className="mb-5 flex flex-wrap items-center gap-2">
-            <ChainBadge chainId={t.chainId} />
-            <span className="rounded-[2px] border hairline px-1.5 py-0.5 mono text-[10px] tracking-wider text-ink-2">{t.kind.toUpperCase()}</span>
-            <span className="min-w-0 text-[15px] text-ink [overflow-wrap:anywhere]">{t.label}</span>
-            <AddrLink chainId={t.chainId} address={t.address} className="ml-auto text-[12px]" />
+    <div className={cx("grid grid-cols-12 gap-x-8 gap-y-8 transition-opacity max-[901px]:gap-x-4", loading && "opacity-60")}>
+      {/* LEAD: Morning Desk Brief + findings ledger */}
+      <div className="col-span-12 min-w-0 space-y-8 lg:col-span-7">
+        {degraded && (
+          <div className="border-t border-warn/50 pt-3">
+            <Kicker tone="warn">Incomplete scan · re-scan to complete</Kicker>
+            <p className="mt-2 text-[14px] text-ink-2">{degraded.detail}</p>
           </div>
-          <ScoreGauge score={scan.score} band={scan.band} />
-          <p className="mt-3 mono text-[10px] text-ink-3">
-            {fmtUtc(scan.block.timestamp)} · scanned in {scan.durationMs} ms · {scan.findings.length} findings
-          </p>
-          <ShareCard address={t.address} chainId={t.chainId} label={t.label} score={scan.score} band={scan.band} />
-        </Panel>
+        )}
 
-        <Panel
-          title="Morning desk brief"
-          n="02"
-          right={
-            <span className="mono text-[10px] text-ink-3">
-              {brief.source === "deterministic" ? "RULE-BASED · LIVE FACTS" : `${brief.source === "0g-compute" ? "0G COMPUTE" : "ANTHROPIC"} · ${brief.model ?? ""}`}
-            </span>
-          }
-        >
-          <p className="text-[14px] leading-relaxed text-ink-2">{brief.text}</p>
-          <div className="mt-4 flex items-center gap-3 max-[901px]:flex-wrap">
+        <article {...{ "data-rv": "up" }} className="border-t border-hair-strong pt-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <Kicker tone={brief.source === "deterministic" ? "meta" : "phosphor"}>Morning desk brief · {sourceLabel}</Kicker>
+            <a href={explorerBlock(t.chainId, scan.block.number)} target="_blank" rel="noreferrer" className="mono text-[12px] text-ink-meta hover:text-ink max-[901px]:py-2.5">
+              block #{blockNo} ↗
+            </a>
+          </div>
+          <p className="t-stand mt-5 max-w-[34ch] text-ink [overflow-wrap:anywhere]">{stand}</p>
+          {rest && <p className="mt-4 max-w-[62ch] text-[16px] leading-[1.65] text-ink-2">{rest}</p>}
+          <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
             <button
+              type="button"
               onClick={() => setWantAi(true)}
               disabled={ai.isFetching || (wantAi && !!ai.data)}
-              className="rounded-[2px] border border-hair-strong px-3 py-1.5 mono text-[11px] text-ink hover:border-phosphor/60 hover:text-phosphor disabled:opacity-40 max-[901px]:min-h-10"
+              className="ink-link press mono text-[12px] tracking-[0.08em] text-phosphor disabled:text-ink-meta max-[901px]:min-h-11"
             >
-              {ai.isFetching ? "SYNTHESIZING…" : ai.data ? "AI BRIEF LOADED" : "SYNTHESIZE AI BRIEF"}
+              {ai.isFetching ? "SYNTHESIZING…" : ai.data ? (ai.data.brief.source === "deterministic" ? "RULE-BASED BRIEF" : "AI BRIEF LOADED") : "SYNTHESIZE AI BRIEF"}
             </button>
-            {ai.data?.brief.source === "deterministic" && <span className="mono text-[10px] text-ink-3">No LLM key configured — showing rule-based brief.</span>}
-            {ai.error && <span className="mono text-[10px] text-crit">{ai.error.message}</span>}
+            {ai.data?.brief.source === "deterministic" && <span className="text-[13px] text-ink-meta">No LLM configured, so this is the rule-based brief from live facts.</span>}
+            {ai.error && <span className="mono text-[12px] text-crit">{ai.error.message}</span>}
           </div>
-        </Panel>
+        </article>
 
-        <Panel title="Findings" n="03" right={<span className="mono text-[10px] text-ink-3">points → score</span>}>
-          <ul className="divide-y divide-white/[0.06]">
-            {scan.findings.map((f) => (
-              <li key={f.id} className="flex gap-3 py-2.5 first:pt-0 last:pb-0">
-                <span className={cx("w-9 shrink-0 mono text-[10px] uppercase", SEVERITY_COLOR[f.severity])}>{f.severity === "critical" ? "CRIT" : f.severity === "warn" ? "WARN" : "INFO"}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] text-ink">{f.title}</p>
-                  <p className="mt-0.5 text-[12px] leading-relaxed text-ink-3">{f.detail}</p>
-                  {f.link && (
-                    <a href={f.link.href} target="_blank" rel="noreferrer" className="mt-1 inline-block mono text-[11px] text-ink-2 hover:text-ink max-[901px]:mt-0 max-[901px]:py-2.5">
-                      {f.link.label}
-                    </a>
+        <section className="border-t border-hair-strong pt-4" aria-label="Findings">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="t-kicker">Findings · {scan.findings.length}</h2>
+            <span className="text-[12px] text-ink-meta">points add up to the score</span>
+          </div>
+          <table className="mt-3 w-full border-collapse">
+            <thead className="sr-only">
+              <tr>
+                <th>Severity</th>
+                <th>Finding</th>
+                <th>Points</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-hair">
+              {scan.findings.map((f) => (
+                <tr key={f.id} className="align-top">
+                  <td className={cx("w-14 py-3 pr-3 mono text-[12px] tracking-[0.08em]", SEVERITY_COLOR[f.severity])}>{SEV_WORD[f.severity]}</td>
+                  <td className="min-w-0 py-3 pr-4">
+                    <p className="text-[15px] leading-snug text-ink [overflow-wrap:anywhere]">{f.title}</p>
+                    <p className="mt-1 text-[14px] leading-relaxed text-ink-2 [overflow-wrap:anywhere]">{f.detail}</p>
+                    {f.link && (
+                      <a href={f.link.href} target="_blank" rel="noreferrer" className="mt-1 inline-block mono text-[12px] text-ink-2 underline decoration-white/15 underline-offset-2 hover:text-ink max-[901px]:py-2.5">
+                        {f.link.label}
+                      </a>
+                    )}
+                  </td>
+                  <td className={cx("w-12 py-3 text-right mono tnum text-[14px]", f.points > 0 ? "text-ink" : "text-ink-meta")}>+{f.points}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="border-t border-hair-strong">
+                <td className="py-3 pr-3 t-kicker" colSpan={2}>
+                  {capped ? (
+                    <>
+                      Score (capped) <span className="normal-case tracking-normal text-ink-meta">· points sum {pointSum}, clamped to 0–100</span>
+                    </>
+                  ) : (
+                    "Total"
                   )}
-                </div>
-                <span className="tnum text-[12px] text-ink-3">+{f.points}</span>
-              </li>
-            ))}
-          </ul>
-        </Panel>
+                </td>
+                <td className="py-3 text-right mono tnum text-[18px] text-ink">{scan.score}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </section>
+
+        {scan.wallet && <WalletExposure scan={scan} />}
       </div>
 
-      {/* RIGHT: evidence */}
-      <div className="min-w-0 space-y-6 max-[601px]:space-y-4">
-        {scan.wallet && (
-          <Panel
-            title="Wallet exposure"
-            n="04"
-            right={
-              <Link href={`/rescue?target=${t.address}&chain=${t.chainId}`} className="shrink-0 rounded-[2px] border border-crit/40 px-2 py-1 mono text-[10px] text-crit hover:bg-crit/10 max-[901px]:inline-flex max-[901px]:min-h-9 max-[901px]:items-center max-[901px]:py-2">
-                OPEN PANIC BUNKER →
-              </Link>
-            }
-          >
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <Stat label="Native ETH" value={fmtUnits(scan.wallet.nativeBalance, 18, 4)} />
-              <Stat label="Live approvals" value={scan.wallet.approvals.length} tone={scan.wallet.approvals.some((a) => a.unlimited) ? "crit" : undefined} />
-              <Stat label="Spenders checked" value={scan.wallet.spendersChecked} sub={scan.wallet.overnightApprovalScan.available ? `${scan.wallet.overnightApprovalScan.newApprovals} Approval logs in 8h` : "overnight log scan n/a"} />
-            </div>
-            {scan.wallet.holdings.length > 0 && (
-              <table className="mt-5 w-full mono text-[12px]">
-                <tbody>
-                  {scan.wallet.holdings.map((h) => (
-                    <tr key={h.token} className="border-t hairline">
-                      <td className="py-1.5 text-ink-2">{h.symbol}</td>
-                      <td className="py-1.5 text-right tnum text-ink">{fmtUnits(h.balance, h.decimals, 4)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-            {scan.wallet.approvals.length > 0 && (
-              <div className="mt-5 max-w-full overflow-x-auto">
-              <table className="w-full text-[12px] max-[601px]:min-w-[420px]">
-                <thead>
-                  <tr className="label text-left">
-                    <th className="pb-2 font-normal">Token</th>
-                    <th className="pb-2 font-normal">Spender</th>
-                    <th className="pb-2 text-right font-normal">Allowance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {scan.wallet.approvals.map((a) => (
-                    <tr key={`${a.kind}-${a.token}-${a.spender}`} className="border-t hairline">
-                      <td className="py-1.5 mono text-ink-2">{a.tokenSymbol}</td>
-                      <td className="py-1.5 text-ink-2">
-                        {a.spenderName} <AddrLink chainId={t.chainId} address={a.spender} className="text-[11px]" />
-                      </td>
-                      <td className={cx("py-1.5 text-right tnum", a.unlimited ? "text-crit" : "text-warn")}>{a.unlimited ? "UNLIMITED" : fmtUnits(a.amount, a.tokenDecimals, 2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              </div>
-            )}
+      {/* EVIDENCE: data columns */}
+      <div className="col-span-12 min-w-0 space-y-8 lg:col-span-5 lg:border-l lg:border-hair lg:pl-8">
+        {scan.pool && (
+          <Panel title={`Liquidity · ${scan.pool.token0.symbol}/${scan.pool.token1.symbol}`} reveal={0} right={<AddrLink chainId={scan.pool.chainId} address={scan.pool.address} className="text-[12px]" />}>
+            <DataList
+              rows={[
+                { label: `${scan.pool.token0.symbol} ${scan.pool.reservesAreVirtual ? "(active range)" : "reserve"}`, value: fmtCompact(scan.pool.reserve0, scan.pool.token0.decimals) },
+                { label: `${scan.pool.token1.symbol} ${scan.pool.reservesAreVirtual ? "(active range)" : "reserve"}`, value: fmtCompact(scan.pool.reserve1, scan.pool.token1.decimals) },
+                { label: `${scan.pool.token1.symbol} per ${scan.pool.token0.symbol}`, value: fmtCompact(scan.pool.token1PerToken0, 18) },
+                { label: "Fee", value: `${(scan.pool.feeBps / 100).toFixed(2)}%`, sub: scan.pool.kind === "uniswap-v3" ? `Uniswap v3 · tick ${scan.pool.tick}` : `Aerodrome ${scan.pool.stable ? "stable" : "volatile"}` },
+              ]}
+            />
           </Panel>
         )}
 
         {scan.pool && (
-          <Panel title={`Liquidity · ${scan.pool.token0.symbol}/${scan.pool.token1.symbol}`} n="05" right={<AddrLink chainId={scan.pool.chainId} address={scan.pool.address} className="text-[11px]" />}>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <Stat label={`${scan.pool.token0.symbol} ${scan.pool.reservesAreVirtual ? "(active range)" : "reserve"}`} value={fmtCompact(scan.pool.reserve0, scan.pool.token0.decimals)} />
-              <Stat label={`${scan.pool.token1.symbol} ${scan.pool.reservesAreVirtual ? "(active range)" : "reserve"}`} value={fmtCompact(scan.pool.reserve1, scan.pool.token1.decimals)} />
-              <Stat label={`${scan.pool.token1.symbol} per ${scan.pool.token0.symbol}`} value={fmtCompact(scan.pool.token1PerToken0, 18)} />
-              <Stat label="Fee" value={`${(scan.pool.feeBps / 100).toFixed(2)}%`} sub={scan.pool.kind === "uniswap-v3" ? `Uniswap v3 · tick ${scan.pool.tick}` : `Aerodrome ${scan.pool.stable ? "stable" : "volatile"}`} />
-            </div>
-            <div className="mt-5 border-t hairline pt-4">
-              <p className="label mb-2">While you slept · {scan.pool.overnight.hours}h</p>
-              <div className="grid grid-cols-3 gap-4">
-                <Stat label="LP depth Δ" value={scan.pool.overnight.reserve0ChangeBps != null ? fmtBps(scan.pool.overnight.reserve0ChangeBps) : "n/a"} tone={(scan.pool.overnight.reserve0ChangeBps ?? 0) <= -500 ? "warn" : undefined} />
-                <Stat label="Price Δ" value={scan.pool.overnight.priceChangeBps != null ? fmtBps(scan.pool.overnight.priceChangeBps) : "n/a"} />
-                <Stat label="Swaps" value={scan.pool.overnight.swapCount ?? "n/a"} />
-              </div>
-              <p className="mt-2 mono text-[10px] text-ink-3">{scan.pool.overnight.note}</p>
-            </div>
+          <Panel title={`While you slept · ${scan.pool.overnight.hours}h`} reveal={1}>
+            <DataList
+              rows={[
+                {
+                  label: "LP depth Δ",
+                  value: scan.pool.overnight.reserve0ChangeBps != null ? fmtBps(scan.pool.overnight.reserve0ChangeBps) : "—",
+                  tone: (scan.pool.overnight.reserve0ChangeBps ?? 0) <= -500 ? "warn" : undefined,
+                },
+                { label: "Price Δ", value: scan.pool.overnight.priceChangeBps != null ? fmtBps(scan.pool.overnight.priceChangeBps) : "—" },
+                { label: "Swaps", value: scan.pool.overnight.swapCount ?? "—" },
+              ]}
+            />
+            <p className="mt-2 text-[12px] leading-relaxed text-ink-meta">{scan.pool.overnight.note}</p>
           </Panel>
         )}
 
         {scan.flow && scan.token && (
-          <Panel title={`Token flow · ${scan.token.symbol}`} n="06">
+          <Panel title={`Token flow · ${scan.token.symbol}`} reveal={2}>
             {scan.flow.available ? (
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <Stat label={`Transfers (${scan.flow.hours}h)`} value={scan.flow.transferCount} />
-                <Stat label="Volume" value={fmtCompact(scan.flow.volume, scan.token.decimals)} />
-                <Stat label="Largest transfer" value={fmtCompact(scan.flow.largestTransfer, scan.token.decimals)} sub={scan.flow.largestTransferTx ? <TxLink chainId={t.chainId} hash={scan.flow.largestTransferTx} label="tx" /> : undefined} />
-                <Stat
-                  label="Top active holder"
-                  value={scan.flow.topHolder ? fmtBps(scan.flow.topHolder.shareBps, false) : "—"}
-                  sub={scan.flow.topHolder ? <AddrLink chainId={t.chainId} address={scan.flow.topHolder.address} /> : undefined}
-                />
-              </div>
+              <DataList
+                rows={[
+                  { label: `Transfers (${scan.flow.hours}h)`, value: scan.flow.transferCount },
+                  { label: "Volume", value: fmtCompact(scan.flow.volume, scan.token.decimals) },
+                  {
+                    label: "Largest transfer",
+                    value: fmtCompact(scan.flow.largestTransfer, scan.token.decimals),
+                    sub: scan.flow.largestTransferTx ? <TxLink chainId={t.chainId} hash={scan.flow.largestTransferTx} label="tx" /> : undefined,
+                  },
+                  {
+                    label: "Top active holder",
+                    value: scan.flow.topHolder ? fmtBps(scan.flow.topHolder.shareBps, false) : "—",
+                    sub: scan.flow.topHolder ? <AddrLink chainId={t.chainId} address={scan.flow.topHolder.address} /> : undefined,
+                  },
+                  { label: "Supply", value: scan.token.totalSupply ? `${fmtCompact(scan.token.totalSupply, scan.token.decimals)} ${scan.token.symbol}` : "—" },
+                ]}
+              />
             ) : (
-              <p className="mono text-[12px] text-ink-3">{scan.flow.note}</p>
+              <p className="text-[14px] text-ink-2">{scan.flow.note}</p>
             )}
-            <p className="mt-3 mono text-[10px] text-ink-3">Supply {scan.token.totalSupply ? fmtCompact(scan.token.totalSupply, scan.token.decimals) : "—"} {scan.token.symbol} · {scan.flow.note}</p>
+            {scan.flow.available && <p className="mt-2 text-[12px] leading-relaxed text-ink-meta">{scan.flow.note}</p>}
           </Panel>
         )}
 
         {scan.escrow && (
-          <Panel title="Vibestarter escrow" n="07" right={<BandBadge band={scan.escrow.state === 3 ? "NOMINAL" : "ELEVATED"} />}>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <Stat label="State" value={scan.escrow.stateLabel} />
-              <Stat label="Raised" value={`${fmtUnits(scan.escrow.totalRaised, 18, 2)} Ξ`} />
-              <Stat label="Escrowed" value={`${fmtUnits(scan.escrow.escrowBalance, 18, 2)} Ξ`} />
-              <Stat label="Next tranche" value={scan.escrow.nextTranche} />
-            </div>
-            <p className="mt-4 text-[12px] text-ink-3">Full tranche timeline, countdowns and founder signals live in the Backer Shield tab.</p>
+          <Panel title="Vibestarter escrow" reveal={3} right={<span className={scan.escrow.state === 3 ? "text-phosphor" : "text-warn"}>{scan.escrow.stateLabel}</span>}>
+            <DataList
+              rows={[
+                { label: "Raised", value: `${fmtUnits(scan.escrow.totalRaised, 18, 2)} ETH` },
+                { label: "Escrowed", value: `${fmtUnits(scan.escrow.escrowBalance, 18, 2)} ETH` },
+                { label: "Next tranche", value: scan.escrow.nextTranche },
+              ]}
+            />
+            <p className="mt-2 text-[13px] text-ink-2">Tranche timeline, countdowns and founder signals are in the Backer Shield tab.</p>
           </Panel>
         )}
 
         {scan.xray && (
-          <Panel title="Bytecode & EIP-1967 X-Ray" n="08" right={<span className="mono text-[10px] text-ink-3">eth_getCode · eth_getStorageAt</span>}>
-            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 mono text-[12px] [&_dd]:[overflow-wrap:anywhere]">
-              <dt className="text-ink-3">bytecode</dt>
-              <dd className="text-ink-2">{scan.xray.isContract ? `${scan.xray.byteSize.toLocaleString("en-US")} bytes · ${scan.xray.push4Count} PUSH4 selectors` : "no code (EOA)"}</dd>
-              <dt className="text-ink-3">impl slot</dt>
-              <dd>{scan.xray.implementation ? <AddrLink chainId={t.chainId} address={scan.xray.implementation} /> : <span className="text-ink-3">empty — not an EIP-1967 proxy</span>}</dd>
-              <dt className="text-ink-3">admin slot</dt>
-              <dd>{scan.xray.admin ? <AddrLink chainId={t.chainId} address={scan.xray.admin} /> : <span className="text-ink-3">empty</span>}</dd>
-              {scan.xray.eip1167CloneTarget && (
-                <>
-                  <dt className="text-ink-3">EIP-1167</dt>
-                  <dd><AddrLink chainId={t.chainId} address={scan.xray.eip1167CloneTarget} label="immutable clone of …" /></dd>
-                </>
-              )}
-              <dt className="text-ink-3">opcodes</dt>
-              <dd className="text-ink-2">
-                SELFDESTRUCT <span className={scan.xray.hasSelfdestruct ? "text-warn" : "text-phosphor"}>{scan.xray.hasSelfdestruct ? "present" : "absent"}</span> · DELEGATECALL{" "}
-                <span className="text-ink">{scan.xray.hasDelegatecall ? "present" : "absent"}</span>
-              </dd>
-              {scan.xray.controllers.map((c) => (
-                <div key={c.role} className="contents">
-                  <dt className="text-ink-3">{c.role}</dt>
-                  <dd className="text-ink-2">
-                    <span className={c.kind === "eoa" ? "text-warn" : c.kind === "renounced" || c.kind === "safe" ? "text-phosphor" : "text-ink"}>
-                      {c.kind === "safe" ? `SAFE ${c.safeThreshold}-of-${c.safeOwners}` : c.kind.toUpperCase()}
-                    </span>{" "}
-                    {c.address && c.kind !== "renounced" && <AddrLink chainId={t.chainId} address={c.address} />}
-                  </dd>
-                </div>
-              ))}
-            </dl>
+          <Panel title="Bytecode & EIP-1967 X-Ray" reveal={4} right="eth_getCode · eth_getStorageAt">
+            <DataList
+              dense
+              rows={[
+                { label: "Bytecode", value: scan.xray.isContract ? `${scan.xray.byteSize.toLocaleString("en-US")} bytes` : "no code (EOA)", sub: scan.xray.isContract ? `${scan.xray.push4Count} PUSH4 selectors` : undefined },
+                { label: "Impl slot", value: scan.xray.implementation ? <AddrLink chainId={t.chainId} address={scan.xray.implementation} /> : "empty", sub: scan.xray.implementation ? undefined : "not an EIP-1967 proxy" },
+                { label: "Admin slot", value: scan.xray.admin ? <AddrLink chainId={t.chainId} address={scan.xray.admin} /> : "empty" },
+                ...(scan.xray.eip1167CloneTarget ? [{ label: "EIP-1167", value: <AddrLink chainId={t.chainId} address={scan.xray.eip1167CloneTarget} label="immutable clone of …" /> }] : []),
+                { label: "SELFDESTRUCT", value: scan.xray.hasSelfdestruct ? "present" : "absent", tone: scan.xray.hasSelfdestruct ? "warn" : "phosphor" },
+                { label: "DELEGATECALL", value: scan.xray.hasDelegatecall ? "present" : "absent" },
+                ...scan.xray.controllers.map(
+                  (c): DataRow => ({
+                    label: c.role,
+                    value: c.kind === "safe" ? `SAFE ${c.safeThreshold}-of-${c.safeOwners}` : c.kind.toUpperCase(),
+                    tone: c.kind === "eoa" ? "warn" : c.kind === "renounced" || c.kind === "safe" ? "phosphor" : undefined,
+                    sub: c.address && c.kind !== "renounced" ? <AddrLink chainId={t.chainId} address={c.address} /> : undefined,
+                  })
+                ),
+              ]}
+            />
             {scan.xray.matchedSelectors.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-1.5">
+              <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-1.5" aria-label="Matched selectors">
                 {scan.xray.matchedSelectors.map((s) => (
-                  <span key={s.selector} title={s.explanation} className={cx("max-w-full rounded-[2px] border px-1.5 py-0.5 mono text-[10px] [overflow-wrap:anywhere]", s.severity === "high" ? "border-crit/40 text-crit" : s.severity === "warn" ? "border-warn/40 text-warn" : "hairline text-ink-3")}>
+                  <li key={s.selector} title={s.explanation} className={cx("max-w-full mono text-[13px] [overflow-wrap:anywhere]", s.severity === "high" ? "text-crit" : s.severity === "warn" ? "text-warn" : "text-ink-2")}>
                     0x{s.selector} {s.signature}
-                  </span>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
           </Panel>
         )}
 
         {scan.parity && (
-          <Panel title="Cross-chain context" n="09" right={<button onClick={() => onScan(scan.parity!.rhPool?.address ?? "", 4663)} className="shrink-0 mono text-[10px] text-ink-3 hover:text-rh max-[901px]:py-2">scan RH pool →</button>}>
-            <p className="mono text-[12px] text-ink-2">
-              OFT parity <span className={scan.parity.verified ? "text-phosphor" : "text-warn"}>{scan.parity.verified ? "EXACT 1:1" : "DRIFT"}</span> · spread{" "}
-              {scan.parity.spreadBps != null ? fmtBps(scan.parity.spreadBps) : "—"} · locked {fmtCompact(scan.parity.lockedOnBase, 18)} VIBES
-            </p>
+          <Panel
+            title="Cross-chain context"
+            reveal={5}
+            right={
+              scan.parity.rhPool ? (
+                <button type="button" onClick={() => onScan(scan.parity!.rhPool?.address ?? "", 4663)} className="mono text-[12px] text-ink-2 underline decoration-white/15 underline-offset-2 hover:text-rh max-[901px]:min-h-11">
+                  scan RH pool
+                </button>
+              ) : undefined
+            }
+          >
+            <DataList
+              rows={[
+                { label: "OFT parity", value: VERDICT_LABEL[scan.parity.verdict] ?? scan.parity.verdict, tone: scan.parity.verdict === "UNBACKED" ? "crit" : scan.parity.verdict === "EXACT" ? "phosphor" : "warn" },
+                { label: "Spread", value: scan.parity.spreadBps != null ? fmtBps(scan.parity.spreadBps) : "—" },
+                { label: "Locked on Base", value: `${fmtCompact(scan.parity.lockedOnBase, 18)} VIBES` },
+              ]}
+            />
           </Panel>
         )}
       </div>
     </div>
+  );
+}
+
+function WalletExposure({ scan }: { scan: ScanResult }) {
+  const w = scan.wallet!;
+  const t = scan.target;
+  const cov = w.coverage;
+  const blockNo = BigInt(scan.block.number).toLocaleString("en-US");
+  return (
+    <Panel
+      title={`Wallet exposure${w.account ? ` · ${w.account.label}` : ""}`}
+      reveal={0}
+      right={
+        <Link href={`/rescue?target=${t.address}&chain=${t.chainId}`} className="mono text-[12px] tracking-[0.08em] text-crit underline decoration-crit/40 underline-offset-4 hover:decoration-crit max-[901px]:inline-flex max-[901px]:min-h-11 max-[901px]:items-center">
+          OPEN PANIC BUNKER
+        </Link>
+      }
+    >
+      <DataList
+        rows={[
+          { label: "Native ETH", value: fmtUnits(w.nativeBalance, 18, 4) },
+          { label: "Live approvals", value: w.approvals.length, tone: w.approvals.some((a) => a.unlimited) ? "crit" : undefined },
+          {
+            label: "Spenders checked",
+            value: w.spendersChecked,
+            sub: w.overnightApprovalScan.available ? `${w.overnightApprovalScan.newApprovals} Approval logs in ${w.overnightApprovalScan.hours}h` : "overnight log scan n/a",
+          },
+          ...(cov
+            ? [
+                {
+                  label: "Approval coverage",
+                  value: `${cov.tokensChecked} tokens × ${cov.spendersChecked} spenders`,
+                  sub: `${cov.erc20PairsChecked + cov.permit2PairsChecked} allowance reads · ${cov.logLookbackHours}h log window${cov.partial ? " · partial" : ""}${cov.failedCalls ? ` · ${cov.failedCalls} failed` : ""}`,
+                  tone: cov.partial ? ("warn" as const) : undefined,
+                },
+              ]
+            : []),
+        ]}
+      />
+
+      {w.holdings.length > 0 && (
+        <>
+          <h3 className="t-kicker mt-6">Holdings</h3>
+          <DataList dense className="mt-1" rows={w.holdings.map((h) => ({ label: h.symbol, value: fmtUnits(h.balance, h.decimals, 4) }))} />
+        </>
+      )}
+
+      {w.approvals.length > 0 ? (
+        <>
+          <h3 className="t-kicker mt-6">Open approvals</h3>
+          <div className="mt-1 max-w-full overflow-x-auto">
+            <table className="w-full text-[13px] max-[601px]:min-w-[420px]">
+              <thead>
+                <tr className="text-left text-[12px] text-ink-meta">
+                  <th className="py-2 font-normal">Token</th>
+                  <th className="py-2 font-normal">Spender</th>
+                  <th className="py-2 text-right font-normal">Allowance</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-hair border-t border-hair">
+                {w.approvals.map((a) => (
+                  <tr key={`${a.kind}-${a.token}-${a.spender}`}>
+                    <td className="py-2.5 mono text-ink">{a.tokenSymbol}</td>
+                    <td className="py-2.5 text-ink-2">
+                      {a.spenderName} <AddrLink chainId={t.chainId} address={a.spender} className="text-[12px]" />
+                    </td>
+                    <td className={cx("py-2.5 text-right mono tnum", a.unlimited ? "text-crit" : "text-warn")}>{a.unlimited ? "UNLIMITED" : fmtUnits(a.amount, a.tokenDecimals, 2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      ) : (
+        <p className="mt-6 font-serif text-[22px] leading-snug text-ink">No open approvals at block #{blockNo}. Nothing to revoke.</p>
+      )}
+      {cov && cov.notes.length > 0 && <p className="mt-3 text-[12px] leading-relaxed text-ink-meta">{cov.notes.join(" ")}</p>}
+    </Panel>
   );
 }

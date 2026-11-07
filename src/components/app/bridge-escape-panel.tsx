@@ -37,16 +37,17 @@ export function BridgeEscapePanel(props: {
   position: bigint; // user's VIBES (raw)
   postShock: { reserveToken: bigint; reserveWeth: bigint }; // local pool AFTER LP pull + whale dump (from simulateConstantProductShock)
   saturated: boolean; // scenario toggle: in-flight == limit on the outbound lane
+  /** @deprecated accepted, ignored */
   n?: string;
 }) {
-  const { parity, selected, position, postShock, saturated, n = "04" } = props;
+  const { parity, selected, position, postShock, saturated } = props;
   const bridge = parity.bridge;
   const lane = bridge?.lanes.find((l) => l.srcChainId === selected.chainId) ?? null; // local → other
   const other = selected.chainId === 8453 ? parity.rhPool : parity.basePool;
   if (!bridge || !lane || !lane.credit || !other || BigInt(lane.nativeFeeWei) === 0n) {
     return (
-      <Panel title="Bridge escape" n={n}>
-        <p className="mono text-[12px] text-warn">Live LayerZero lane data (fee or credit budget) or the other venue&apos;s reserves are unavailable at this refresh, so the bridge escape is not modelled rather than estimated.</p>
+      <Panel title="Bridge escape" variant="instrument">
+        <p className="text-[14px] leading-relaxed text-warn">Live LayerZero lane data (fee or credit budget) or the other venue&apos;s reserves are unavailable at this refresh, so the bridge escape is not modelled rather than estimated.</p>
       </Panel>
     );
   }
@@ -97,10 +98,10 @@ export function BridgeEscapePanel(props: {
   return (
     <Panel
       title={`Bridge escape · ${chainShort(lane.srcChainId)} → ${chainShort(lane.dstChainId)}`}
-      n={n}
-      right={<span className={`mono text-[10px] ${halted ? "text-crit" : saturated ? "text-warn" : "text-ink-3"}`}>{halted ? "BRIDGE PAUSED" : saturated ? "LANE SATURATED (SIMULATED)" : "LIVE HEADROOM"}</span>}
+      variant="instrument"
+      right={<span className={`mono text-[12px] tracking-[0.06em] ${halted ? "text-crit" : saturated ? "text-warn" : "text-ink-meta"}`}>{halted ? "BRIDGE PAUSED" : saturated ? "LANE SATURATED (SIMULATED)" : "LIVE HEADROOM"}</span>}
     >
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 max-[601px]:gap-4">
+      <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 max-[601px]:gap-4">
         <Stat
           label="LayerZero fee (1 message)"
           value={`${fmtUnits(fee, 18, 7)} Ξ`}
@@ -125,10 +126,10 @@ export function BridgeEscapePanel(props: {
           tone={saturated && repegWait !== null && repegWait > 0n ? "warn" : undefined}
         />
       </div>
-      <p className="mt-4 mono text-[11px] text-ink-3">
+      <p className="mt-5 border-t border-hair pt-3 mono text-[12px] leading-relaxed text-ink-2">
         Shocked {chainShort(selected.chainId)} pool vs {chainShort(lane.dstChainId)}: {dislocationBps !== null ? `${fmtBps(dislocationBps)} VIBES per WETH` : "unavailable"} · escape costs LZ fee + OFT send gas + remote swap gas at live gas prices.
       </p>
-      <p className="mt-3 text-[12px] leading-relaxed text-ink-3">
+      <p className="mt-3 text-[13px] leading-relaxed text-ink-meta">
         The credit budget is enforced on the destination adapter (creditBudget(srcEid), linear decay over the window). Over budget, the packet is verified but its delivery reverts with RateLimitExceeded and stays retriable at the endpoint. This happened on 2026-09-05: four Base → Robinhood packets were delayed by 4 min to 3.6 h.
       </p>
     </Panel>
