@@ -11,7 +11,7 @@ import { getBridgeParity } from "./parity";
 import { discoverWethPool, readPool } from "./pools";
 import type { ChainId, Finding, ScanResult, TargetKind } from "./types";
 import { fetchCampaigns } from "./vibestarter-api";
-import { scanWallet } from "./wallet";
+import { detectWalletAccount, scanWallet } from "./wallet";
 import { xrayContract } from "./xray";
 
 const VIBES_SET = new Set(
@@ -31,6 +31,26 @@ const CACHE_MS = 30_000;
 export interface ScanOptions {
   useLlm?: boolean;
   extraTokens?: Address[];
+  /**
+   * "wallet" forces the wallet/approval scan for any address (Panic Bunker subject: Safes, smart wallets, or any
+   * contract that holds approvals). Default "auto" classifies first.
+   */
+  mode?: "auto" | "wallet";
+}
+
+/** getCode with one retry. Throws on RPC failure — an unreadable address must never be classified as an all-clear wallet. */
+async function readCodeStrict(chainId: ChainId, address: Address) {
+  const client = getPublicClientForChain(chainId);
+  try {
+    return await client.getCode({ address });
+  } catch {
+    await new Promise((r) => setTimeout(r, 400));
+    try {
+      return await client.getCode({ address });
+    } catch (e) {
+      throw new Error(`Could not read bytecode for ${address} on chain ${chainId} (${e instanceof Error ? e.message.slice(0, 80) : "RPC error"}) — refusing to classify; retry shortly.`);
+    }
+  }
 }
 
 /**
@@ -38,13 +58,14 @@ export interface ScanOptions {
  * Vibestarter escrow / contract), runs the relevant live readers, scores, and writes the brief.
  */
 export async function scanTarget(chainId: ChainId, address: Address, opts: ScanOptions = {}): Promise<ScanResult> {
-  const key = `${chainId}:${address.toLowerCase()}:${opts.useLlm === false ? 0 : 1}:${(opts.extraTokens ?? []).join(",")}`;
+  const mode = opts.mode ?? "auto";
+  const key = `${chainId}:${address.toLowerCase()}:${opts.useLlm === false ? 0 : 1}:${mode}:${(opts.extraTokens ?? []).join(",")}`;
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < CACHE_MS) return hit.result;
 
   const started = Date.now();
   const client = getPublicClientForChain(chainId);
-  const [latest, code] = await Promise.all([client.getBlock({ blockTag: "latest" }), client.getCode({ address }).catch(() => undefined)]);
+  const [latest, code] = await Promise.all([client.getBlock({ blockTag: "latest" }), readCodeStrict(chainId, address)]);
   const insp = inspectRawBytecode(code);
   const block = { chainId, number: latest.number.toString(), timestamp: Number(latest.timestamp) };
 
@@ -66,11 +87,16 @@ export async function scanTarget(chainId: ChainId, address: Address, opts: ScanO
   const wantsParity = VIBES_SET.has(address.toLowerCase());
   const parityP = wantsParity ? getBridgeParity({ overnight: false }).catch(() => null) : Promise.resolve(null);
 
-  if (!insp.isContract) {
+  // Smart-contract wallets (Safe, Coinbase Smart Wallet, ERC-4337) are WALLETS: full approval scan, not "contract".
+  // Detection errors propagate (fail closed) instead of silently falling through to a contract/all-clear path.
+  const account = !insp.isContract ? null : await detectWalletAccount(chainId, address, code ?? null);
+
+  if (!insp.isContract || account || mode === "wallet") {
     kind = "wallet";
-    result.wallet = await scanWallet(chainId, address, opts.extraTokens ?? []);
+    result.wallet = await scanWallet(chainId, address, opts.extraTokens ?? [], { account: !insp.isContract ? undefined : (account ?? { kind: "smart-wallet", label: "Contract (scanned as wallet)" }) });
     findings.push(...walletFindings(result.wallet));
-    label ||= insp.eip7702Delegate ? "EIP-7702 smart EOA" : "Wallet";
+    label ||= result.wallet.account?.label ?? (insp.eip7702Delegate ? "EIP-7702 smart EOA" : "Wallet");
+    if (insp.isContract && !account) result.xray = await xrayContract(chainId, address).catch(() => null);
   } else if (await isVibestarterEscrow(chainId, address, await fetchCampaigns())) {
     kind = "escrow";
     result.escrow = await readEscrow(chainId, address, { probeApp: true });
@@ -85,7 +111,14 @@ export async function scanTarget(chainId: ChainId, address: Address, opts: ScanO
       findings.push(...poolFindings(pool));
       const risky = [pool.token0, pool.token1].find((t) => !t.symbol.toUpperCase().includes("WETH")) ?? pool.token1;
       result.token = risky;
-      result.xray = await xrayContract(chainId, risky.address as Address).catch(() => null);
+      // Flow + top holder for the pool's risky token (enables "Top whale dumps 100%" on pool targets).
+      const [xr, flow] = await Promise.all([
+        xrayContract(chainId, risky.address as Address).catch(() => null),
+        readOvernightFlow(chainId, risky, [address]).catch(() => null),
+      ]);
+      result.xray = xr;
+      result.flow = flow;
+      if (flow) findings.push(...flowFindings(flow, risky.symbol, risky.decimals, chainId));
       if (result.xray) findings.push(...xrayFindings(result.xray).map((f) => ({ ...f, title: `${risky.symbol}: ${f.title}` })));
       label ||= `${pool.token0.symbol}/${pool.token1.symbol} ${pool.kind === "uniswap-v3" ? "Uniswap v3" : "Aerodrome"} Pool`;
     } else {
@@ -108,6 +141,16 @@ export async function scanTarget(chainId: ChainId, address: Address, opts: ScanO
         findings.push(...flowFindings(flow, token.symbol, token.decimals, chainId));
       } else {
         label ||= "Contract";
+        // Contracts that hold tokens/approvals (bot contracts, custom smart accounts) carry real approval exposure:
+        // run the wallet scan too and attach it when it finds any, so the Panic Bunker can revoke them.
+        const w = await scanWallet(chainId, address, opts.extraTokens ?? [], { account: { kind: "smart-wallet", label: "Contract account" } }).catch(() => null);
+        if (w && (w.approvals.length || w.holdings.length)) {
+          result.wallet = w;
+          // A contract's own approvals are context, not code risk: summarize at 0 points (the full wallet-mode scan
+          // — scanTarget(..., { mode: "wallet" }) — scores them).
+          const unl = w.approvals.filter((a) => a.unlimited).length;
+          findings.push({ id: "contract-approvals", severity: "info", points: 0, title: `Contract holds ${w.approvals.length} live approval${w.approvals.length === 1 ? "" : "s"}${unl ? ` (${unl} unlimited)` : ""}`, detail: `This contract has granted token allowances${w.holdings.length ? ` and holds ${w.holdings.length} token${w.holdings.length === 1 ? "" : "s"}` : ""}. If it is your account contract, revoke them in the Panic Bunker.` });
+        }
       }
     }
   }

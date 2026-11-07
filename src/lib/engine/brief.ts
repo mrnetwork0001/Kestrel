@@ -101,6 +101,32 @@ function sanitize(t: string): string {
   return t.replace(/[*_#`>]/g, "").replace(/\s+/g, " ").slice(0, 900);
 }
 
+/**
+ * Free-form completion through the same provider chain (0G Compute → Anthropic). Returns null when no
+ * provider is configured, every provider fails, or the overall cap elapses — callers own the deterministic
+ * fallback. Never throws.
+ */
+export async function llmComplete(prompt: string, opts: { timeoutMs?: number } = {}): Promise<BriefResult | null> {
+  const run = async () => {
+    for (const fn of [via0G, viaAnthropic]) {
+      try {
+        const r = await fn(prompt);
+        if (r) return r;
+      } catch (e) {
+        console.warn("[kestrel] llmComplete provider failed:", e instanceof Error ? e.message : e);
+      }
+    }
+    return null;
+  };
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const cap = new Promise<null>((resolve) => (timer = setTimeout(() => resolve(null), opts.timeoutMs ?? 15_000)));
+  try {
+    return await Promise.race([run(), cap]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** 0G Compute → Anthropic → deterministic. Never throws, never returns fabricated text. */
 export async function generateBrief(s: BriefInput, opts: { useLlm?: boolean } = {}): Promise<BriefResult> {
   const fallback = deterministicBrief(s);
