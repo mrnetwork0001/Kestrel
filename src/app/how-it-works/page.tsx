@@ -6,25 +6,27 @@ import { AddrLink, Panel, SectionLabel } from "@/components/ui";
 export const metadata: Metadata = {
   title: "How it works — Architecture, EVM X-Ray, AMM math & EIP-5792 rescue",
   description: "How Kestrel reads Base and Robinhood Chain over raw RPC: opcode-level bytecode inspection, EIP-1967 storage slots, constant-product and Uniswap v3 stress math, LayerZero OFT parity, Vibestarter tranche escrows and EIP-5792 atomic rescue.",
+  alternates: { canonical: "/how-it-works" },
+  openGraph: { title: "How Kestrel works — raw RPC, EVM X-Ray, AMM math, EIP-5792 rescue", description: "Opcode-level bytecode inspection, EIP-1967 slots, BigInt AMM stress math, LayerZero OFT parity, Vibestarter escrows and atomic rescue on Base & Robinhood Chain." },
 };
 
 function H2({ n, children }: { n: string; children: React.ReactNode }) {
   return (
-    <div className="mt-20">
+    <div className="mt-20 max-[900px]:mt-14">
       <SectionLabel n={n}>{String(children)}</SectionLabel>
     </div>
   );
 }
 
 function Code({ children }: { children: string }) {
-  return <pre className="mt-4 overflow-x-auto border hairline bg-canvas p-4 mono text-[12px] leading-relaxed text-ink-2">{children}</pre>;
+  return <pre className="mt-4 max-w-full overflow-x-auto border hairline bg-canvas p-4 mono text-[12px] leading-relaxed text-ink-2 [-webkit-overflow-scrolling:touch] max-[600px]:p-3 max-[600px]:text-[11px]">{children}</pre>;
 }
 
 export default function HowItWorks() {
   return (
-    <article className="mx-auto max-w-[960px] px-4 pb-10 pt-12">
+    <article className="mx-auto max-w-[960px] min-w-0 px-4 pb-10 pt-12 max-[900px]:pt-8">
       <SectionLabel n="00">How it works</SectionLabel>
-      <h1 className="mt-4 font-serif text-[48px] leading-[1.04] text-ink">An overnight desk that reads the chain itself.</h1>
+      <h1 className="mt-4 font-serif text-[48px] leading-[1.04] text-ink max-[600px]:text-[36px] max-[600px]:leading-[1.06]">An overnight desk that reads the chain itself.</h1>
       <p className="mt-5 text-[15px] leading-relaxed text-ink-2">
         Kestrel has no indexer, no database of cached prices and no mock data. Every number is read from Base Mainnet (8453) and Robinhood Chain Mainnet (4663) over
         public JSON-RPC at request time, or from Vibestarter&apos;s public campaigns API, and is shown with its block number and an explorer link.
@@ -157,9 +159,9 @@ Uniswap v3 (Robinhood Chain), from live slot0().sqrtPriceX96 and liquidity():
         LP depth −15% overnight +15, open challenge window +15, parity drift +30). The score is their clamped sum, so every point on screen traces back to a block and a link.
       </p>
 
-      <div className="mt-16 flex flex-wrap gap-4">
-        <Link href="/app" className="rounded-[2px] bg-phosphor px-5 py-3 mono text-[13px] font-semibold text-canvas hover:bg-[#a6e698]">LAUNCH APP →</Link>
-        <Link href="/agents" className="rounded-[2px] border border-hair-strong px-5 py-3 mono text-[13px] text-ink hover:border-phosphor/60">Agent API</Link>
+      <div className="mt-16 flex flex-wrap gap-4 max-[900px]:mt-12 max-[600px]:gap-3">
+        <Link href="/app" className="rounded-[2px] bg-phosphor px-5 py-3 mono text-[13px] font-semibold text-canvas hover:bg-[#a6e698] max-[900px]:inline-flex max-[900px]:min-h-11 max-[900px]:items-center">LAUNCH APP</Link>
+        <Link href="/agents" className="rounded-[2px] border border-hair-strong px-5 py-3 mono text-[13px] text-ink hover:border-phosphor/60 max-[900px]:inline-flex max-[900px]:min-h-11 max-[900px]:items-center">Agent API</Link>
       </div>
     </article>
   );
