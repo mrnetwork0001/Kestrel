@@ -19,18 +19,18 @@ export function BriefingTab({ scan, loading, error, onScan }: { scan: ScanResult
   const t = scan.target;
 
   return (
-    <div className={cx("grid gap-6 transition-opacity lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]", loading && "opacity-60")}>
+    <div className={cx("grid gap-6 transition-opacity lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] max-[600px]:gap-4", loading && "opacity-60")}>
       {/* LEFT: verdict */}
-      <div className="space-y-6">
+      <div className="min-w-0 space-y-6 max-[600px]:space-y-4">
         <Panel
           title="Overnight threat score"
           n="01"
-          right={<a href={explorerBlock(t.chainId, scan.block.number)} target="_blank" rel="noreferrer" className="mono text-[11px] text-ink-3 hover:text-ink">#{BigInt(scan.block.number).toLocaleString("en-US")} ↗</a>}
+          right={<a href={explorerBlock(t.chainId, scan.block.number)} target="_blank" rel="noreferrer" className="shrink-0 mono text-[11px] text-ink-3 hover:text-ink max-[900px]:py-2.5">#{BigInt(scan.block.number).toLocaleString("en-US")} ↗</a>}
         >
           <div className="mb-5 flex flex-wrap items-center gap-2">
             <ChainBadge chainId={t.chainId} />
             <span className="rounded-[2px] border hairline px-1.5 py-0.5 mono text-[10px] tracking-wider text-ink-2">{t.kind.toUpperCase()}</span>
-            <span className="text-[15px] text-ink">{t.label}</span>
+            <span className="min-w-0 text-[15px] text-ink [overflow-wrap:anywhere]">{t.label}</span>
             <AddrLink chainId={t.chainId} address={t.address} className="ml-auto text-[12px]" />
           </div>
           <ScoreGauge score={scan.score} band={scan.band} />
@@ -50,11 +50,11 @@ export function BriefingTab({ scan, loading, error, onScan }: { scan: ScanResult
           }
         >
           <p className="text-[14px] leading-relaxed text-ink-2">{brief.text}</p>
-          <div className="mt-4 flex items-center gap-3">
+          <div className="mt-4 flex items-center gap-3 max-[900px]:flex-wrap">
             <button
               onClick={() => setWantAi(true)}
               disabled={ai.isFetching || (wantAi && !!ai.data)}
-              className="rounded-[2px] border border-hair-strong px-3 py-1.5 mono text-[11px] text-ink hover:border-phosphor/60 hover:text-phosphor disabled:opacity-40"
+              className="rounded-[2px] border border-hair-strong px-3 py-1.5 mono text-[11px] text-ink hover:border-phosphor/60 hover:text-phosphor disabled:opacity-40 max-[900px]:min-h-10"
             >
               {ai.isFetching ? "SYNTHESIZING…" : ai.data ? "AI BRIEF LOADED" : "SYNTHESIZE AI BRIEF"}
             </button>
@@ -72,7 +72,7 @@ export function BriefingTab({ scan, loading, error, onScan }: { scan: ScanResult
                   <p className="text-[13px] text-ink">{f.title}</p>
                   <p className="mt-0.5 text-[12px] leading-relaxed text-ink-3">{f.detail}</p>
                   {f.link && (
-                    <a href={f.link.href} target="_blank" rel="noreferrer" className="mt-1 inline-block mono text-[11px] text-ink-2 hover:text-ink">
+                    <a href={f.link.href} target="_blank" rel="noreferrer" className="mt-1 inline-block mono text-[11px] text-ink-2 hover:text-ink max-[900px]:mt-0 max-[900px]:py-2.5">
                       {f.link.label}
                     </a>
                   )}
@@ -85,13 +85,13 @@ export function BriefingTab({ scan, loading, error, onScan }: { scan: ScanResult
       </div>
 
       {/* RIGHT: evidence */}
-      <div className="space-y-6">
+      <div className="min-w-0 space-y-6 max-[600px]:space-y-4">
         {scan.wallet && (
           <Panel
             title="Wallet exposure"
             n="04"
             right={
-              <Link href={`/rescue?target=${t.address}&chain=${t.chainId}`} className="rounded-[2px] border border-crit/40 px-2 py-1 mono text-[10px] text-crit hover:bg-crit/10">
+              <Link href={`/rescue?target=${t.address}&chain=${t.chainId}`} className="shrink-0 rounded-[2px] border border-crit/40 px-2 py-1 mono text-[10px] text-crit hover:bg-crit/10 max-[900px]:py-2">
                 OPEN PANIC BUNKER →
               </Link>
             }
@@ -114,7 +114,8 @@ export function BriefingTab({ scan, loading, error, onScan }: { scan: ScanResult
               </table>
             )}
             {scan.wallet.approvals.length > 0 && (
-              <table className="mt-5 w-full text-[12px]">
+              <div className="mt-5 max-w-full overflow-x-auto">
+              <table className="w-full text-[12px] max-[600px]:min-w-[420px]">
                 <thead>
                   <tr className="label text-left">
                     <th className="pb-2 font-normal">Token</th>
@@ -134,6 +135,7 @@ export function BriefingTab({ scan, loading, error, onScan }: { scan: ScanResult
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </Panel>
         )}
@@ -192,7 +194,7 @@ export function BriefingTab({ scan, loading, error, onScan }: { scan: ScanResult
 
         {scan.xray && (
           <Panel title="Bytecode & EIP-1967 X-Ray" n="08" right={<span className="mono text-[10px] text-ink-3">eth_getCode · eth_getStorageAt</span>}>
-            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 mono text-[12px]">
+            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 mono text-[12px] [&_dd]:[overflow-wrap:anywhere]">
               <dt className="text-ink-3">bytecode</dt>
               <dd className="text-ink-2">{scan.xray.isContract ? `${scan.xray.byteSize.toLocaleString("en-US")} bytes · ${scan.xray.push4Count} PUSH4 selectors` : "no code (EOA)"}</dd>
               <dt className="text-ink-3">impl slot</dt>
@@ -225,7 +227,7 @@ export function BriefingTab({ scan, loading, error, onScan }: { scan: ScanResult
             {scan.xray.matchedSelectors.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-1.5">
                 {scan.xray.matchedSelectors.map((s) => (
-                  <span key={s.selector} title={s.explanation} className={cx("rounded-[2px] border px-1.5 py-0.5 mono text-[10px]", s.severity === "high" ? "border-crit/40 text-crit" : s.severity === "warn" ? "border-warn/40 text-warn" : "hairline text-ink-3")}>
+                  <span key={s.selector} title={s.explanation} className={cx("max-w-full rounded-[2px] border px-1.5 py-0.5 mono text-[10px] [overflow-wrap:anywhere]", s.severity === "high" ? "border-crit/40 text-crit" : s.severity === "warn" ? "border-warn/40 text-warn" : "hairline text-ink-3")}>
                     0x{s.selector} {s.signature}
                   </span>
                 ))}
@@ -235,7 +237,7 @@ export function BriefingTab({ scan, loading, error, onScan }: { scan: ScanResult
         )}
 
         {scan.parity && (
-          <Panel title="Cross-chain context" n="09" right={<button onClick={() => onScan(scan.parity!.rhPool?.address ?? "", 4663)} className="mono text-[10px] text-ink-3 hover:text-rh">scan RH pool →</button>}>
+          <Panel title="Cross-chain context" n="09" right={<button onClick={() => onScan(scan.parity!.rhPool?.address ?? "", 4663)} className="shrink-0 mono text-[10px] text-ink-3 hover:text-rh max-[900px]:py-2">scan RH pool →</button>}>
             <p className="mono text-[12px] text-ink-2">
               OFT parity <span className={scan.parity.verified ? "text-phosphor" : "text-warn"}>{scan.parity.verified ? "EXACT 1:1" : "DRIFT"}</span> · spread{" "}
               {scan.parity.spreadBps != null ? fmtBps(scan.parity.spreadBps) : "—"} · locked {fmtCompact(scan.parity.lockedOnBase, 18)} VIBES

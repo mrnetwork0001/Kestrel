@@ -116,3 +116,94 @@ input[type="range"] {
   outline: 1px solid var(--accent-phosphor);
   outline-offset: 2px;
 }
+
+/* ==========================================================================
+   Responsive guards — playbook: ~/Desktop/Products_Building/Mobile_View.md
+   <=900px tablet/phone layout · <=600px phone density · >=901px unchanged.
+   Guards live in @layer base so any Tailwind utility on an element still wins.
+   ========================================================================== */
+
+@layer base {
+  /* Grid/flex children default to min-width:auto, so one long hash or wide table widens the whole column and the
+     page scrolls sideways. These are no-ops when nothing overflows, i.e. on desktop. */
+  main,
+  .panel,
+  .grid > * {
+    min-width: 0;
+  }
+  .panel {
+    max-width: 100%;
+  }
+}
+
+/* Height of the sticky mobile top bar (site-chrome.tsx); sticky sub-bars such as the /app tab row sit below it. */
+:root {
+  --topbar-h: 0px;
+}
+
+@media (max-width: 900px) {
+  :root {
+    --topbar-h: 56px;
+  }
+
+  /* `clip` (not `hidden`) on body: hidden would turn body into a scroll container and break position:sticky. */
+  html {
+    overflow-x: hidden;
+  }
+  body {
+    overflow-x: clip;
+    overflow-wrap: break-word;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  @layer base {
+    :where(.flex, .inline-flex) > :where(div, section, article, form, ul, ol, p) {
+      min-width: 0;
+    }
+    /* clip, not hidden: keeps sticky descendants working and vertical popovers visible. */
+    .panel {
+      overflow-x: clip;
+    }
+    /* Touch targets: >=36px for every button and form control. */
+    button,
+    select,
+    [role="tab"],
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="color"], [type="file"]) {
+      min-height: 36px;
+    }
+  }
+
+  /* 16px stops iOS Safari zooming on focus; unlayered on purpose so it beats text-[12px]-style utilities. */
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="color"], [type="file"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+  input[type="range"] {
+    height: 28px;
+  }
+
+  /* Telemetry ribbon (telemetry-ribbon.tsx > telemetry-ribbon-live.tsx row): one scrollable line, right edge fades. */
+  .ribbon-compact > div > div {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  }
+  .ribbon-compact > div > div::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -17,14 +17,14 @@ export function SectionLabel({ n, children, className }: { n?: string; children:
 
 export function Panel({ children, className, title, n, right }: { children: ReactNode; className?: string; title?: string; n?: string; right?: ReactNode }) {
   return (
-    <section className={cx("panel", className)}>
+    <section className={cx("panel min-w-0 max-w-full max-[900px]:overflow-x-clip", className)}>
       {title && (
-        <header className="flex items-center justify-between gap-3 border-b hairline px-4 py-2.5">
-          <SectionLabel n={n}>{title}</SectionLabel>
+        <header className="flex items-center justify-between gap-3 border-b hairline px-4 py-2.5 max-[600px]:flex-wrap max-[600px]:gap-y-1 max-[600px]:px-3">
+          <SectionLabel n={n} className="min-w-0">{title}</SectionLabel>
           {right}
         </header>
       )}
-      <div className="p-4">{children}</div>
+      <div className="p-4 max-[600px]:p-3">{children}</div>
     </section>
   );
 }
@@ -34,7 +34,7 @@ export function ChainBadge({ chainId, className }: { chainId: number; className?
   return (
     <span
       className={cx(
-        "inline-flex items-center gap-1.5 rounded-[2px] border px-1.5 py-0.5 mono text-[10px] tracking-wider",
+        "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[2px] border px-1.5 py-0.5 mono text-[10px] tracking-wider",
         rh ? "border-rh/30 text-rh" : "border-base/30 text-base",
         className
       )}
@@ -63,7 +63,7 @@ export const SEVERITY_COLOR: Record<Severity, string> = {
 
 export function AddrLink({ chainId, address, label, n = 4, className }: { chainId: number; address: string; label?: string; n?: number; className?: string }) {
   return (
-    <a href={explorerAddress(chainId, address)} target="_blank" rel="noreferrer" className={cx("mono text-ink-2 underline decoration-white/10 underline-offset-2 hover:text-ink hover:decoration-white/40", className)} title={address}>
+    <a href={explorerAddress(chainId, address)} target="_blank" rel="noreferrer" className={cx("mono text-ink-2 underline decoration-white/10 underline-offset-2 [overflow-wrap:anywhere] hover:text-ink hover:decoration-white/40 max-[900px]:py-1", className)} title={address}>
       {label ?? shortAddr(address, n)} <span className="text-ink-3">↗</span>
     </a>
   );
@@ -71,7 +71,7 @@ export function AddrLink({ chainId, address, label, n = 4, className }: { chainI
 
 export function TxLink({ chainId, hash, label, className }: { chainId: number; hash: string; label?: string; className?: string }) {
   return (
-    <a href={explorerTx(chainId, hash)} target="_blank" rel="noreferrer" className={cx("mono text-ink-2 underline decoration-white/10 underline-offset-2 hover:text-ink", className)} title={hash}>
+    <a href={explorerTx(chainId, hash)} target="_blank" rel="noreferrer" className={cx("mono text-ink-2 underline decoration-white/10 underline-offset-2 [overflow-wrap:anywhere] hover:text-ink max-[900px]:py-1", className)} title={hash}>
       {label ?? shortAddr(hash, 6)} <span className="text-ink-3">↗</span>
     </a>
   );
@@ -82,7 +82,7 @@ export function Stat({ label, value, sub, tone, className }: { label: string; va
   return (
     <div className={cx("min-w-0", className)}>
       <p className="label">{label}</p>
-      <p className={cx("mt-1 tnum text-[20px] leading-tight", toneCls)}>{value}</p>
+      <p className={cx("mt-1 tnum text-[20px] leading-tight [overflow-wrap:anywhere] max-[600px]:text-[18px]", toneCls)}>{value}</p>
       {sub && <p className="mt-0.5 mono text-[11px] text-ink-3">{sub}</p>}
     </div>
   );
@@ -95,7 +95,7 @@ export function ScoreGauge({ score, band }: { score: number; band: ThreatBand })
   return (
     <div>
       <div className="flex items-end gap-3">
-        <span className={cx("tnum text-[56px] leading-none", text)}>{score}</span>
+        <span className={cx("tnum text-[56px] leading-none max-[600px]:text-[48px]", text)}>{score}</span>
         <span className="mb-1.5 mono text-[12px] text-ink-3">/ 100</span>
         <BandBadge band={band} className="mb-2 ml-auto" />
       </div>
@@ -104,7 +104,7 @@ export function ScoreGauge({ score, band }: { score: number; band: ThreatBand })
         <div className="absolute inset-y-[-3px] left-[30%] w-px bg-white/25" />
         <div className="absolute inset-y-[-3px] left-[65%] w-px bg-white/25" />
       </div>
-      <div className="mt-1.5 flex justify-between mono text-[10px] text-ink-3">
+      <div className="mt-1.5 flex justify-between gap-2 mono text-[10px] text-ink-3 max-[600px]:text-[9px]">
         <span>NOMINAL 0–29</span>
         <span>ELEVATED 30–64</span>
         <span>CRITICAL 65+</span>
