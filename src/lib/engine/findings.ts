@@ -1,4 +1,5 @@
 import { fmtBps, fmtDuration, fmtUnits, explorerAddress, explorerTx, shortAddr } from "@/lib/format";
+import { known7702Delegate } from "./eip7702";
 import { poolSides } from "./sides";
 import type { ControllerPosture, EscrowReport, Finding, OvernightTokenFlow, ParityReport, PoolSnapshot, ThreatBand, WalletReport, XrayReport } from "./types";
 
@@ -128,7 +129,10 @@ export function xrayFindings(x: XrayReport): Finding[] {
       link,
     });
   }
-  if (x.isContract && !degraded && caps.size === 0 && !isProxy) {
+  if (x.unresolvedDelegatecall) {
+    out.push({ id: "xray-unresolved-proxy", severity: "warn", points: 8, title: "Unresolved delegatecall proxy — real logic not scanned", detail: `This ${x.byteSize.toLocaleString("en-US")}-byte contract forwards calls with DELEGATECALL, but no EIP-1967 / ZeppelinOS slot, EIP-897 implementation() or known clone pattern names the logic it runs (Diamond, slot-0 singleton or custom proxy). Mint, blacklist, pause, tax or upgrade entry points in that logic are UNKNOWN.`, link });
+  }
+  if (x.isContract && !degraded && caps.size === 0 && !isProxy && !x.unresolvedDelegatecall) {
     out.push({ id: "xray-clean", severity: "info", points: 0, title: "No privileged selectors", detail: `Scanned ${x.push4Count} dispatcher selectors in ${x.byteSize.toLocaleString("en-US")} bytes — no mint, blacklist, pause, tax or upgrade entry points.`, link });
   }
   if (x.hasSelfdestruct) out.push({ id: "selfdestruct", severity: "warn", points: 8, title: "SELFDESTRUCT opcode", detail: "Executable code contains SELFDESTRUCT (0xff). Post-Dencun it only clears balance unless in the creation tx, but it signals legacy kill-switch logic.", link });
@@ -194,7 +198,10 @@ export function parityFindings(p: ParityReport): Finding[] {
   if (verdict === "UNBACKED") {
     out.push({ id: "parity-unbacked", severity: "critical", points: 40, title: "Robinhood $VIBES supply exceeds Base backing", detail: `Circulating on Robinhood exceeds VIBES locked on Base by ${fmtUnits(p.delta, 18, 4)} VIBES, confirmed on a second pair of fresh reads (${blocks}). The bridge itself can never cause this (it locks at send, releases at receive), so this is unbacked supply.`, link: rhAdapterLink });
   } else if (verdict === "IN_FLIGHT") {
-    out.push({ id: "parity-in-flight", severity: "info", points: 0, title: `${p.pendingPackets ?? "Some"} LayerZero packet${p.pendingPackets === 1 ? "" : "s"} in flight · Δ expected`, detail: `Base locked exceeds Robinhood circulating by ${fmtUnits(p.delta, 18, 4)} VIBES while packets are sent but not yet delivered (${blocks}). Lock/reserve-return happens at send and release at delivery, so this closes on its own.`, link: baseAdapterLink });
+    if (p.pendingPackets === null)
+      out.push({ id: "parity-in-flight", severity: "info", points: 0, title: "Base backing exceeds Robinhood circulating · in-flight count unknown", detail: `Base locked exceeds Robinhood circulating by ${fmtUnits(p.delta, 18, 4)} VIBES (${blocks}). The LayerZero nonce reads failed, so whether packets are in flight is UNKNOWN. Either way holders are not exposed (locked ≥ circulating).`, link: baseAdapterLink });
+    else
+      out.push({ id: "parity-in-flight", severity: "info", points: 0, title: `${p.pendingPackets} LayerZero packet${p.pendingPackets === 1 ? "" : "s"} in flight · Δ expected`, detail: `Base locked exceeds Robinhood circulating by ${fmtUnits(p.delta, 18, 4)} VIBES while packets are sent but not yet delivered (${blocks}). Lock/reserve-return happens at send and release at delivery, so this closes on its own.`, link: baseAdapterLink });
   } else if (verdict === "OVER_BACKED") {
     out.push({ id: "parity-over-backed", severity: "info", points: 0, title: "OFT backing exceeds circulating supply", detail: `${fmtUnits(p.delta, 18, 4)} VIBES more is locked on Base than circulates on Robinhood, with no packet in flight (${blocks}). Over-collateralised: holders are not exposed (e.g. VIBES sent straight to the adapter).`, link: baseAdapterLink });
   } else {
@@ -207,7 +214,8 @@ export function parityFindings(p: ParityReport): Finding[] {
     if (l.srcPaused || l.dstPaused) {
       out.push({ id: `bridge-paused-${l.srcChainId}`, severity: "critical", points: 25, title: `OFT bridge paused · ${name}`, detail: `${l.srcPaused ? "Source adapter paused: send() reverts." : "Destination adapter paused: packets verify but are not delivered until the owner Safe unpauses."} Cross-chain exits and arbitrage on this lane are halted.`, link });
     }
-    if (!l.peersOk) {
+    // null = a peers() read failed (UNKNOWN, surfaced via parity.bridgeDegraded), never a mismatch.
+    if (l.peersOk === false) {
       out.push({ id: `bridge-peer-${l.srcChainId}`, severity: "critical", points: 20, title: `OFT peer mismatch · ${name}`, detail: "peers(remoteEid) on one adapter does not point at the other adapter, so messages on this lane cannot be delivered to the expected contract.", link });
     }
     if (l.credit && BigInt(l.credit.limit) > 0n && BigInt(l.credit.headroom) * 4n < BigInt(l.credit.limit)) {
@@ -229,11 +237,21 @@ export function walletFindings(w: WalletReport): Finding[] {
   const out: Finding[] = [];
   const unlimited = w.approvals.filter((a) => a.unlimited);
   const fresh = w.approvals.filter((a) => a.discoveredOvernight);
-  if (unlimited.length) out.push({ id: "approvals-unlimited", severity: unlimited.length >= 3 ? "critical" : "warn", points: Math.min(40, unlimited.length * 10), title: `${unlimited.length} unlimited approval${unlimited.length > 1 ? "s" : ""}`, detail: unlimited.map((a) => `${a.tokenSymbol} → ${a.spenderName}`).join(" · ") });
-  const limited = w.approvals.length - unlimited.length;
-  if (limited > 0) out.push({ id: "approvals-limited", severity: "info", points: Math.min(10, limited * 3), title: `${limited} bounded approval${limited > 1 ? "s" : ""}`, detail: "Non-zero but capped allowances — still revocable in the Panic Bunker." });
-  if (fresh.length) out.push({ id: "approvals-overnight", severity: "critical", points: 15, title: `${fresh.length} approval${fresh.length > 1 ? "s" : ""} granted overnight`, detail: fresh.map((a) => `${a.tokenSymbol} → ${shortAddr(a.spender)}`).join(" · ") });
-  if (w.eip7702Delegate) out.push({ id: "eip7702", severity: "warn", points: 10, title: "EIP-7702 delegated EOA", detail: `This EOA delegates execution to ${shortAddr(w.eip7702Delegate)} — verify that delegate is a wallet you trust.`, link: { label: "Delegate ↗", href: explorerAddress(w.chainId, w.eip7702Delegate) } });
+  // Each approval is scored once: approvals granted overnight score in "approvals-overnight" (15 flat, critical),
+  // so the unlimited/bounded findings only add points for the ones that pre-date the night.
+  const unlimitedOld = unlimited.filter((a) => !a.discoveredOvernight);
+  const unlimitedFresh = unlimited.length - unlimitedOld.length;
+  if (unlimited.length) out.push({ id: "approvals-unlimited", severity: unlimited.length >= 3 ? "critical" : "warn", points: Math.min(40, unlimitedOld.length * 10), title: `${unlimited.length} unlimited approval${unlimited.length > 1 ? "s" : ""}`, detail: unlimited.map((a) => `${a.tokenSymbol} → ${a.spenderName}`).join(" · ") + (unlimitedFresh ? ` (${unlimitedFresh} granted overnight, scored once under the overnight finding)` : "") });
+  const limitedAll = w.approvals.filter((a) => !a.unlimited);
+  const limitedOld = limitedAll.filter((a) => !a.discoveredOvernight);
+  if (limitedAll.length > 0) out.push({ id: "approvals-limited", severity: "info", points: Math.min(10, limitedOld.length * 3), title: `${limitedAll.length} bounded approval${limitedAll.length > 1 ? "s" : ""}`, detail: "Non-zero but capped allowances — still revocable in the Panic Bunker." });
+  if (fresh.length) out.push({ id: "approvals-overnight", severity: "critical", points: 15, title: `${fresh.length} approval${fresh.length > 1 ? "s" : ""} granted overnight`, detail: fresh.map((a) => `${a.tokenSymbol} → ${shortAddr(a.spender)}${a.unlimited ? " (unlimited)" : ""}`).join(" · ") });
+  if (w.eip7702Delegate) {
+    const known = known7702Delegate(w.eip7702Delegate);
+    const link = { label: "Delegate ↗", href: explorerAddress(w.chainId, w.eip7702Delegate) };
+    if (known) out.push({ id: "eip7702-known", severity: "info", points: 0, title: `EIP-7702 smart EOA · ${known.label}`, detail: `This EOA delegates execution to ${shortAddr(w.eip7702Delegate)}, a known ${known.vendor} wallet delegator (${known.evidence}).`, link });
+    else out.push({ id: "eip7702", severity: "warn", points: 10, title: "Unknown EIP-7702 delegate", detail: `This EOA delegates execution to ${shortAddr(w.eip7702Delegate)}, which is not a known wallet delegator — verify that delegate before signing anything.`, link });
+  }
   const unknownUnlimited = unlimited.filter((a) => a.spenderKnown === false);
   if (unknownUnlimited.length) out.push({ id: "approvals-unknown-spender", severity: "warn", points: Math.min(20, unknownUnlimited.length * 10), title: `${unknownUnlimited.length} unlimited approval${unknownUnlimited.length > 1 ? "s" : ""} to unlabeled spender${unknownUnlimited.length > 1 ? "s" : ""}`, detail: `${unknownUnlimited.map((a) => `${a.tokenSymbol} → ${shortAddr(a.spender)}`).join(" · ")} — found in this wallet's Approval logs and not in Kestrel's verified spender list. Verify each contract before trusting it.` });
   const acct = w.account;

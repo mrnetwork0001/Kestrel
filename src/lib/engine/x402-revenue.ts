@@ -88,10 +88,20 @@ async function scanRange(receiver: Address, start: bigint, end: bigint) {
   const logs: Awaited<ReturnType<typeof fetchWindow>> = [];
   let scannedTo = start - 1n;
   let error: string | null = null;
+  const started = Date.now();
   for (let i = 0; i < windows.length; i += CONCURRENCY) {
+    // Budget: stop starting rounds after 30 s so the cursor is persisted well inside maxDuration (catch-up resumes next call).
+    if (Date.now() - started > 30_000) {
+      error = error ?? "scan budget reached; continuing on the next request";
+      break;
+    }
     const round = windows.slice(i, i + CONCURRENCY);
     try {
-      const res = await Promise.all(round.map(([f, t]) => fetchWindow(receiver, f, t)));
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const res = await Promise.race([
+        Promise.all(round.map(([f, t]) => fetchWindow(receiver, f, t))),
+        new Promise<never>((_, reject) => (timer = setTimeout(() => reject(new Error("log window round timed out (15 s)")), 15_000))),
+      ]).finally(() => clearTimeout(timer));
       logs.push(...res.flat());
       scannedTo = round[round.length - 1][1];
     } catch (e) {

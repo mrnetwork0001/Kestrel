@@ -1,7 +1,8 @@
 import { type Hex, parseAbiItem } from "viem";
 import { CONTRACTS } from "@/config/contracts";
 import { USDC_EIP3009_ABI } from "@/lib/abis";
-import { baseLogsClient, basePublicClient } from "@/lib/rpc";
+import { getLogsChunked } from "@/lib/engine/logs";
+import { basePublicClient } from "@/lib/rpc";
 import { NETWORK_V1, NETWORK_V2, type ParsedPayment, type ResourceInfo, type SettleResponse } from "@/lib/x402";
 
 /**
@@ -156,6 +157,8 @@ export const AUTHORIZATION_USED_TOPIC = "0x98de503528ee59b575ef0c0a2576a82497bfc
 const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 /** ~1 h of Base blocks at 200 ms (Base moved to 200 ms blocks on 2026-11-05); inside publicnode's 50k getLogs cap. */
 const LOOKBACK_BLOCKS = 18_000n;
+/** Hard cap on the AuthorizationUsed lookback: a bit over 1 day of 200 ms blocks (pending locks live 1 day). */
+const MAX_LOOKBACK_BLOCKS = 450_000n;
 
 /** Onchain `USDC.authorizationState(payer, nonce)`: true once the authorization was used OR canceled. */
 export async function authorizationUsedOnchain(p: ParsedPayment): Promise<boolean> {
@@ -164,11 +167,18 @@ export async function authorizationUsedOnchain(p: ParsedPayment): Promise<boolea
     .catch(() => false);
 }
 
+/** Strict `authorizationState`: true / false, or null when the RPC read failed (UNKNOWN — never "unused"). */
+export async function authorizationStateStrict(p: ParsedPayment): Promise<boolean | null> {
+  return basePublicClient
+    .readContract({ address: CONTRACTS.base.usdc, abi: USDC_EIP3009_ABI, functionName: "authorizationState", args: [p.payer, p.auth.nonce] })
+    .catch(() => null);
+}
+
 /**
  * Did THIS authorization move funds onchain? Requires a successful tx with USDC `AuthorizationUsed(payer, nonce)`
  * (not Canceled) AND the exact `Transfer(payer -> payTo, value)`. Returns the settlement tx hash or null.
  */
-export async function findSettlementOnchain(p: ParsedPayment, hintTx?: string, receiptTimeoutMs = 12_000): Promise<Hex | null> {
+export async function findSettlementOnchain(p: ParsedPayment, hintTx?: string, receiptTimeoutMs = 12_000, opts: { sinceMs?: number; logBudgetMs?: number } = {}): Promise<Hex | null> {
   const usdc = CONTRACTS.base.usdc.toLowerCase();
   const nonce = p.auth.nonce.toLowerCase();
   const matches = async (hash: Hex) => {
@@ -188,12 +198,22 @@ export async function findSettlementOnchain(p: ParsedPayment, hintTx?: string, r
   };
   if (hintTx && TX_RE.test(hintTx) && (await matches(hintTx as Hex))) return hintTx as Hex;
   if (!(await authorizationUsedOnchain(p))) return null;
-  const head = await baseLogsClient.getBlockNumber().catch(() => null);
+  const head = await basePublicClient.getBlockNumber().catch(() => null);
   if (head === null) return null;
-  const logs = await baseLogsClient
-    .getLogs({ address: CONTRACTS.base.usdc, event: AUTHORIZATION_USED_EVENT, args: { authorizer: p.payer, nonce: p.auth.nonce }, fromBlock: head > LOOKBACK_BLOCKS ? head - LOOKBACK_BLOCKS : 0n, toBlock: head })
-    .catch(() => []);
-  const tx = logs[0]?.transactionHash;
+  // Look back far enough to cover the time since the payment was first seen (a pending lock may be hours old).
+  let lookback = LOOKBACK_BLOCKS;
+  if (opts.sinceMs !== undefined) {
+    const since = BigInt(Math.ceil(Math.max(0, Date.now() - opts.sinceMs) / 200)) + 3_000n; // 200 ms blocks + margin
+    if (since > lookback) lookback = since > MAX_LOOKBACK_BLOCKS ? MAX_LOOKBACK_BLOCKS : since;
+  }
+  // Provider-aware chunked read (publicnode ≤50k blocks per call) under a hard time budget — never viem's
+  // default 3 × 15 s retries on a single-URL logs client.
+  const res = await getLogsChunked(
+    8453,
+    { address: CONTRACTS.base.usdc, event: AUTHORIZATION_USED_EVENT, args: { authorizer: p.payer, nonce: p.auth.nonce }, fromBlock: head > lookback ? head - lookback : 0n, toBlock: head },
+    { timeBudgetMs: opts.logBudgetMs ?? 8_000, maxLogs: 10, noCache: true }
+  ).catch(() => null);
+  const tx = (res?.logs[0] as { transactionHash?: Hex | null } | undefined)?.transactionHash;
   return tx && (await matches(tx)) ? tx : null;
 }
 
@@ -205,13 +225,23 @@ export async function findSettlementOnchain(p: ParsedPayment, hintTx?: string, r
  */
 export async function settleAndReconcile(f: Facilitator, p: ParsedPayment, canonical?: CanonicalDiscovery): Promise<SettleResponse & { reconciledOnchain?: boolean }> {
   let r = await settleOnce(f, p, canonical);
-  if (r && !r.success && r.errorReason === "settlement_pending" && r.transaction) r = (await settleOnce(f, p, canonical)) ?? r;
+  // Keep the first pending tx: a non-idempotent second settle (e.g. "nonce already used") must not discard it.
+  const pendingTx = r && !r.success && r.errorReason === "settlement_pending" && r.transaction ? r.transaction : "";
+  if (pendingTx) r = (await settleOnce(f, p, canonical)) ?? r;
   if (r?.success && r.transaction) return r;
-  const indeterminate = !r || r.success || r.errorReason === "settlement_pending" || r.errorReason === "unexpected_settle_error";
+  const indeterminate = !r || r.success || !!pendingTx || r.errorReason === "settlement_pending" || r.errorReason === "unexpected_settle_error";
   if (indeterminate) {
-    const tx = await findSettlementOnchain(p, r?.transaction);
+    const tx = await findSettlementOnchain(p, r?.transaction || pendingTx);
     if (tx) return { success: true, transaction: tx, network: networkOf(p), payer: p.payer, reconciledOnchain: true };
   }
+  // Any failure after a settlement_pending is still pending (the first broadcast may land).
+  if (pendingTx) return { success: false, errorReason: "settlement_pending", transaction: (r?.transaction || pendingTx), network: networkOf(p), payer: p.payer };
   if (r && !r.success) return r;
   return { success: false, errorReason: r?.success ? "settlement_unconfirmed" : "facilitator_unreachable", transaction: "", network: networkOf(p), payer: p.payer };
 }
+
+/**
+ * Settle outcomes that may still move funds (timeouts, unreachable/5xx facilitator, unconfirmed success, pending
+ * broadcasts). These must be recorded as PENDING (1-day lock, same header retries), never as a terminal failure.
+ */
+export const NON_DEFINITIVE_SETTLE_ERRORS = new Set(["settlement_pending", "settlement_unconfirmed", "facilitator_unreachable", "unexpected_settle_error"]);
