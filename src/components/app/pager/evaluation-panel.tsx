@@ -90,7 +90,7 @@ export function EvaluationPanel({
               ))}
             </ul>
           )}
-          <pre className="max-h-[420px] overflow-auto overscroll-contain whitespace-pre-wrap break-words border hairline bg-canvas p-4 mono text-[12px] leading-relaxed text-ink-2 max-[600px]:max-h-[320px] max-[600px]:p-3 max-[600px]:text-[11.5px]">{evaluation.data.message?.text ?? ""}</pre>
+          <pre className="max-h-[420px] overflow-auto overscroll-contain whitespace-pre-wrap break-words border hairline bg-canvas p-4 mono text-[12px] leading-relaxed text-ink-2 max-[601px]:max-h-[320px] max-[601px]:p-3 max-[601px]:text-[11.5px]">{evaluation.data.message?.text ?? ""}</pre>
           <DeliveryLines delivered={evaluation.data.delivered} dispatch={evaluation.dispatch} />
         </div>
       )}
@@ -111,7 +111,7 @@ export function EvaluationPanel({
               </li>
             ))}
           </ul>
-          <pre className="max-h-[420px] overflow-auto overscroll-contain whitespace-pre-wrap break-words border hairline bg-canvas p-4 mono text-[12px] leading-relaxed text-ink-2 max-[600px]:max-h-[320px] max-[600px]:p-3 max-[600px]:text-[11.5px]">{evaluation.data.message}</pre>
+          <pre className="max-h-[420px] overflow-auto overscroll-contain whitespace-pre-wrap break-words border hairline bg-canvas p-4 mono text-[12px] leading-relaxed text-ink-2 max-[601px]:max-h-[320px] max-[601px]:p-3 max-[601px]:text-[11.5px]">{evaluation.data.message}</pre>
           <DeliveryLines delivered={evaluation.data.delivered} dispatch={false} />
           {safeHref(evaluation.data.deepLink) && (
             <a href={safeHref(evaluation.data.deepLink)!} className={cx("inline-block break-all mono text-[12px] text-crit hover:underline")}>

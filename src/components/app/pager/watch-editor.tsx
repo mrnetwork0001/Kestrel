@@ -66,7 +66,7 @@ function RuleParams({ rule, set }: { rule: RuleConfig; set: (r: RuleConfig) => v
                   type="button"
                   aria-pressed={on}
                   onClick={() => set({ ...rule, marksHours: on ? rule.marksHours.filter((x) => x !== h) : [...rule.marksHours, h].sort((a, b) => b - a) })}
-                  className={cx("rounded-[2px] border px-2 py-0.5 tnum text-[11px] max-[600px]:min-w-[48px]", on ? "border-phosphor/50 bg-phosphor/[0.08] text-phosphor" : "hairline text-ink-3 hover:text-ink")}
+                  className={cx("rounded-[2px] border px-2 py-0.5 tnum text-[11px] max-[601px]:min-w-[48px]", on ? "border-phosphor/50 bg-phosphor/[0.08] text-phosphor" : "hairline text-ink-3 hover:text-ink")}
                 >
                   {h}h
                 </button>
@@ -88,7 +88,7 @@ function RuleParams({ rule, set }: { rule: RuleConfig; set: (r: RuleConfig) => v
                 type="button"
                 aria-pressed={rule.knownSpenders === v}
                 onClick={() => set({ ...rule, knownSpenders: v })}
-                className={cx("rounded-[2px] border px-2 py-0.5 mono text-[11px] uppercase max-[600px]:flex-1", rule.knownSpenders === v ? "border-phosphor/50 bg-phosphor/[0.08] text-phosphor" : "hairline text-ink-3 hover:text-ink")}
+                className={cx("rounded-[2px] border px-2 py-0.5 mono text-[11px] uppercase max-[601px]:flex-1", rule.knownSpenders === v ? "border-phosphor/50 bg-phosphor/[0.08] text-phosphor" : "hairline text-ink-3 hover:text-ink")}
               >
                 {v}
               </button>

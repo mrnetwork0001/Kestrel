@@ -57,9 +57,9 @@ export default async function RescuePage({ searchParams }: { searchParams: SP })
   const fromPager = str(sp.from) === "pager";
 
   return (
-    <div className="mx-auto max-w-[1400px] px-4 pb-10 pt-10 max-[600px]:px-3 max-[600px]:pt-6">
+    <div className="mx-auto max-w-[1400px] px-4 pb-10 pt-10 max-[601px]:px-3 max-[601px]:pt-6">
       <SectionLabel n="05">Panic Bunker · EIP-5792 atomic rescue</SectionLabel>
-      <h1 className="mt-4 font-serif text-[36px] leading-[1.05] text-ink sm:text-[44px] max-[600px]:text-[32px]">One signature. Every risky approval gone.</h1>
+      <h1 className="mt-4 font-serif text-[36px] leading-[1.05] text-ink sm:text-[44px] max-[601px]:text-[32px]">One signature. Every risky approval gone.</h1>
       <p className="mt-4 max-w-2xl text-[14px] leading-relaxed text-ink-2">
         Kestrel builds a rescue bundle — <span className="mono text-ink">approve(spender, 0)</span> for each ERC-20 allowance, a single{" "}
         <span className="mono text-ink">Permit2.lockdown()</span> for Permit2 sub-allowances, and optional Aerodrome unwinds to USDC — then simulates every call
@@ -89,7 +89,7 @@ export default async function RescuePage({ searchParams }: { searchParams: SP })
 
 function TargetBar({ chainId, target, children }: { chainId: number; target: string; children?: ReactNode }) {
   return (
-    <div className="mt-6 flex flex-wrap items-center gap-3 border hairline bg-surface px-4 py-3 text-[13px] max-[600px]:gap-x-2 max-[600px]:gap-y-1.5 max-[600px]:px-3">
+    <div className="mt-6 flex flex-wrap items-center gap-3 border hairline bg-surface px-4 py-3 text-[13px] max-[601px]:gap-x-2 max-[601px]:gap-y-1.5 max-[601px]:px-3">
       <span className="label">Deep-linked target</span>
       <ChainBadge chainId={chainId} />
       <AddrLink chainId={chainId} address={target} n={6} />
@@ -108,7 +108,7 @@ async function TargetSummary({ chainId, target }: { chainId: ChainId; target: Ad
           <span className="text-ink-2">
             {scan.score}/100 · {scan.target.label} · block #{BigInt(scan.block.number).toLocaleString("en-US")}
           </span>
-          <Link href={`/app?target=${target}&chain=${chainId}&tab=${scan.target.kind === "pool" || scan.target.kind === "token" ? "chaos" : "briefing"}`} className="mono text-[11px] text-phosphor hover:underline">
+          <Link href={`/app?target=${target}&chain=${chainId}&tab=${scan.target.kind === "pool" || scan.target.kind === "token" ? "chaos" : "briefing"}`} className="mono text-[11px] text-phosphor hover:underline max-[901px]:inline-flex max-[901px]:min-h-[36px] max-[901px]:items-center">
             {scan.target.kind === "pool" || scan.target.kind === "token" ? "simulate exit →" : "full briefing →"}
           </Link>
         </>

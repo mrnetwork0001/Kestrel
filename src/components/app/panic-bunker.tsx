@@ -526,7 +526,7 @@ export function PanicBunker({ previewAddress, previewChainId = 8453, initialLive
                 <p className="text-[13px] text-ink-2">Connect to rescue your own wallet. Smart Wallets (Coinbase Smart Wallet, Safe, Ambire) batch everything into one atomic signature.</p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {connectors.map((c) => (
-                    <button key={c.uid} onClick={() => connect({ connector: c, chainId })} disabled={connecting} className="rounded-[2px] border border-hair-strong px-3 py-2 mono text-[12px] text-ink hover:border-phosphor/60 hover:text-phosphor disabled:opacity-40 max-[900px]:min-h-[44px] max-[600px]:flex-1">
+                    <button key={c.uid} onClick={() => connect({ connector: c, chainId })} disabled={connecting} className="rounded-[2px] border border-hair-strong px-3 py-2 mono text-[12px] text-ink hover:border-phosphor/60 hover:text-phosphor disabled:opacity-40 max-[901px]:min-h-[44px] max-[601px]:flex-1">
                       {c.name}
                     </button>
                   ))}
@@ -567,7 +567,7 @@ export function PanicBunker({ previewAddress, previewChainId = 8453, initialLive
               {!demo && (
                 <button
                   onClick={() => setChoice("demo")}
-                  className="mt-3 inline-flex items-center gap-2 rounded-[2px] border border-base/40 bg-base/[0.06] px-3 py-1.5 mono text-[11px] text-base hover:bg-base/15 max-[900px]:min-h-[44px] max-[600px]:w-full max-[600px]:justify-center"
+                  className="mt-3 inline-flex items-center gap-2 rounded-[2px] border border-base/40 bg-base/[0.06] px-3 py-1.5 mono text-[11px] text-base hover:bg-base/15 max-[901px]:min-h-[44px] max-[601px]:w-full max-[601px]:justify-center"
                 >
                   ▶ Preview a live wallet rescue · no wallet needed
                 </button>
@@ -597,11 +597,11 @@ export function PanicBunker({ previewAddress, previewChainId = 8453, initialLive
                 {approvals.map((a) => (
                   <li key={keyOf(a)}>
                     {/* <=600px: row 1 = checkbox · token · amount, row 2 = full spender name (wraps instead of truncating). */}
-                    <label className={cx("flex cursor-pointer items-center gap-3 rounded-[2px] border px-3 py-2 hover:border-hair-strong max-[900px]:min-h-[44px] max-[600px]:flex-wrap max-[600px]:gap-y-1", focus.has(a.token.toLowerCase()) ? "border-warn/50" : "hairline")}>
-                      <input type="checkbox" className="max-[900px]:h-4 max-[900px]:w-4" checked={selected.has(keyOf(a))} onChange={(e) => setSelected((s) => { const n = new Set(s); if (e.target.checked) n.add(keyOf(a)); else n.delete(keyOf(a)); return n; })} />
+                    <label className={cx("flex cursor-pointer items-center gap-3 rounded-[2px] border px-3 py-2 hover:border-hair-strong max-[901px]:min-h-[44px] max-[601px]:flex-wrap max-[601px]:gap-y-1", focus.has(a.token.toLowerCase()) ? "border-warn/50" : "hairline")}>
+                      <input type="checkbox" className="max-[901px]:h-4 max-[901px]:w-4" checked={selected.has(keyOf(a))} onChange={(e) => setSelected((s) => { const n = new Set(s); if (e.target.checked) n.add(keyOf(a)); else n.delete(keyOf(a)); return n; })} />
                       <span className="mono text-[12px] text-ink">{a.tokenSymbol}</span>
-                      <span className="min-w-0 flex-1 truncate text-[12px] text-ink-2 max-[600px]:order-last max-[600px]:basis-full max-[600px]:whitespace-normal max-[600px]:pl-7 max-[600px]:[overflow-wrap:anywhere]">→ {a.spenderName}</span>
-                      <span className={cx("tnum text-[11px] max-[600px]:ml-auto", a.unlimited ? "text-crit" : "text-warn")}>{a.unlimited ? "UNLIMITED" : fmtUnits(a.amount, a.tokenDecimals, 2)}</span>
+                      <span className="min-w-0 flex-1 truncate text-[12px] text-ink-2 max-[601px]:order-last max-[601px]:basis-full max-[601px]:whitespace-normal max-[601px]:pl-7 max-[601px]:[overflow-wrap:anywhere]">→ {a.spenderName}</span>
+                      <span className={cx("tnum text-[11px] max-[601px]:ml-auto", a.unlimited ? "text-crit" : "text-warn")}>{a.unlimited ? "UNLIMITED" : fmtUnits(a.amount, a.tokenDecimals, 2)}</span>
                     </label>
                   </li>
                 ))}
@@ -617,8 +617,8 @@ export function PanicBunker({ previewAddress, previewChainId = 8453, initialLive
                   const q = quotes[k];
                   return (
                     <li key={k}>
-                      <label className={cx("flex cursor-pointer flex-wrap items-center gap-3 rounded-[2px] border px-3 py-2 hover:border-hair-strong max-[900px]:min-h-[44px] max-[600px]:gap-y-1", focus.has(k) ? "border-warn/50" : "hairline")}>
-                        <input type="checkbox" className="max-[900px]:h-4 max-[900px]:w-4" checked={unwind.has(k)} onChange={(e) => setUnwind((s) => { const n = new Set(s); if (e.target.checked) n.add(k); else n.delete(k); return n; })} />
+                      <label className={cx("flex cursor-pointer flex-wrap items-center gap-3 rounded-[2px] border px-3 py-2 hover:border-hair-strong max-[901px]:min-h-[44px] max-[601px]:gap-y-1", focus.has(k) ? "border-warn/50" : "hairline")}>
+                        <input type="checkbox" className="max-[901px]:h-4 max-[901px]:w-4" checked={unwind.has(k)} onChange={(e) => setUnwind((s) => { const n = new Set(s); if (e.target.checked) n.add(k); else n.delete(k); return n; })} />
                         <span className="mono text-[12px] text-ink">{fmtUnits(h.balance, h.decimals, 4)} {h.symbol}</span>
                         <span className="ml-auto mono text-[11px] text-ink-3">{unwind.has(k) ? (q ? (q.startsWith("error") ? q : `≈ ${fmtUnits(q, 6, 2)} USDC`) : "quoting…") : "live quote on select"}</span>
                       </label>
@@ -652,7 +652,7 @@ export function PanicBunker({ previewAddress, previewChainId = 8453, initialLive
                           {s && <p className={cx("mt-1 mono text-[11px]", s.status === "ok" ? "text-phosphor" : s.status === "fail" ? "text-crit" : s.status === "deferred" ? "text-warn" : "text-ink-3")}>sim: {s.status === "pending" ? "running…" : s.message}</p>}
                           {st && <p className={cx("mt-1 mono text-[11px]", st.status === "confirmed" ? "text-phosphor" : st.status === "failed" ? "text-crit" : "text-warn")}>tx: {st.status}{st.hash && <> · <TxLink chainId={8453} hash={st.hash} /></>}{st.message && ` · ${st.message}`}</p>}
                           {/* <=900px: long calldata (Permit2 lockdown, swaps) scrolls inside a bounded box instead of stretching the list. */}
-                          {showCalldata && <p className="mt-2 break-all mono text-[10px] leading-relaxed text-ink-3 max-[900px]:max-h-[76px] max-[900px]:overflow-y-auto max-[900px]:overscroll-contain max-[900px]:border max-[900px]:hairline max-[900px]:bg-canvas max-[900px]:px-2 max-[900px]:py-1.5">{c.data}</p>}
+                          {showCalldata && <p className="mt-2 break-all mono text-[10px] leading-relaxed text-ink-3 max-[901px]:max-h-[76px] max-[901px]:overflow-y-auto max-[901px]:overscroll-contain max-[901px]:border max-[901px]:hairline max-[901px]:bg-canvas max-[901px]:px-2 max-[901px]:py-1.5">{c.data}</p>}
                         </div>
                       </div>
                     </li>
@@ -679,11 +679,11 @@ export function PanicBunker({ previewAddress, previewChainId = 8453, initialLive
                       </label>
                     )}
                     {/* <=600px: Simulate + Sign stack full width; both stay >=44px tall below 900px. */}
-                    <div className="flex flex-wrap items-center gap-3 max-[600px]:grid max-[600px]:grid-cols-1 max-[600px]:gap-2">
-                      <button onClick={simulateAll} disabled={busy} className="rounded-[2px] border border-hair-strong px-4 py-2 mono text-[12px] text-ink hover:border-phosphor/60 hover:text-phosphor disabled:opacity-40 max-[900px]:min-h-[44px]">
+                    <div className="flex flex-wrap items-center gap-3 max-[601px]:grid max-[601px]:grid-cols-1 max-[601px]:gap-2">
+                      <button onClick={simulateAll} disabled={busy} className="rounded-[2px] border border-hair-strong px-4 py-2 mono text-[12px] text-ink hover:border-phosphor/60 hover:text-phosphor disabled:opacity-40 max-[901px]:min-h-[44px]">
                         {simulating ? "SIMULATING…" : "1 · SIMULATE ALL"}
                       </button>
-                      <button onClick={execute} disabled={!canSign} className="rounded-[2px] bg-crit px-4 py-2 mono text-[12px] font-semibold text-white hover:bg-[#ff6668] disabled:cursor-not-allowed disabled:opacity-30 max-[900px]:min-h-[44px]">
+                      <button onClick={execute} disabled={!canSign} className="rounded-[2px] bg-crit px-4 py-2 mono text-[12px] font-semibold text-white hover:bg-[#ff6668] disabled:cursor-not-allowed disabled:opacity-30 max-[901px]:min-h-[44px]">
                         2 · {executing ? "SIGNING…" : useAtomic ? (separate && unwindCalls.length && revokeCalls.length ? "SIGN 2 ATOMIC BATCHES" : "SIGN ATOMIC RESCUE (1 SIGNATURE)") : `SIGN ${calls.length} TXS SEQUENTIALLY`}
                       </button>
                     </div>

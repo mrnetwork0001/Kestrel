@@ -23,7 +23,7 @@ export function Btn({ variant = "ghost", size = "md", className, ...rest }: Butt
         "inline-flex items-center justify-center gap-1.5 rounded-[2px] mono tracking-wider transition-colors disabled:cursor-not-allowed disabled:opacity-40",
         size === "sm" ? "px-2 py-1 text-[10.5px]" : "px-3.5 py-2 text-[12px]",
         // <=900px: every button is >=36px (globals.css); primary actions get the 44px touch target.
-        variant === "primary" && "max-[900px]:min-h-[44px]",
+        variant === "primary" && "max-[901px]:min-h-[44px]",
         VARIANT[variant],
         className
       )}
@@ -92,18 +92,18 @@ export function Switch({ checked, onChange, label, disabled, className }: { chec
       onClick={() => onChange(!checked)}
       className={cx(
         "relative inline-flex h-[18px] w-[32px] shrink-0 items-center rounded-[2px] border transition-colors disabled:cursor-not-allowed disabled:opacity-40",
-        "max-[900px]:h-[24px] max-[900px]:min-h-0 max-[900px]:w-[42px] max-[900px]:before:absolute max-[900px]:before:-inset-x-1.5 max-[900px]:before:-inset-y-2.5 max-[900px]:before:content-['']",
+        "max-[901px]:h-[24px] max-[901px]:min-h-0 max-[901px]:w-[42px] max-[901px]:before:absolute max-[901px]:before:-inset-x-1.5 max-[901px]:before:-inset-y-2.5 max-[901px]:before:content-['']",
         checked ? "border-phosphor/60 bg-phosphor/[0.12]" : "border-hair-strong bg-canvas",
         className
       )}
     >
-      <span className={cx("absolute top-[3px] h-[10px] w-[10px] rounded-[1px] transition-all max-[900px]:top-[5px] max-[900px]:h-[12px] max-[900px]:w-[12px]", checked ? "left-[18px] bg-phosphor max-[900px]:left-[24px]" : "left-[3px] bg-ink-3 max-[900px]:left-[4px]")} />
+      <span className={cx("absolute top-[3px] h-[10px] w-[10px] rounded-[1px] transition-all max-[901px]:top-[5px] max-[901px]:h-[12px] max-[901px]:w-[12px]", checked ? "left-[18px] bg-phosphor max-[901px]:left-[24px]" : "left-[3px] bg-ink-3 max-[901px]:left-[4px]")} />
     </button>
   );
 }
 
 export const inputCls =
-  "w-full min-w-0 rounded-[2px] border hairline bg-canvas px-3 py-2 mono text-[12px] text-ink placeholder:text-ink-3 focus:border-phosphor/50 focus:outline-none disabled:opacity-50 max-[900px]:min-h-[44px] max-[900px]:text-[16px]";
+  "w-full min-w-0 rounded-[2px] border hairline bg-canvas px-3 py-2 mono text-[12px] text-ink placeholder:text-ink-3 focus:border-phosphor/50 focus:outline-none disabled:opacity-50 max-[901px]:min-h-[44px] max-[901px]:text-[16px]";
 
 export function Note({ tone = "muted", children, className }: { tone?: "muted" | "warn" | "crit" | "phosphor"; children: ReactNode; className?: string }) {
   const c = { muted: "text-ink-3", warn: "text-warn", crit: "text-crit", phosphor: "text-phosphor" }[tone];
