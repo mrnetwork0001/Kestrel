@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { kvIncrWithExpiry, localIncrWithExpiry } from "@/lib/kv";
 
 export const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -22,14 +23,30 @@ export function preflight() {
   return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
 }
 
-/** Tiny in-memory sliding-window limiter (per instance). Good enough to blunt abuse of public RPC fan-out. */
-const hits = new Map<string, number[]>();
-export function rateLimited(req: Request, limit = 30, windowMs = 60_000): boolean {
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "local";
-  const now = Date.now();
-  const arr = (hits.get(ip) ?? []).filter((t) => now - t < windowMs);
-  arr.push(now);
-  hits.set(ip, arr);
-  if (hits.size > 5_000) hits.clear();
-  return arr.length > limit;
+export function clientIp(req: Request): string {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip")?.trim() || "local";
+  return ip.slice(0, 64);
+}
+
+/**
+ * Fixed-window rate limiter shared across serverless instances (KV-backed; per-process when KV is absent).
+ * Keyed by client IP + route (defaults to the request path). `cost` charges several units for one request
+ * (e.g. a JSON-RPC batch). Fails open to a process-local counter if KV is unreachable.
+ */
+export async function rateLimited(
+  req: Request,
+  limit = 30,
+  { cost = 1, windowSec = 60, route }: { cost?: number; windowSec?: number; route?: string } = {}
+): Promise<boolean> {
+  const bucket = Math.floor(Date.now() / (windowSec * 1000));
+  const key = `rl:${route ?? new URL(req.url).pathname}:${clientIp(req)}:${bucket}`;
+  const units = Math.max(1, Math.ceil(cost));
+  let count: number;
+  try {
+    count = await kvIncrWithExpiry(key, windowSec, units);
+  } catch (e) {
+    console.warn(`[rate-limit] KV unavailable, using local counter: ${e instanceof Error ? e.message : String(e)}`);
+    count = localIncrWithExpiry(key, windowSec, units);
+  }
+  return count > limit;
 }
