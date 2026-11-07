@@ -17,7 +17,8 @@ export function NightShiftClock() {
   return (
     <span className="flex items-center gap-2">
       <span className="tnum text-ink-2">{time} UTC</span>
-      <span className={night ? "text-phosphor" : "text-ink-3"}>{night ? "NIGHT SHIFT ACTIVE >_" : "DAY DESK · SENTINEL ARMED >_"}</span>
+      {/* Secondary chrome: dropped on phones so the ribbon stays one short line. */}
+      <span className={`${night ? "text-phosphor" : "text-ink-3"} max-[601px]:hidden`}>{night ? "NIGHT SHIFT ACTIVE >_" : "DAY DESK · SENTINEL ARMED >_"}</span>
     </span>
   );
 }
