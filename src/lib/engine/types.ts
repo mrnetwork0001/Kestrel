@@ -91,6 +91,12 @@ export interface XrayReport {
   /** Dispatcher selectors (PUSH4 used in a selector comparison) in the analyzed code. */
   push4Count: number;
   controllers: ControllerPosture[];
+  /**
+   * Small DELEGATECALL forwarder whose logic address could not be resolved (no EIP-1967/ZeppelinOS slot, no
+   * EIP-897 answer, no recognised clone pattern — e.g. a Diamond or slot-0 singleton proxy). The selectors of
+   * the code that really runs were NOT scanned: UNKNOWN, never clean.
+   */
+  unresolvedDelegatecall?: boolean;
   /** true when an RPC read failed: results are incomplete and must be treated as UNKNOWN, never as clean. */
   degraded: boolean;
   degradedReasons: string[];
@@ -111,6 +117,13 @@ export interface OvernightPoolDelta {
   lpChangeBps: number | null;
   /** How lpChangeBps was measured. */
   lpMethod: string | null;
+  /**
+   * CL pools only: change of active liquidity L at the current tick (archive state). Moves when price crosses
+   * initialized ticks, so it is context — never scored as an LP withdrawal.
+   */
+  activeLiquidityChangeBps?: number | null;
+  /** Set when the overnight read FAILED (RPC): LP/price changes are UNKNOWN, the scan is incomplete. */
+  degraded?: string;
   /** Change of the quote-side (WETH/USDC…) reserve — moves with swaps as well as LP flows. */
   quoteReserveChangeBps: number | null;
   /** Price of the risky token in the quote token (e.g. VIBES in WETH), overnight change in bps. */
@@ -173,6 +186,8 @@ export interface OvernightTokenFlow {
   holderScan?: HolderScanCoverage;
   /** Coverage of the 8h Transfer-log read itself. */
   overnightCoverage?: LogCoverage;
+  /** Live reads that FAILED (RPC): whale/flow results are UNKNOWN, the scan is incomplete. */
+  degraded?: string[];
 }
 
 export interface TokenHolder {
@@ -227,6 +242,8 @@ export interface ApprovalExposure {
   spenderKnown?: boolean;
   /** How this approval was found: curated token×spender matrix, or the wallet's own Approval/Permit2 logs. */
   source?: "matrix" | "approval-log";
+  /** true when symbol()/decimals() could not be read (RPC): tokenSymbol/tokenDecimals are placeholders — do not scale `amount`. */
+  tokenMetaUnread?: boolean;
 }
 
 export type WalletAccountKind = "eoa" | "eip7702" | "safe" | "coinbase-smart-wallet" | "erc4337" | "smart-wallet";
@@ -487,7 +504,8 @@ export interface OftLane {
   dstEid: number;
   srcAdapter: string;
   dstAdapter: string;
-  peersOk: boolean;
+  /** true = both peers point at each other; false = a READ peer is wrong; null = a peer read failed (UNKNOWN). */
+  peersOk: boolean | null;
   /** quoteSend(…, false).nativeFee — ONE message, paid in src-chain ETH, amount-independent ("0" if the quote failed) */
   nativeFeeWei: string;
   feeBreakdown: { executorWei: string; dvns: { address: string; name: string | null; feeWei: string }[]; treasuryWei: string } | null;
@@ -505,7 +523,9 @@ export interface OftLane {
     outbound: string; // src endpoint
     inboundVerified: string; // dst endpoint inboundNonce (contiguous verified)
     lazyExecuted: string; // dst endpoint lazyInboundNonce
-    unverified: number; // outbound − inboundVerified: sent, waiting for DVNs
+    unverified: number; // outbound − inboundVerified: sent, waiting for DVNs (0 when `known` is false — NOT a measurement)
+    /** false when outbound/inbound nonces could not be read: `unverified` is UNKNOWN, nonce strings are "unknown". */
+    known?: boolean;
     awaitingExecution: { nonce: string; payloadHash: string }[]; // verified at dst but not executed (rate-limited / paused / gas)
   };
 }
@@ -578,8 +598,10 @@ export interface ParityReport {
   /** locked − circulating (signed raw). >0 = over-backed or packets in flight; <0 = UNBACKED supply on Robinhood */
   deltaSigned: string;
   verdict: ParityVerdict;
-  /** LayerZero packets sent but not yet delivered across both lanes (unverified + verified-not-executed) */
-  pendingPackets: number;
+  /** LayerZero packets sent but not yet delivered across both lanes (unverified + verified-not-executed); null = nonce reads failed (UNKNOWN). */
+  pendingPackets: number | null;
+  /** Set when the OFT bridge/nonce/peer reads failed: in-flight count and peer wiring are UNKNOWN (scan incomplete). */
+  bridgeDegraded?: string;
   /** |spread| − pool fees (the old netEdgeBps semantics) */
   netEdgeBpsBeforeBridge: number | null;
   bridgeFeeBps: number | null;

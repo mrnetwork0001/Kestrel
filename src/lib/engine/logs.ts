@@ -1,5 +1,6 @@
 import { type AbiEvent, type Address, encodeEventTopics, formatLog, type Hex, type Log, pad, parseEventLogs, type ParseEventLogsReturnType } from "viem";
 import { ROBINHOOD_FETCH_HEADERS } from "@/config/chains";
+import { serverLogsRpcUrls } from "@/lib/rpc";
 import type { ChainId } from "./types";
 
 /**
@@ -122,9 +123,13 @@ function hostOf(url: string): string {
   }
 }
 
+/**
+ * Log providers come from the SERVER-ONLY RPC config in rpc.ts (ROBINHOOD_RPC_URL(S), BASE_LOGS_RPC_URL) —
+ * never from NEXT_PUBLIC_* variables, which are inlined into the browser bundle and must not hold keyed URLs.
+ */
 function providerFor(chainId: ChainId): Provider {
   if (chainId === 4663) {
-    const url = process.env.NEXT_PUBLIC_ROBINHOOD_RPC_URL || "https://rpc.mainnet.chain.robinhood.com";
+    const url = serverLogsRpcUrls(4663)[0] || "https://rpc.mainnet.chain.robinhood.com";
     return {
       chainId,
       url,
@@ -142,8 +147,7 @@ function providerFor(chainId: ChainId): Provider {
     const cap = BigInt(Math.max(1, Number(process.env.BASE_LOGS_MAX_RANGE || 10_000) || 10_000));
     return { chainId, url: custom, host: hostOf(custom), headers: {}, span: { "single-address": cap, "multi-address": cap, "topic-only": cap }, maxResultsHint: 10_000, concurrency: 4, maxAddresses: 1_000, globalConcurrency: 8 };
   }
-  const fb = process.env.NEXT_PUBLIC_BASE_FALLBACK_RPC_URL;
-  const url = fb && fb.includes("publicnode") ? fb : BASE_PUBLICNODE;
+  const url = serverLogsRpcUrls(8453).find((u) => u.includes("publicnode")) ?? BASE_PUBLICNODE;
   return { chainId, url, host: hostOf(url), headers: {}, span: { "single-address": 50_000n, "multi-address": 50_000n, "topic-only": null }, maxResultsHint: 20_000, concurrency: 4, maxAddresses: 10, globalConcurrency: 8 };
 }
 
@@ -177,6 +181,25 @@ const learned = (g.__kestrelLogsLearned ??= new Map());
 const chunkCache = (g.__kestrelLogsCache ??= new Map());
 const CACHE_TTL_MS = 2 * 3600_000;
 const CACHE_MAX = 600;
+/** Size cap: total raw logs held across all cached ranges (raw JSON-RPC logs are ~1 KB each → ~150 MB worst case). */
+const CACHE_MAX_LOGS = 150_000;
+/** Ranges with more logs than this are not cached (busy-token Transfer chunks would crowd out everything else). */
+const CACHE_MAX_LOGS_PER_RANGE = 2_000;
+const gt = globalThis as typeof globalThis & { __kestrelLogsCacheTotal?: number };
+function cacheTotal(): number {
+  if (gt.__kestrelLogsCacheTotal === undefined) {
+    let n = 0;
+    for (const e of chunkCache.values()) n += (e as CacheEntry).logs.length;
+    gt.__kestrelLogsCacheTotal = n;
+  }
+  return gt.__kestrelLogsCacheTotal;
+}
+function cacheDelete(key: string) {
+  const e = chunkCache.get(key);
+  if (!e) return;
+  chunkCache.delete(key);
+  gt.__kestrelLogsCacheTotal = Math.max(0, cacheTotal() - e.logs.length);
+}
 /** Ranges whose `to` is at least this far below the requested head are cached (reorg-safe on both L2s). */
 const CACHE_SAFE_DEPTH = 600n;
 
@@ -184,7 +207,7 @@ function cacheGet(key: string): unknown[] | null {
   const e = chunkCache.get(key);
   if (!e) return null;
   if (Date.now() - e.at > CACHE_TTL_MS) {
-    chunkCache.delete(key);
+    cacheDelete(key);
     return null;
   }
   chunkCache.delete(key);
@@ -193,12 +216,15 @@ function cacheGet(key: string): unknown[] | null {
 }
 
 function cacheSet(key: string, logs: unknown[]) {
-  if (logs.length > 5_000) return;
+  if (logs.length > CACHE_MAX_LOGS_PER_RANGE) return;
+  cacheDelete(key);
   chunkCache.set(key, { at: Date.now(), logs });
-  while (chunkCache.size > CACHE_MAX) {
+  gt.__kestrelLogsCacheTotal = cacheTotal() + logs.length;
+  // Evict oldest (LRU order) until both the entry-count and the total-logs caps hold.
+  while (chunkCache.size > CACHE_MAX || cacheTotal() > CACHE_MAX_LOGS) {
     const first = chunkCache.keys().next().value;
     if (first === undefined) break;
-    chunkCache.delete(first);
+    cacheDelete(first);
   }
 }
 
@@ -232,22 +258,51 @@ function classify(message: string, httpStatus?: number): RpcLogsError {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Process-wide per-provider semaphore so concurrent scans don't stampede a public RPC into 429s. */
+/** The caller's deadline passed while waiting for a provider slot: the range is reported as not reached. */
+class SlotTimeoutError extends Error {
+  constructor() {
+    super("timed out waiting for an RPC slot");
+  }
+}
+
+/**
+ * Process-wide per-provider semaphore so concurrent scans don't stampede a public RPC into 429s. Waiting honours
+ * the caller's deadline (no unbounded queueing past timeBudgetMs), and a released slot is handed directly to the
+ * next waiter so a new arrival can never over-subscribe the provider in between.
+ */
 const gs = globalThis as typeof globalThis & { __kestrelLogsSem?: Map<string, { active: number; waiters: (() => void)[] }> };
 const sems = (gs.__kestrelLogsSem ??= new Map());
-async function withSlot<T>(p: Provider, fn: () => Promise<T>, background = false): Promise<T> {
+async function withSlot<T>(p: Provider, fn: () => Promise<T>, background = false, deadline?: number): Promise<T> {
   const key = background ? `${p.url}|bg` : p.url;
   const limit = background ? 2 : p.globalConcurrency;
   let s = sems.get(key);
   if (!s) sems.set(key, (s = { active: 0, waiters: [] }));
   const sem = s;
-  if (sem.active >= limit) await new Promise<void>((r) => sem.waiters.push(r));
-  sem.active++;
+  if (sem.active >= limit) {
+    const handed = await new Promise<boolean>((resolve) => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const waiter = () => {
+        clearTimeout(timer);
+        resolve(true);
+      };
+      if (deadline !== undefined) {
+        timer = setTimeout(() => {
+          const i = sem.waiters.indexOf(waiter);
+          if (i >= 0) sem.waiters.splice(i, 1);
+          resolve(false);
+        }, Math.max(0, deadline - Date.now()));
+      }
+      sem.waiters.push(waiter);
+    });
+    if (!handed) throw new SlotTimeoutError();
+    // handed over by the releaser: `active` already counts this request
+  } else sem.active++;
   try {
     return await fn();
   } finally {
-    sem.active--;
-    sem.waiters.shift()?.();
+    const next = sem.waiters.shift();
+    if (next) next();
+    else sem.active--;
   }
 }
 
@@ -494,10 +549,11 @@ async function getLogsChunkedOne(chainId: ChainId, query: LogsQuery, opts: Chunk
     for (;;) {
       result.requests++;
       try {
-        const logs = await withSlot(p, () => rpcGetLogs(p, filter, Math.min(reqTimeout, Math.max(2_000, budget + 4_000 - (Date.now() - started)))), opts.background);
+        const logs = await withSlot(p, () => rpcGetLogs(p, filter, Math.min(reqTimeout, Math.max(2_000, budget + 4_000 - (Date.now() - started)))), opts.background, started + budget);
         if (cacheable) cacheSet(cacheKey, logs);
         return logs;
       } catch (e) {
+        if (e instanceof SlotTimeoutError) throw e;
         const err = e instanceof RpcLogsError ? e : classify(String(e));
         if (err.kind === "transient" && attempt < retries && Date.now() - started < budget + 2_000) {
           attempt++;
@@ -523,6 +579,10 @@ async function getLogsChunkedOne(chainId: ChainId, query: LogsQuery, opts: Chunk
           result.truncated = true;
         }
       } catch (e) {
+        if (e instanceof SlotTimeoutError) {
+          queue.unshift(r); // reported as a skipped range (time budget), never as covered
+          break;
+        }
         const err = e instanceof RpcLogsError ? e : classify(String(e));
         const width = r.to - r.from + 1n;
         if (err.kind === "address-required") {

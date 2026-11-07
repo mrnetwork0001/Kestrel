@@ -4,6 +4,7 @@ import { ERC20_ABI } from "@/lib/abis";
 import { after } from "next/server";
 import { kvDel, kvGetJson, kvSet, kvSetJson } from "@/lib/kv";
 import { getPublicClientForChain } from "@/lib/rpc";
+import { isRpcFailure } from "./call-errors";
 import { blockAtTimestamp, blockHoursAgo } from "./chain-utils";
 import { type BlockRange, getLogsChunked, mergeRanges, missingRanges } from "./logs";
 import { OVERNIGHT_HOURS } from "./pools";
@@ -152,7 +153,8 @@ export async function readOvernightFlow(chainId: ChainId, token: TokenMeta, excl
     latest = await client.getBlock({ blockTag: "latest" });
     fromBlock = await blockHoursAgo(chainId, client, latest.number, OVERNIGHT_HOURS);
   } catch (e) {
-    return { ...empty, note: `Could not read the chain head: ${e instanceof Error ? e.message.slice(0, 100) : "RPC error"}.` };
+    const msg = `Could not read the chain head: ${e instanceof Error ? e.message.slice(0, 100) : "RPC error"}.`;
+    return { ...empty, note: msg, degraded: [msg] };
   }
 
   const windowDays = HOLDER_WINDOW_DAYS[chainId];
@@ -256,6 +258,8 @@ export async function readOvernightFlow(chainId: ChainId, token: TokenMeta, excl
   let holders: TokenHolder[] = [];
   let topHolder: OvernightTokenFlow["topHolder"] = null;
   let holderError = "";
+  const degraded: string[] = [];
+  if (!overnight) degraded.push("Overnight Transfer log read failed");
   if (candidates.length) {
     try {
       const bals = await client.multicall({
@@ -264,6 +268,9 @@ export async function readOvernightFlow(chainId: ChainId, token: TokenMeta, excl
         batchSize: 24_000,
         contracts: candidates.map((a) => ({ address: tokenAddr, abi: ERC20_ABI, functionName: "balanceOf" as const, args: [a] as const })),
       });
+      // A transport failure is UNKNOWN, never a zero balance (that would silently drop the whale finding).
+      const balFails = bals.filter((b) => isRpcFailure(b)).length;
+      if (balFails) throw new Error(`${balFails}/${bals.length} holder balanceOf reads failed (RPC error)`);
       const ranked = candidates
         .map((a, i) => ({ address: a, balance: bals[i]?.status === "success" ? (bals[i].result as bigint) : 0n }))
         .filter((x) => x.balance > 0n)
@@ -272,18 +279,29 @@ export async function readOvernightFlow(chainId: ChainId, token: TokenMeta, excl
       if (holderScan) holderScan.balancesChecked = candidates.length;
       // classify the leaders: contract? AMM pool (token0())? → pools are liquidity, not whales
       const [codes, probes] = await Promise.all([
-        Promise.all(ranked.map((r) => client.getCode({ address: r.address }).catch(() => undefined))),
-        client.multicall({ allowFailure: true, contracts: ranked.map((r) => ({ address: r.address, abi: POOL_PROBE_ABI, functionName: "token0" as const })) }).catch(() => ranked.map(() => ({ status: "failure" as const }))),
+        Promise.all(ranked.map((r) => client.getCode({ address: r.address }).then((c) => c ?? "0x", () => null))),
+        client
+          .multicall({ allowFailure: true, contracts: ranked.map((r) => ({ address: r.address, abi: POOL_PROBE_ABI, functionName: "token0" as const })) })
+          .catch((e: unknown) => ranked.map(() => ({ status: "failure" as const, error: e }))),
       ]);
       const supply = BigInt(token.totalSupply);
+      let unknownKind = 0;
       holders = ranked
         .map((r, i) => {
           const code = codes[i];
-          const isContract = !!code && code !== "0x" && !code.startsWith("0xef0100");
-          const isPool = isContract && probes[i]?.status === "success";
-          return { r, isContract, isPool };
+          // getCode failed → unknown: skip the holder rather than call an AMM pool an EOA/whale.
+          if (code === null) return { r, isContract: false, isPool: false, unknown: true };
+          const isContract = code !== "0x" && !code.startsWith("0xef0100");
+          // token0() probe failed for an RPC reason → unknown (could be a pool), never "not a pool".
+          const probe = probes[i] as { status: "success" | "failure"; error?: unknown } | undefined;
+          if (isContract && isRpcFailure(probe)) return { r, isContract, isPool: false, unknown: true };
+          const isPool = isContract && probe?.status === "success";
+          return { r, isContract, isPool, unknown: false };
         })
-        .filter((x) => !x.isPool)
+        .filter((x) => {
+          if (x.unknown) unknownKind++;
+          return !x.isPool && !x.unknown;
+        })
         .slice(0, TOP_N)
         .map(({ r, isContract }) => ({
           address: r.address,
@@ -296,8 +314,10 @@ export async function readOvernightFlow(chainId: ChainId, token: TokenMeta, excl
         const h = holders[0];
         topHolder = { address: h.address, balance: h.balance, shareBps: h.shareBps, isContract: h.isContract, activeOvernight: h.activeOvernight };
       }
+      if (unknownKind) degraded.push(`${unknownKind} leading holder(s) could not be classified (contract/pool probe failed)`);
     } catch (e) {
       holderError = ` Holder balance read failed: ${e instanceof Error ? e.message.slice(0, 80) : "RPC error"}.`;
+      degraded.push(`Holder balance read failed: ${e instanceof Error ? e.message.slice(0, 80) : "RPC error"}`);
     }
   }
   const topHoldersShareBps = holders.reduce((s, h) => s + h.shareBps, 0);
@@ -324,5 +344,6 @@ export async function readOvernightFlow(chainId: ChainId, token: TokenMeta, excl
     topHoldersShareBps,
     holderScan,
     overnightCoverage: overnight ? coverageOf(overnight) : undefined,
+    ...(degraded.length ? { degraded } : {}),
   };
 }

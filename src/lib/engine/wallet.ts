@@ -232,7 +232,25 @@ export async function scanWallet(chainId: ChainId, address: Address, extraTokens
   ]);
   const notes: string[] = [];
   const permit2 = CONTRACTS.base.permit2; // same canonical address on both chains
-  const permit2Live = chainId === 8453 || (await client.getCode({ address: permit2 }).then((c) => !!c && c !== "0x").catch(() => false));
+  // Unreadable Permit2 code is UNKNOWN (coverage partial), never "Permit2 not deployed".
+  let permit2Unknown = false;
+  const permit2Live =
+    chainId === 8453 ||
+    (await client.getCode({ address: permit2 }).then(
+      (c) => !!c && c !== "0x",
+      () => {
+        permit2Unknown = true;
+        notes.push("Permit2 deployment check failed (RPC error): Permit2 allowances were not read.");
+        return false;
+      }
+    ));
+  /** Tokens whose decimals()/totalSupply() could not be read because the RPC failed (readTokenMeta threw). */
+  let metaRpcFailures = 0;
+  const metaOrCount = (t: Address) =>
+    readTokenMeta(chainId, t).catch(() => {
+      metaRpcFailures++;
+      return null;
+    });
 
   // ── 0 · curated matrix starts immediately, in parallel with log discovery ──
   const curatedSpenders = SPENDERS[chainId];
@@ -241,7 +259,7 @@ export async function scanWallet(chainId: ChainId, address: Address, extraTokens
   const matrix = new Matrix(chainId, address, latest.number, permit2Live);
   const phase1Tokens = [...new Map([...TRACKED_TOKENS[chainId], ...extraTokens].map((t) => [t.toLowerCase(), t])).values()];
   const phase1 = (async () => {
-    const metas = (await Promise.all(phase1Tokens.map((t) => readTokenMeta(chainId, t).catch(() => null)))).filter((m): m is TokenMeta => m !== null);
+    const metas = (await Promise.all(phase1Tokens.map((t) => metaOrCount(t)))).filter((m): m is TokenMeta => m !== null);
     for (const m of metas) {
       matrix.addToken(m);
       for (const sp of curatedSpenders) matrix.addErc20(m, spenderMap.get(sp.address.toLowerCase())!);
@@ -314,7 +332,9 @@ export async function scanWallet(chainId: ChainId, address: Address, extraTokens
 
   // Overnight coverage: the primary window is the address-filtered query on Base, the wallet-wide one on Robinhood.
   const primary: ChunkedLogsResult<unknown> | null = chainId === 4663 ? wideRes : (addrRes.rs[0] ?? null);
-  const overnightCovered = !!primary && primary.coveredFrom !== null && primary.coveredFrom <= overnightFrom && !primary.unsupported;
+  // A truncated read keeps only the newest logs: older overnight Approval events were dropped, so it is NOT covered.
+  const overnightCovered = !!primary && primary.coveredFrom !== null && primary.coveredFrom <= overnightFrom && !primary.unsupported && !primary.truncated;
+  if (primary?.truncated) notes.push(`Overnight Approval-log window truncated (more events than the per-scan cap): older approvals in the window were not read.`);
   const extended = chainId === 8453 ? (addrRes.rs[1] ?? null) : null;
   const extendedComplete = chainId === 8453 && overnightCovered && (!extended || extended.complete);
   if (extended && !extended.complete) notes.push(`Older part of the ${lookbackHours}h Approval-log lookback partially read: ${extended.note}`);
@@ -352,9 +372,10 @@ export async function scanWallet(chainId: ChainId, address: Address, extraTokens
   ])].filter((t) => !matrix.metas.has(t) && !phase1Tokens.some((x) => x.toLowerCase() === t));
   const room = Math.max(0, MAX_TOKENS - matrix.metas.size);
   if (discoveredOrder.length > room) notes.push(`Token list capped at ${MAX_TOKENS} (${discoveredOrder.length - room} discovered token(s) not checked).`);
-  const newMetas = (await Promise.all(discoveredOrder.slice(0, room).map((t) => readTokenMeta(chainId, getAddress(t)).catch(() => null)))).filter((m): m is TokenMeta => m !== null);
-  const unreadable = Math.min(room, discoveredOrder.length) - newMetas.length + (phase1Tokens.length - [...matrix.metas.keys()].length);
-  if (unreadable > 0) notes.push(`${unreadable} token(s) did not answer decimals()/totalSupply() and were skipped.`);
+  const newMetas = (await Promise.all(discoveredOrder.slice(0, room).map((t) => metaOrCount(getAddress(t))))).filter((m): m is TokenMeta => m !== null);
+  const unreadable = Math.min(room, discoveredOrder.length) - newMetas.length + (phase1Tokens.length - [...matrix.metas.keys()].length) - metaRpcFailures;
+  if (unreadable > 0) notes.push(`${unreadable} token(s) did not answer decimals()/totalSupply() (not ERC-20) and were skipped.`);
+  if (metaRpcFailures > 0) notes.push(`${metaRpcFailures} token(s) could not be read (RPC error) — their approvals are UNKNOWN; re-scan.`);
 
   const discoveredSpenders: Spender[] = [];
   for (const p of [...erc20Pairs.values(), ...p2Pairs.values()]) {
@@ -408,7 +429,7 @@ export async function scanWallet(chainId: ChainId, address: Address, extraTokens
   }
   const metas = [...matrix.metas.values()];
   const spenders = [...spenderMap.values()];
-  const failedCalls = matrix.failedCalls;
+  const failedCalls = matrix.failedCalls + metaRpcFailures;
 
   // ── 4 · coverage (stated honestly in UI + brief) ──────────────────────────
   const totalCalls = matrix.erc20Count + matrix.p2Count + metas.length;
@@ -435,7 +456,7 @@ export async function scanWallet(chainId: ChainId, address: Address, extraTokens
     logCoverage: primary ? logCoverage(primary) : null,
     walletWideLogDiscovery: walletWide && !!wideRes && !wideRes.unsupported,
     deepHistoryReads: addrRes.fullHistory,
-    partial: multicallDegraded || !overnightCovered,
+    partial: multicallDegraded || !overnightCovered || metaRpcFailures > 0 || permit2Unknown,
     notes,
   };
 
