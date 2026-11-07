@@ -335,7 +335,8 @@ async function buildRow(l: VibestarterLaunch): Promise<EcosystemRow> {
     appUrl: report?.appUrl ?? null,
     appHealth: report?.appHealth ?? null,
     repoUrl: report?.repoUrl ?? null,
-    githubLogin: report?.founderGithub?.login ?? report?.founderSignals?.githubUsername ?? null,
+    // founderGithub.login is "id:<n>" when the avatar id could not be resolved (rate-limited / missing): not a login.
+    githubLogin: (report?.founderGithub?.login?.startsWith("id:") ? null : report?.founderGithub?.login) ?? report?.founderSignals?.githubUsername ?? null,
     github: report?.founderGithub ?? null,
     capsule: report?.capsule ?? null,
     fetchedAt: new Date().toISOString(),
@@ -358,7 +359,7 @@ export function readEcosystemRow(launch: VibestarterLaunch): Promise<EcosystemRo
     const hit = await kvGetJson<EcosystemRow>(key).catch(() => null);
     if (hit) return hit;
     const row = await buildRow(launch);
-    if (row.escrowState) await kvSetJson(key, row, { ex: 90 }).catch(() => undefined);
+    if (row.escrowState && row.lpLock?.status !== "unavailable") await kvSetJson(key, row, { ex: 90 }).catch(() => undefined);
     return row;
   })().finally(() => rowInflight.delete(key));
   rowInflight.set(key, p);

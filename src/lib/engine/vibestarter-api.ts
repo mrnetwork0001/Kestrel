@@ -1,5 +1,6 @@
 import { VIBESTARTER_PUBLIC_ENDPOINTS } from "@/config/contracts";
 import { cached } from "@/lib/cache";
+import { safeRequest, SsrfError } from "@/lib/pager/ssrf";
 
 /**
  * Subset of https://app.vibestarter.xyz/api/campaigns LIST fields Kestrel consumes (verified shape 2026-11-07).
@@ -153,23 +154,58 @@ export function isProbeableUrl(raw: string): boolean {
   }
 }
 
-/** Live HTTP health probe of a founder's app URL (status + latency). Body is not downloaded. */
+const PROBE_TIMEOUT_MS = 5_000;
+const PROBE_OPTS: { allowHttp: boolean; ports: number[]; timeoutMs: number } = { allowHttp: true, ports: [80, 443], timeoutMs: PROBE_TIMEOUT_MS };
+
+/**
+ * Live HTTP health probe of a founder's app URL (status + latency), through the pager's SSRF guard: the URL is
+ * re-vetted (public DNS answers only, ports 80/443, no embedded credentials), the socket is pinned to the vetted IP,
+ * redirects are NOT followed (a 3xx is reported as reachable, with its Location host) and the body is not read
+ * beyond 1 KiB. HEAD first; servers that refuse HEAD (405/501) get one small GET.
+ *
+ * Latency is measured on a fresh, non-pooled connection (DNS + TCP + TLS + first byte) — never a Next.js fetch
+ * memo / dedupe hit, which is what produced the implausible 1–3 ms readings this used to report.
+ */
 export async function probeAppHealth(url: string): Promise<AppHealth> {
   const checkedAt = new Date().toISOString();
   if (!isProbeableUrl(url)) return { url, status: null, latencyMs: null, ok: false, checkedAt, error: "URL not probeable" };
-  const started = Date.now();
+  const headers = { "User-Agent": UA["User-Agent"], Accept: "text/html,*/*;q=0.8" };
   try {
-    const res = await fetch(url, { method: "GET", headers: { "User-Agent": UA["User-Agent"], Accept: "text/html,*/*" }, redirect: "follow", signal: AbortSignal.timeout(5_000), cache: "no-store" });
-    const latencyMs = Date.now() - started;
-    res.body?.cancel().catch(() => undefined);
-    return { url, status: res.status, latencyMs, ok: res.ok, checkedAt, error: null };
+    let res = await safeRequest(url, { ...PROBE_OPTS, method: "HEAD", headers, maxBytes: 1_024 });
+    if (res.status === 405 || res.status === 501) res = await safeRequest(url, { ...PROBE_OPTS, method: "GET", headers, maxBytes: 1_024 });
+    const redirect = res.status >= 300 && res.status < 400;
+    const location = redirect ? locationHost(url, res.headers.location) : null;
+    return {
+      url,
+      status: res.status,
+      latencyMs: res.durationMs,
+      // 2xx = up; 3xx = the server answered and redirects (not followed, by design); 4xx/5xx = down for users.
+      ok: res.status >= 200 && res.status < 400,
+      checkedAt,
+      error: redirect ? `redirects${location ? ` to ${location}` : ""} (not followed)` : null,
+    };
   } catch (e) {
-    const msg = e instanceof Error ? (e.name === "TimeoutError" ? "timeout after 5 s" : e.message) : String(e);
+    const raw = e instanceof Error ? e.message : String(e);
+    const msg = e instanceof SsrfError ? `blocked by SSRF guard: ${raw.replace(/^Webhook /, "")}` : /timed out/i.test(raw) ? `timeout after ${PROBE_TIMEOUT_MS / 1000} s` : raw;
     return { url, status: null, latencyMs: null, ok: false, checkedAt, error: msg.slice(0, 120) };
   }
 }
 
-/** probeAppHealth with a 60 s shared cache, so the Backer Shield board can probe every raise on each refresh. */
+function locationHost(base: string, loc: string | string[] | undefined): string | null {
+  const v = Array.isArray(loc) ? loc[0] : loc;
+  if (!v) return null;
+  try {
+    const u = new URL(v, base);
+    return `${u.protocol}//${u.host}${u.pathname === "/" ? "" : u.pathname}`.slice(0, 80);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * probeAppHealth with a 60 s shared cache, so the Backer Shield board can probe every raise on each refresh.
+ * A cached result keeps the latency and `checkedAt` of the probe that actually ran (the UI shows "probed Xs ago").
+ */
 export function probeAppHealthCached(url: string): Promise<AppHealth> {
-  return cached(`apphealth:${url.toLowerCase()}`, 60, () => probeAppHealth(url));
+  return cached(`apphealth:v2:${url.toLowerCase()}`, 60, () => probeAppHealth(url));
 }

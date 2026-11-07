@@ -15,7 +15,9 @@ import {
 } from "viem";
 import { ERC20_ABI } from "@/lib/abis";
 import { quoteExactIn } from "@/lib/amm-math";
+import { isRpcFailure } from "@/lib/engine/call-errors";
 import { errMsg } from "@/lib/engine/chain-utils";
+import { getLogsChunked } from "@/lib/engine/logs";
 import { CAMPAIGN_STATES, CHALLENGE_STATES } from "@/lib/engine/escrow";
 import { discoverWethPool, readPool } from "@/lib/engine/pools";
 import type { ChainId } from "@/lib/engine/types";
@@ -297,8 +299,20 @@ async function loadCtx(chainId: ChainId, escrow: Address): Promise<EscrowCtx> {
     { address: escrow, abi: E, functionName: "PLATFORM_FEE_BPS" }, // 15
     { address: escrow, abi: E, functionName: "timeOracle" }, // 16
   ];
+  // Phase, bond and readiness are built from these reads: an RPC failure must never become a literal protocol
+  // constant or a zero (bond 0 → "Holds at least the bond: pass"). Retry once, then throw (the route answers 502).
+  const strictMulticall = async (cs: ContractFunctionParameters[], what: string) => {
+    let res = await client.multicall({ allowFailure: true, blockNumber: latest.number, contracts: cs });
+    if (res.some((x) => isRpcFailure(x))) {
+      await new Promise((ok) => setTimeout(ok, 400));
+      res = await client.multicall({ allowFailure: true, blockNumber: latest.number, contracts: cs });
+      const failed = res.filter((x) => isRpcFailure(x)).length;
+      if (failed) throw new Error(`Challenge Co-pilot: ${failed}/${res.length} ${what} reads failed (RPC error) — retry shortly.`);
+    }
+    return res;
+  };
   const [r, code] = await Promise.all([
-    client.multicall({ allowFailure: true, blockNumber: latest.number, contracts }),
+    strictMulticall(contracts, "escrow"),
     client.getCode({ address: escrow, blockNumber: latest.number }).catch(() => undefined),
   ]);
   const ok = (i: number) => r[i]?.status === "success";
@@ -326,7 +340,7 @@ async function loadCtx(chainId: ChainId, escrow: Address): Promise<EscrowCtx> {
     { address: escrow, abi: E, functionName: "getTrancheAmount", args: [Math.min(n, 255)] },
     { address: escrow, abi: E, functionName: "getTrancheUnlockTime", args: [Math.min(n, 255)] },
   ];
-  const r2 = await client.multicall({ allowFailure: true, blockNumber: latest.number, contracts: per });
+  const r2 = await strictMulticall(per, "tranche/token");
   const p2 = <T,>(i: number, fallback: T): T => (r2[i]?.status === "success" ? (r2[i].result as T) : fallback);
   const totalSupply = p2<bigint>(0, 0n);
   const thresholdBps = Number(p2<bigint>(3, 0n));
@@ -470,7 +484,6 @@ async function spotPrice(c: EscrowCtx): Promise<{ pool: string | null; kind: str
 
 async function readVotes(c: EscrowCtx): Promise<CopilotVotes | null> {
   if (c.challenge?.state !== 1) return null;
-  const logsClient = getLogsClientForChain(c.chainId);
   const seq = c.challengeSeq;
   const age = Math.max(0, c.blockTimestamp - Number(c.challenge.timestamp));
   // Estimate the filing block from the live block time (Base: 200 ms blocks since 2026-11-05).
@@ -478,28 +491,12 @@ async function readVotes(c: EscrowCtx): Promise<CopilotVotes | null> {
   const bt = Math.max(0.05, (c.blockTimestamp - Number(past.timestamp)) / 10_000);
   const back = BigInt(Math.ceil((age / bt) * 1.05)) + 1_000n;
   const filedBlock = c.blockNumber > back ? c.blockNumber - back : 0n;
-  const CHUNK = 49_000n;
-  const MAX_CHUNKS = c.chainId === 4663 ? 1 : 12;
   const logs: { address: Address; eventName: string; args: Record<string, unknown> }[] = [];
-  let from = filedBlock;
-  let complete = true;
-  if (c.chainId === 4663) {
-    // Robinhood Chain allows unfiltered address queries over large ranges; decode locally.
-    const raw = await logsClient.getLogs({ address: c.escrow, fromBlock: filedBlock, toBlock: c.blockNumber });
-    logs.push(...(parseEventLogs({ abi: EVENTS_ABI, logs: raw }) as unknown as typeof logs));
-  } else {
-    let to = c.blockNumber;
-    let chunks = 0;
-    while (to >= filedBlock && chunks < MAX_CHUNKS) {
-      const f = to - CHUNK + 1n > filedBlock ? to - CHUNK + 1n : filedBlock;
-      const raw = await logsClient.getLogs({ address: c.escrow, fromBlock: f, toBlock: to });
-      logs.push(...(parseEventLogs({ abi: EVENTS_ABI, logs: raw }) as unknown as typeof logs));
-      from = f;
-      to = f - 1n;
-      chunks++;
-    }
-    complete = from <= filedBlock;
-  }
+  // Provider-aware chunked read (publicnode ≤ 50k blocks; Robinhood single-address ~10M) under a hard 10 s budget:
+  // /api/challenge has maxDuration 30, so an unbounded sequential getLogs loop must never block it.
+  const res = await getLogsChunked(c.chainId, { address: c.escrow, fromBlock: filedBlock, toBlock: c.blockNumber }, { timeBudgetMs: 10_000, maxLogs: 10_000 });
+  logs.push(...(parseEventLogs({ abi: EVENTS_ABI, logs: res.logs }) as unknown as typeof logs));
+  const complete = res.complete;
   const voters = [
     ...new Set(
       logs
@@ -531,7 +528,7 @@ async function readVotes(c: EscrowCtx): Promise<CopilotVotes | null> {
     supportWeight: sw.toString(),
     opposeWeight: ow.toString(),
     voters: out.slice(0, 50),
-    scannedFromBlock: (c.chainId === 4663 ? filedBlock : from).toString(),
+    scannedFromBlock: (res.coveredFrom ?? c.blockNumber + 1n).toString(),
     complete,
     unofficial: true,
     note: "Unofficial: the contract does not count votes or weigh them; the admin adjudicates. Weight = current token balance; final direction = challengeVoteBySeq.",
@@ -602,7 +599,8 @@ async function buildBase(chainId: ChainId, escrow: Address): Promise<CopilotBase
     };
   }
   if (!price.ethPerToken18 && c.next) notes.push("Spot price unavailable: no readable WETH pool for this token, so ETH values of the bond are not shown.");
-  if (price.kind === "uniswap-v3") notes.push("Bond exit value omitted: concentrated-liquidity exits can cross ticks; only the spot value is shown.");
+  // Uniswap v3 and Aerodrome Slipstream ("aerodrome-cl") are both concentrated liquidity: x*y=k exit math does not apply.
+  if (price.kind === "uniswap-v3" || price.kind === "aerodrome-cl") notes.push(`Bond exit value omitted: concentrated-liquidity (${price.kind === "aerodrome-cl" ? "Aerodrome Slipstream" : "Uniswap v3"}) exits can cross ticks; only the spot value is shown.`);
 
   const pending = c.challenge?.state === 1;
   const challenge: CopilotChallenge | null = c.challenge

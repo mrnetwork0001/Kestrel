@@ -1,6 +1,7 @@
 import { type Address, type Hex, getAddress } from "viem";
 import { cached } from "@/lib/cache";
 import { getPublicClientForChain } from "@/lib/rpc";
+import { isRpcFailure } from "@/lib/engine/call-errors";
 import { VS_LP_LOCKER_ABI, VS_LP_TOKEN_ABI, VS_ROUTER_ABI, LP_STATUS_LABELS } from "./abis";
 import { vibestarterConfig } from "./addresses";
 import type { LpLockProof, LpLockStatus } from "@/lib/engine/types";
@@ -84,6 +85,8 @@ export async function readLpLock(chainId: number, escrow: Address, opts: { token
     const routerLpStatus = routerStatus === null ? null : Number(routerStatus);
     const routerLpStatusLabel = routerLpStatus === null ? null : (LP_STATUS_LABELS[routerLpStatus] ?? `Unknown(${routerLpStatus})`);
 
+    /** Lockers whose verifyLPLocked/hasRescuedLP read failed for an RPC reason: their answer is UNKNOWN. */
+    const unread: string[] = [];
     for (const locker of cfg.lpLockers) {
       const [ver, claimer, rescued] = await c.multicall({
         allowFailure: true,
@@ -103,6 +106,10 @@ export async function readLpLock(chainId: number, escrow: Address, opts: { token
           routerLpStatusLabel,
           block: block.toString(),
         };
+      }
+      if (isRpcFailure(ver) || isRpcFailure(rescued)) {
+        unread.push(locker.version.toUpperCase());
+        continue;
       }
       if (ver.status !== "success" || !ver.result[0]) continue;
       const heldBalance = ver.result[1];
@@ -138,6 +145,15 @@ export async function readLpLock(chainId: number, escrow: Address, opts: { token
         note:
           `verifyLPLocked() = true on ${locker.version.toUpperCase()} locker: ${pct} of the pool's LP supply is held by ` +
           (isClone ? "an immutable EIP-1167 VibesLPFeeClaimer clone (no transfer / withdraw / admin path) — permanent." : "the fee claimer."),
+        block: block.toString(),
+      };
+    }
+    // A failed read is not proof that no lock exists.
+    if (unread.length) {
+      return {
+        ...empty(chainId, "unavailable", `Proof-of-Lock read failed on the ${unread.join(" + ")} locker (RPC error) — lock status UNKNOWN; retry shortly.`),
+        routerLpStatus,
+        routerLpStatusLabel,
         block: block.toString(),
       };
     }

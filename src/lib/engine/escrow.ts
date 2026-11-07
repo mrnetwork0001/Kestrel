@@ -1,14 +1,16 @@
 import { type Address, type ContractFunctionParameters, getAddress } from "viem";
 import { CONTRACTS } from "@/config/contracts";
 import { VIBES_ESCROW_ABI, VIBES_REGISTRY_ABI } from "@/lib/abis";
+import { cached } from "@/lib/cache";
 import { getPublicClientForChain, settle } from "@/lib/rpc";
 import { VS_ESCROW_EXTRA_ABI, VS_FACTORY_ABI, VS_ROUTER_ABI } from "@/lib/vibestarter/abis";
 import { vibestarterConfig, vibestarterRaiseUrl } from "@/lib/vibestarter/addresses";
 import { listVibestarterLaunches } from "@/lib/vibestarter/launches";
 import { readLpLock } from "@/lib/vibestarter/lock";
+import { isRpcFailure } from "./call-errors";
 import { readTokenMeta } from "./chain-utils";
-import { githubIdFromAvatar, readGithubVelocity, resolveGithubLogin } from "./github";
-import type { ChainId, EscrowNextEvent, EscrowReport, RefundRadar, TrancheStatus, TrancheView } from "./types";
+import { githubIdFromAvatar, readGithubVelocity, resolveGithubLoginDetailed, unresolvedGithubVelocity } from "./github";
+import type { ChainId, EscrowNextEvent, EscrowReport, GithubVelocity, RefundRadar, TrancheStatus, TrancheView } from "./types";
 import { fetchCampaignDetail, fetchCampaigns, probeAppHealthCached, type VibestarterCampaign } from "./vibestarter-api";
 
 /** Enums from the deployed VibesTranchEscrow (Sourcify exact-match, v1 0xba88… / v2 0xcBe7…). */
@@ -36,15 +38,15 @@ export async function isVibestarterEscrow(chainId: ChainId, address: Address, ca
   if (list.some((c) => c.escrowAddress?.toLowerCase() === lower && c.chainId === chainId)) return true;
   // every factory on the chain (old + current on Base, Robinhood factory)
   const cfg = vibestarterConfig(chainId);
-  try {
-    const res = await getPublicClientForChain(chainId).multicall({
-      allowFailure: true,
-      contracts: cfg.factories.map((f) => ({ address: f.address, abi: VS_FACTORY_ABI, functionName: "isEscrow" as const, args: [address] as const })),
-    });
-    return res.some((r) => r.status === "success" && r.result === true);
-  } catch {
-    return false;
-  }
+  // Fail closed: an RPC failure is UNKNOWN, never "not an escrow" (that would scan a halted raise as a plain
+  // contract and drop the escrow-halted / challenge findings). A thrown multicall propagates as well.
+  const res = await getPublicClientForChain(chainId).multicall({
+    allowFailure: true,
+    contracts: cfg.factories.map((f) => ({ address: f.address, abi: VS_FACTORY_ABI, functionName: "isEscrow" as const, args: [address] as const })),
+  });
+  if (res.some((r) => r.status === "success" && r.result === true)) return true;
+  if (res.some((r) => isRpcFailure(r))) throw new Error(`Vibestarter factory isEscrow() read failed (RPC error) for ${address} — refusing to classify; retry shortly.`);
+  return false;
 }
 
 export interface ReadEscrowOptions {
@@ -54,10 +56,42 @@ export interface ReadEscrowOptions {
   github?: boolean;
   /** On-chain Proof-of-Lock (locker + fee claimer + pool LP supply + lock tx receipt). Default true. */
   lpLock?: boolean;
+  /** Bypass the shared per-escrow cache (post-transaction re-reads, pager edge checks). Default false. */
+  fresh?: boolean;
 }
 
-/** Full live read of one VibesTranchEscrow clone (one multicall, ~55 calls) + REST detail / GitHub / app / LP-lock enrichment. */
+/** Shared per-escrow cache TTL: /ecosystem, /api/backer-shield, /api/scan, MCP and the landing page share one read. */
+export const ESCROW_CACHE_TTL_SEC = 60;
+
+/**
+ * Live read of one VibesTranchEscrow, memoised for ESCROW_CACHE_TTL_SEC on the shared KV (with in-flight
+ * coalescing), keyed by chain + escrow + enrichment flags. Every report carries its own `block` (number +
+ * timestamp), so a cached report is still explicit about the chain state it describes. Errors are never cached.
+ */
 export async function readEscrow(chainId: ChainId, address: Address, opts: ReadEscrowOptions = {}): Promise<EscrowReport> {
+  if (opts.fresh) return readEscrowLive(chainId, address, opts);
+  const flags = `${opts.probeApp === false ? 0 : 1}${opts.github === false ? 0 : 1}${opts.lpLock === false ? 0 : 1}`;
+  try {
+    return await cached(`escrow:v1:${chainId}:${address.toLowerCase()}:${flags}`, ESCROW_CACHE_TTL_SEC, async () => {
+      const r = await readEscrowLive(chainId, address, opts);
+      // An unreadable LP lock is UNKNOWN: return it, but do not pin it in the shared cache.
+      if (r.lpLock?.status === "unavailable") throw new UncacheableEscrow(r);
+      return r;
+    });
+  } catch (e) {
+    if (e instanceof UncacheableEscrow) return e.report;
+    throw e;
+  }
+}
+
+class UncacheableEscrow extends Error {
+  constructor(readonly report: EscrowReport) {
+    super("escrow report with an unread LP lock — not cached");
+  }
+}
+
+/** Full live read of one VibesTranchEscrow clone (one multicall, ~55 calls) + REST detail / GitHub / app / LP-lock enrichment. Uncached. */
+export async function readEscrowLive(chainId: ChainId, address: Address, opts: ReadEscrowOptions = {}): Promise<EscrowReport> {
   const client = getPublicClientForChain(chainId);
   const latest = await client.getBlock({ blockTag: "latest" });
   const base: ContractFunctionParameters[] = [
@@ -86,7 +120,16 @@ export async function readEscrow(chainId: ChainId, address: Address, opts: ReadE
     { address, abi: VIBES_ESCROW_ABI, functionName: "getTrancheUnlockTime", args: [i] },
   ]).flat();
 
-  const results = await client.multicall({ allowFailure: true, blockNumber: latest.number, contracts: [...base, ...per] });
+  // A failed sub-call must never become an invented 0/false (paid tranches would read ELIGIBLE, an open 72 h window
+  // would vanish, "LP not created" / "all refunds claimed" would be made up). Retry once, then throw (never cached).
+  const read = () => client.multicall({ allowFailure: true, blockNumber: latest.number, contracts: [...base, ...per] });
+  let results = await read();
+  if (results.some((r) => isRpcFailure(r))) {
+    await new Promise((r) => setTimeout(r, 400));
+    results = await read();
+    const failed = results.filter((r) => isRpcFailure(r)).length;
+    if (failed) throw new Error(`Escrow read incomplete: ${failed}/${results.length} calls failed (RPC error) — retry shortly.`);
+  }
   const pick = <T,>(i: number, fallback: T): T => (results[i]?.status === "success" ? (results[i].result as T) : fallback);
 
   const campaign = pick<{
@@ -190,17 +233,22 @@ export async function readEscrow(chainId: ChainId, address: Address, opts: ReadE
   const cfg = vibestarterConfig(chainId);
   const [tokenMeta, githubLogin, appHealth, lpLock, backerPool] = await Promise.all([
     readTokenMeta(chainId, getAddress(campaign.token)).catch(() => null),
-    (async () => {
-      if (opts.github === false) return null;
-      if (founderSrc?.githubUsername) return founderSrc.githubUsername;
+    (async (): Promise<{ login: string | null; unresolved: GithubVelocity | null }> => {
+      if (opts.github === false) return { login: null, unresolved: null };
+      if (founderSrc?.githubUsername) return { login: founderSrc.githubUsername, unresolved: null };
       const id = githubIdFromAvatar(founderSrc?.githubAvatarUrl);
-      return id ? resolveGithubLogin(id) : null;
+      if (!id) return { login: null, unresolved: null };
+      const r = await resolveGithubLoginDetailed(id);
+      return { login: r.login, unresolved: unresolvedGithubVelocity(r) };
     })(),
     opts.probeApp !== false && appUrl ? probeAppHealthCached(appUrl) : Promise.resolve(null),
     wantLock ? readLpLock(chainId, address, { token: getAddress(campaign.token), lockTxHash: lpLockTxHash }) : Promise.resolve(null),
     settle(client.readContract({ address: cfg.router, abi: VS_ROUTER_ABI, functionName: "backerTokensForClaims", args: [campaign.token] })),
   ]);
-  const founderGithub = githubLogin ? await readGithubVelocity(githubLogin, { capsuleRepoUrl: repoUrl }).catch(() => null) : null;
+  // A founder whose avatar id could not be resolved still gets an honest row (rate-limited vs account missing).
+  const founderGithub = githubLogin.login
+    ? await readGithubVelocity(githubLogin.login, { capsuleRepoUrl: repoUrl }).catch(() => null)
+    : githubLogin.unresolved;
 
   const challengeView = challenge && challenge.state !== 0
     ? {
