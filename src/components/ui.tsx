@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { chainShort, explorerAddress, explorerTx, shortAddr } from "@/lib/format";
 import type { Severity, ThreatBand } from "@/lib/engine/types";
 
@@ -15,16 +15,55 @@ export function SectionLabel({ n, children, className }: { n?: string; children:
   );
 }
 
-export function Panel({ children, className, title, n, right }: { children: ReactNode; className?: string; title?: string; n?: string; right?: ReactNode }) {
+/**
+ * Panel. variant="section" (default) is PAPER: a hair-strong top rule, kicker title, no fill, no padding.
+ * variant="instrument" keeps the bordered .panel chrome for things you type into, press, or live machine state.
+ * `n` is accepted for old call sites and ignored (no numbered labels).
+ */
+export function Panel({
+  children,
+  className,
+  title,
+  right,
+  heading,
+  variant = "section",
+  reveal,
+}: {
+  children: ReactNode;
+  className?: string;
+  title?: string;
+  /** @deprecated accepted, ignored */
+  n?: string;
+  right?: ReactNode;
+  heading?: string;
+  variant?: "section" | "instrument";
+  reveal?: number;
+}) {
+  const rvProps = reveal != null ? { "data-rv": "up", style: { "--i": reveal } as CSSProperties } : {};
+  if (variant === "instrument") {
+    return (
+      <section {...rvProps} className={cx("panel min-w-0 max-w-full max-[901px]:overflow-x-clip", className)}>
+        {(title || right) && (
+          <header className="flex items-center justify-between gap-3 border-b hairline px-4 py-2.5 max-[601px]:flex-wrap max-[601px]:gap-y-1 max-[601px]:px-3">
+            {title ? <SectionLabel className="min-w-0">{title}</SectionLabel> : <span />}
+            {right && <div className="min-w-0 text-[12px] text-ink-meta">{right}</div>}
+          </header>
+        )}
+        {heading && <h3 className="px-4 pt-4 font-serif text-[24px] leading-[1.15] text-ink max-[601px]:px-3">{heading}</h3>}
+        <div className="p-4 max-[601px]:p-3">{children}</div>
+      </section>
+    );
+  }
   return (
-    <section className={cx("panel min-w-0 max-w-full max-[901px]:overflow-x-clip", className)}>
-      {title && (
-        <header className="flex items-center justify-between gap-3 border-b hairline px-4 py-2.5 max-[601px]:flex-wrap max-[601px]:gap-y-1 max-[601px]:px-3">
-          <SectionLabel n={n} className="min-w-0">{title}</SectionLabel>
-          {right}
+    <section {...rvProps} className={cx("min-w-0 max-w-full border-t border-hair-strong pt-4", className)}>
+      {(title || right) && (
+        <header className="mb-3 flex items-baseline justify-between gap-3 max-[601px]:flex-wrap max-[601px]:gap-y-1">
+          {title ? <h2 className="t-kicker min-w-0">{title}</h2> : <span />}
+          {right && <div className="min-w-0 text-[12px] text-ink-meta">{right}</div>}
         </header>
       )}
-      <div className="p-4 max-[601px]:p-3">{children}</div>
+      {heading && <h3 className="mb-4 font-serif text-[24px] leading-[1.15] text-ink">{heading}</h3>}
+      {children}
     </section>
   );
 }
@@ -56,7 +95,7 @@ export function BandBadge({ band, className }: { band: ThreatBand; className?: s
 }
 
 export const SEVERITY_COLOR: Record<Severity, string> = {
-  info: "text-ink-3",
+  info: "text-ink-meta",
   warn: "text-warn",
   critical: "text-crit",
 };
@@ -64,7 +103,7 @@ export const SEVERITY_COLOR: Record<Severity, string> = {
 export function AddrLink({ chainId, address, label, n = 4, className }: { chainId: number; address: string; label?: string; n?: number; className?: string }) {
   return (
     <a href={explorerAddress(chainId, address)} target="_blank" rel="noreferrer" className={cx("mono text-ink-2 underline decoration-white/10 underline-offset-2 [overflow-wrap:anywhere] hover:text-ink hover:decoration-white/40 max-[901px]:py-1", className)} title={address}>
-      {label ?? shortAddr(address, n)} <span className="text-ink-3">↗</span>
+      {label ?? shortAddr(address, n)} <span className="text-ink-meta">↗</span>
     </a>
   );
 }
@@ -72,18 +111,39 @@ export function AddrLink({ chainId, address, label, n = 4, className }: { chainI
 export function TxLink({ chainId, hash, label, className }: { chainId: number; hash: string; label?: string; className?: string }) {
   return (
     <a href={explorerTx(chainId, hash)} target="_blank" rel="noreferrer" className={cx("mono text-ink-2 underline decoration-white/10 underline-offset-2 [overflow-wrap:anywhere] hover:text-ink max-[901px]:py-1", className)} title={hash}>
-      {label ?? shortAddr(hash, 6)} <span className="text-ink-3">↗</span>
+      {label ?? shortAddr(hash, 6)} <span className="text-ink-meta">↗</span>
     </a>
   );
 }
 
-export function Stat({ label, value, sub, tone, className }: { label: string; value: ReactNode; sub?: ReactNode; tone?: "phosphor" | "warn" | "crit" | "base" | "rh"; className?: string }) {
+const STAT_SIZE = {
+  s: "text-[16px] leading-tight",
+  m: "text-[24px] leading-[1.1] max-[601px]:text-[20px]",
+  l: "text-[40px] leading-none max-[601px]:text-[32px]",
+  xl: "text-[56px] leading-[0.95] tracking-[-0.02em] max-[601px]:text-[44px]",
+} as const;
+
+export function Stat({
+  label,
+  value,
+  sub,
+  tone,
+  size = "m",
+  className,
+}: {
+  label: string;
+  value: ReactNode;
+  sub?: ReactNode;
+  tone?: "phosphor" | "warn" | "crit" | "base" | "rh";
+  size?: "s" | "m" | "l" | "xl";
+  className?: string;
+}) {
   const toneCls = tone ? { phosphor: "text-phosphor", warn: "text-warn", crit: "text-crit", base: "text-base", rh: "text-rh" }[tone] : "text-ink";
   return (
     <div className={cx("min-w-0", className)}>
-      <p className="label">{label}</p>
-      <p className={cx("mt-1 tnum text-[20px] leading-tight [overflow-wrap:anywhere] max-[601px]:text-[18px]", toneCls)}>{value}</p>
-      {sub && <p className="mt-0.5 mono text-[11px] text-ink-3">{sub}</p>}
+      <p className="t-kicker">{label}</p>
+      <p className={cx("mt-1.5 mono tnum [overflow-wrap:anywhere]", STAT_SIZE[size], toneCls)}>{value}</p>
+      {sub && <p className="mt-1 mono text-[12px] text-ink-meta">{sub}</p>}
     </div>
   );
 }
@@ -96,7 +156,7 @@ export function ScoreGauge({ score, band }: { score: number; band: ThreatBand })
     <div>
       <div className="flex items-end gap-3">
         <span className={cx("tnum text-[56px] leading-none max-[601px]:text-[48px]", text)}>{score}</span>
-        <span className="mb-1.5 mono text-[12px] text-ink-3">/ 100</span>
+        <span className="mb-1.5 mono text-[12px] text-ink-meta">/ 100</span>
         <BandBadge band={band} className="mb-2 ml-auto" />
       </div>
       <div className="relative mt-3 h-1.5 w-full bg-white/[0.06]">
@@ -104,7 +164,7 @@ export function ScoreGauge({ score, band }: { score: number; band: ThreatBand })
         <div className="absolute inset-y-[-3px] left-[30%] w-px bg-white/25" />
         <div className="absolute inset-y-[-3px] left-[65%] w-px bg-white/25" />
       </div>
-      <div className="mt-1.5 flex justify-between gap-2 mono text-[10px] text-ink-3 max-[601px]:text-[9px]">
+      <div className="mt-1.5 flex justify-between gap-2 mono text-[11px] text-ink-meta">
         <span>NOMINAL 0–29</span>
         <span>ELEVATED 30–64</span>
         <span>CRITICAL 65+</span>

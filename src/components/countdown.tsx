@@ -12,5 +12,5 @@ export function Countdown({ to, initialNow, className }: { to: number; initialNo
     return () => clearInterval(id);
   }, []);
   const left = to - now;
-  return <span className={className}>{left > 0 ? fmtDuration(left) : "window closed"}</span>;
+  return <span className={className ? `tnum ${className}` : "tnum"}>{left > 0 ? fmtDuration(left) : "window closed"}</span>;
 }

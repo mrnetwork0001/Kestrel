@@ -1,10 +1,10 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { isAddress } from "viem";
 import { LIVE_DEMO_PRESETS } from "@/config/contracts";
-import { ChainBadge, cx } from "@/components/ui";
 import type { ScanResult } from "@/lib/engine/types";
 import { BackerShieldTab } from "./backer-shield-tab";
 import { BriefingTab } from "./briefing-tab";
@@ -12,18 +12,17 @@ import { ChaosLabTab } from "./chaos-lab-tab";
 import { PagerTab } from "./pager-tab";
 import { PanicBunkerTab } from "./panic-bunker-tab";
 import { ParityTab } from "./parity-tab";
-import { useScan } from "./use-api";
+import { CommandRow, type Preset } from "./shell/command-row";
+import { DeskTabs, type TabKey } from "./shell/desk-tabs";
+import { TargetMasthead, type BriefState } from "./shell/target-masthead";
+import { ApiError, briefQuery, scanIncomplete, useBrief, useScan } from "./use-api";
 
-export type TabKey = "briefing" | "chaos" | "parity" | "shield" | "bunker" | "pager";
+export type { TabKey };
 
-const TABS: { key: TabKey; n: string; label: string }[] = [
-  { key: "briefing", n: "01", label: "Briefing & X-Ray" },
-  { key: "chaos", n: "02", label: "Simulate the Rug" },
-  { key: "parity", n: "03", label: "Parity Radar" },
-  { key: "shield", n: "04", label: "Backer Shield" },
-  { key: "bunker", n: "05", label: "Panic Bunker" },
-  { key: "pager", n: "06", label: "Night-Shift Pager" },
-];
+/** Deep-link params other desk sections read on load (Challenge Co-pilot `dryrun`, pager `from`); kept by the URL sync. */
+const KEEP_PARAMS = ["dryrun", "from"] as const;
+
+const presetTab = (p: Preset): TabKey => (p.kind === "escrow" ? "shield" : p.kind === "pool" ? "chaos" : "briefing");
 
 // Run layout reads before paint on the client; plain effect on the server (avoids the SSR useLayoutEffect warning).
 const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
@@ -42,15 +41,35 @@ function stickyHeaderBottom(): number {
   return 0;
 }
 
-export function Workspace({ initialScan, initialTarget, initialChainId, initialTab }: { initialScan: ScanResult | null; initialTarget: string; initialChainId: number; initialTab: TabKey }) {
+export function Workspace({
+  initialScan,
+  initialTarget,
+  initialChainId,
+  initialTab,
+  initialEscrow = null,
+  unsupportedChain = null,
+}: {
+  initialScan: ScanResult | null;
+  initialTarget: string;
+  initialChainId: number;
+  initialTab: TabKey;
+  /** `escrow=` deep link (pager / Co-pilot): focuses that escrow in Backer Shield until another target is loaded. */
+  initialEscrow?: string | null;
+  /** Raw `chain=` value that is neither Base nor Robinhood Chain: no scan runs until the user picks a target. */
+  unsupportedChain?: string | null;
+}) {
   const pathname = usePathname();
+  const qc = useQueryClient();
   const [target, setTarget] = useState(initialTarget);
   const [chainId, setChainId] = useState(initialChainId);
   const [tab, setTab] = useState<TabKey>(initialTab);
   const [input, setInput] = useState(initialTarget);
   const [inputChain, setInputChain] = useState(initialChainId);
   const [inputError, setInputError] = useState<string | null>(null);
-  const scan = useScan(target, chainId, initialScan);
+  const [escrow, setEscrow] = useState<string | null>(initialEscrow);
+  const [unsupported, setUnsupported] = useState<string | null>(unsupportedChain);
+  const scan = useScan(target, chainId, initialScan, !unsupported);
+  const brief = useBrief(target, chainId, false);
 
   // Mobile tab row: sticky under the site's top bar, horizontally scrollable, edge fades when more tabs are off-screen.
   const tabsRef = useRef<HTMLElement>(null);
@@ -91,7 +110,7 @@ export function Workspace({ initialScan, initialTarget, initialChainId, initialT
   const selectTab = (k: TabKey) => {
     setTab(k);
     // If the row is pinned (user scrolled into a long tab), jump to the top of the new tab's content.
-    const row = tabsRef.current;
+    const row = tabsRef.current?.closest<HTMLElement>("[data-desk-tabs]");
     const content = contentRef.current;
     if (!row || !content || getComputedStyle(row).position !== "sticky") return;
     const rowBottom = row.getBoundingClientRect().bottom;
@@ -99,23 +118,40 @@ export function Workspace({ initialScan, initialTarget, initialChainId, initialT
     if (contentTop < rowBottom) window.scrollBy({ top: contentTop - rowBottom - 12 });
   };
 
+  /** Query for a desk URL: target/chain/tab plus a live `escrow=` focus. */
+  const deskQuery = useCallback(
+    (k: TabKey) => {
+      const q = new URLSearchParams({ target, chain: String(chainId), tab: k });
+      if (escrow) q.set("escrow", escrow);
+      return q;
+    },
+    [target, chainId, escrow]
+  );
+
   // Shallow URL sync: native replaceState (Next applies it as an ACTION_RESTORE that keeps the current tree and cache,
   // so no server round trip) instead of router.replace, which re-ran the /app server component and scanned the target
-  // a second time on top of the client's own /api/scan.
+  // a second time on top of the client's own /api/scan. Keeps deep-link params (dryrun, from) and the #desk= hash.
   useEffect(() => {
     // Only while the workspace route is current: during a navigation away (e.g. the header logo -> "/"), pathname
     // updates before unmount, and syncing then would rewrite the destination URL.
     if (pathname !== "/app") return;
-    const q = new URLSearchParams({ target, chain: String(chainId), tab });
+    const cur = new URLSearchParams(window.location.search);
+    const q = deskQuery(tab);
+    for (const k of KEEP_PARAMS) {
+      const v = cur.get(k);
+      if (v != null) q.set(k, v);
+    }
     const next = `${pathname}?${q.toString()}`;
-    if (`${window.location.pathname}${window.location.search}` !== next) window.history.replaceState(null, "", next);
-  }, [target, chainId, tab, pathname]);
+    if (`${window.location.pathname}${window.location.search}` !== next) window.history.replaceState(window.history.state, "", next + window.location.hash);
+  }, [deskQuery, tab, pathname]);
 
   const load = (addr: string, cid: number) => {
     setInput(addr);
     setInputChain(cid);
     setTarget(addr);
     setChainId(cid);
+    setEscrow(null);
+    setUnsupported(null);
   };
 
   const onSubmit = (e: FormEvent) => {
@@ -127,97 +163,102 @@ export function Workspace({ initialScan, initialTarget, initialChainId, initialT
     }
     setInputError(null);
     load(v, inputChain);
-    if (tab === "parity" || tab === "shield" || tab === "pager") selectTab("briefing");
+    // Parity and Backer Shield do not follow the target; the pager stays put so "watch current target" is one step.
+    if (tab === "parity" || tab === "shield") selectTab("briefing");
   };
 
+  const onPreset = (p: Preset) => {
+    setInputError(null);
+    load(p.targetAddress, p.chainId);
+    selectTab(presetTab(p));
+  };
+
+  const onBrief = () => {
+    selectTab("briefing");
+    qc.fetchQuery(briefQuery(target, chainId)).catch(() => undefined);
+  };
+
+  const data = unsupported ? null : (scan.data ?? null);
+  const scanError = unsupported ? null : (scan.error?.message ?? null);
+  const briefState: BriefState = brief.isFetching ? "loading" : brief.data ? "loaded" : brief.isError ? "error" : "idle";
+  const unsupportedNotice = unsupported ? (
+    <>
+      Unsupported chain <span className="text-ink">&ldquo;{unsupported}&rdquo;</span>. Kestrel reads Base 8453 or Robinhood Chain 4663 only, so nothing was scanned.
+    </>
+  ) : null;
+
   return (
-    <div className="mx-auto max-w-[1400px] px-4 pb-10 pt-8 max-[901px]:pt-4 max-[601px]:px-2.5 max-[601px]:pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
-      {/* Omnibar: one row on desktop; ≤900px stacks chain toggle / input / RUN SCAN */}
-      <form onSubmit={onSubmit} className="panel flex flex-col gap-2 p-2 min-[901px]:flex-row min-[901px]:items-stretch">
-        <div className="flex shrink-0 overflow-hidden rounded-[2px] border hairline mono text-[11px] max-[901px]:grid max-[901px]:grid-cols-2">
-          {[8453, 4663].map((c) => (
-            <button
-              type="button"
-              key={c}
-              onClick={() => setInputChain(c)}
-              className={cx("px-3 py-2 tracking-wider transition-colors max-[901px]:min-h-10", inputChain === c ? (c === 4663 ? "bg-rh/15 text-rh" : "bg-base/15 text-base") : "text-ink-3 hover:text-ink")}
-            >
-              {c === 4663 ? "ROBINHOOD 4663" : "BASE 8453"}
-            </button>
-          ))}
-        </div>
-        <label className="flex min-w-0 flex-1 items-center gap-2 px-2">
-          <span className="mono text-[13px] text-phosphor">&gt;_</span>
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Paste any wallet, token, pool or Vibestarter escrow address…"
-            spellCheck={false}
-            className="w-full min-w-0 bg-transparent py-2 mono text-[13px] text-ink placeholder:text-ink-3 focus:outline-none max-[901px]:text-[16px]"
-            aria-label="Target address"
-          />
-        </label>
-        <button type="submit" className="rounded-[2px] bg-phosphor px-5 py-2 mono text-[12px] font-semibold text-canvas hover:bg-[#a6e698] max-[901px]:min-h-11">
-          {scan.isFetching ? "SCANNING…" : "RUN SCAN"}
-        </button>
-      </form>
-      {inputError && <p className="mt-2 mono text-[12px] text-crit">{inputError}</p>}
-
-      {/* Presets: wrap on desktop; ≤600px one horizontally scrollable, edge-to-edge line (right edge fades) */}
-      <div className="mt-3 flex flex-wrap gap-2 max-[601px]:-mx-2.5 max-[601px]:flex-nowrap max-[601px]:overflow-x-auto max-[601px]:pl-2.5 max-[601px]:pr-8 max-[601px]:[mask-image:linear-gradient(to_right,#000_calc(100%-28px),transparent)] max-[601px]:[scrollbar-width:none] max-[601px]:[&::-webkit-scrollbar]:hidden">
-        {LIVE_DEMO_PRESETS.map((p) => {
-          const active = p.targetAddress.toLowerCase() === target.toLowerCase() && p.chainId === chainId;
-          return (
-            <button
-              key={p.id}
-              onClick={() => {
-                load(p.targetAddress, p.chainId);
-                setTab(p.kind === "escrow" ? "shield" : p.kind === "pool" ? "chaos" : "briefing");
-              }}
-              className={cx("flex max-w-full items-center gap-2 rounded-[2px] border px-2.5 py-1.5 text-left text-[12px] transition-colors max-[901px]:min-h-10 max-[601px]:max-w-none max-[601px]:shrink-0 max-[601px]:whitespace-nowrap", active ? "border-phosphor/50 bg-phosphor/[0.06] text-ink" : "hairline text-ink-2 hover:border-hair-strong hover:text-ink")}
-            >
-              <ChainBadge chainId={p.chainId} className="shrink-0" />
-              <span className="text-left">{p.label}</span>
-            </button>
-          );
-        })}
+    <div className="pb-16 max-[601px]:pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
+      <div className="wrap pt-8 max-[901px]:pt-4">
+        <CommandRow
+          input={input}
+          inputChain={inputChain}
+          inputError={inputError}
+          scanning={scan.isFetching}
+          target={target}
+          chainId={chainId}
+          onInput={setInput}
+          onInputChain={setInputChain}
+          onSubmit={onSubmit}
+          onPreset={onPreset}
+        />
       </div>
 
-      {/* Tabs: ≤900px a sticky, horizontally scrollable segmented row pinned under the top bar */}
-      <div className="relative mt-6 max-[901px]:sticky max-[901px]:z-20 max-[901px]:mt-4 max-[901px]:top-[var(--ws-tabs-top)] max-[901px]:bg-canvas/85 max-[901px]:backdrop-blur-md" style={{ "--ws-tabs-top": `${tabsTop}px` } as CSSProperties}>
-        <nav
-          ref={tabsRef}
+      <div className="mt-6 max-[901px]:mt-4">
+        <TargetMasthead
+          scan={data}
+          target={target}
+          chainId={chainId}
+          loading={!unsupported && scan.isFetching}
+          error={scanError}
+          retryAfterSec={scan.error instanceof ApiError ? scan.error.retryAfterSec : null}
+          degraded={data ? scanIncomplete(data) : []}
+          notice={unsupportedNotice}
+          onRetry={() => void scan.refetch()}
+          onBrief={data ? onBrief : undefined}
+          briefState={briefState}
+        />
+      </div>
+
+      <div className="wrap">
+        <DeskTabs
+          tab={tab}
+          hrefFor={(k) => `/app?${deskQuery(k).toString()}`}
+          onSelect={selectTab}
+          navRef={tabsRef}
           onScroll={syncFade}
-          className="flex gap-px overflow-x-auto border hairline bg-white/[0.06] max-[901px]:snap-x max-[901px]:[scrollbar-width:none] max-[901px]:[&::-webkit-scrollbar]:hidden"
-          role="tablist"
-        >
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              role="tab"
-              aria-selected={tab === t.key}
-              onClick={() => selectTab(t.key)}
-              className={cx(
-                "flex min-w-fit flex-1 items-baseline gap-2 px-4 py-3 text-left transition-colors max-[901px]:snap-start max-[901px]:whitespace-nowrap max-[601px]:px-3",
-                tab === t.key ? "bg-elevated text-ink shadow-[inset_0_-2px_0_var(--accent-phosphor)]" : "bg-surface text-ink-3 hover:text-ink"
-              )}
-            >
-              <span className="mono text-[10px]">{t.n}</span>
-              <span className="text-[13px]">{t.label}</span>
-            </button>
-          ))}
-        </nav>
-        <span aria-hidden className={cx("pointer-events-none absolute inset-y-px left-px hidden w-8 bg-gradient-to-r from-canvas to-transparent transition-opacity max-[901px]:block", fade.left ? "opacity-100" : "opacity-0")} />
-        <span aria-hidden className={cx("pointer-events-none absolute inset-y-px right-px hidden w-10 bg-gradient-to-l from-canvas to-transparent transition-opacity max-[901px]:block", fade.right ? "opacity-100" : "opacity-0")} />
-      </div>
+          fade={fade}
+          stickyTop={tabsTop}
+          bunkerAlert
+        />
 
-      <div ref={contentRef} className="mt-6 max-[901px]:mt-4">
-        {tab === "briefing" && <BriefingTab scan={scan.data ?? null} loading={scan.isFetching} error={scan.error?.message ?? null} onScan={load} />}
-        {tab === "chaos" && <ChaosLabTab scan={scan.data ?? null} />}
-        {tab === "parity" && <ParityTab />}
-        {tab === "shield" && <BackerShieldTab focus={scan.data?.escrow?.address ?? null} />}
-        {tab === "bunker" && <PanicBunkerTab target={target} chainId={chainId} scan={scan.data ?? null} />}
-        {tab === "pager" && <PagerTab target={target} chainId={chainId} />}
+        <div ref={contentRef} id="desk-panel" role="tabpanel" aria-labelledby={`desk-tab-${tab}`} className="mt-8 min-w-0 max-[901px]:mt-5">
+          {/* Keyed: each tab enters with a short rise (CSS only; static under reduced motion). */}
+          <div key={tab} className="tab-enter min-w-0">
+            {unsupported && (tab === "briefing" || tab === "chaos" || tab === "bunker") ? (
+              <div className="border-t border-hair-strong pt-6">
+                <p className="max-w-[720px] font-serif text-[22px] leading-[1.25] text-ink">Pick a Base or Robinhood Chain target to start a live scan.</p>
+                <p className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
+                  {LIVE_DEMO_PRESETS.map((p) => (
+                    <button key={p.id} type="button" onClick={() => onPreset(p)} className="dot-link press inline-flex min-h-11 items-center gap-2 text-[14px]">
+                      <span aria-hidden className={p.chainId === 4663 ? "dot h-1.5 w-1.5 rounded-full bg-rh" : "dot h-1.5 w-1.5 rounded-full bg-base"} />
+                      <span className="ink-line">{p.label}</span>
+                    </button>
+                  ))}
+                </p>
+              </div>
+            ) : (
+              <>
+                {tab === "briefing" && <BriefingTab scan={data} loading={scan.isFetching} error={scanError} onScan={load} />}
+                {tab === "chaos" && <ChaosLabTab scan={data} />}
+                {tab === "parity" && <ParityTab />}
+                {tab === "shield" && <BackerShieldTab focus={escrow ?? data?.escrow?.address ?? null} />}
+                {tab === "bunker" && <PanicBunkerTab target={target} chainId={chainId} scan={data} />}
+                {tab === "pager" && <PagerTab target={target} chainId={chainId} />}
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

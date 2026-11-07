@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import { cache } from "react";
 import { LIVE_DEMO_PRESETS } from "@/config/contracts";
-import { cached } from "@/lib/cache";
 import { Workspace, type TabKey } from "@/components/app/workspace";
-import { normalizeChainId, parseAddress } from "@/lib/engine/chain-utils";
-import { scanTarget } from "@/lib/engine/scan";
+import { parseAddress, parseChainId } from "@/lib/engine/chain-utils";
+import { cachedScan } from "@/lib/engine/scan";
 import type { ChainId } from "@/lib/engine/types";
 import { chainName, shortAddr } from "@/lib/format";
 import type { Address } from "viem";
@@ -18,19 +17,20 @@ const BASE_META: Metadata = {
 };
 
 /**
- * Request-scoped dedupe (generateMetadata + page share one call) on top of the shared 30s KV cache. The key matches
- * /api/scan's (`scan:<chain>:<addr>:<llm>:<tokens>`), so SSR and the client's own /api/scan fetch reuse one fan-out,
- * and concurrent cold visitors coalesce on one in-flight scan.
+ * Request-scoped dedupe (generateMetadata + page share one call) on top of the shared 30s KV cache. cachedScan uses
+ * /api/scan's key, so SSR and the client's own /api/scan fetch reuse one fan-out, and it never stores a degraded scan
+ * (a degraded result is still rendered, with its "incomplete" banner, and the client re-checks on its own fetch).
  */
 const scanOnce = cache((chainId: ChainId, target: Address) =>
-  cached(`scan:${chainId}:${target.toLowerCase()}:0:`, 30, () => scanTarget(chainId, target, { useLlm: false })).catch(() => null)
+  cachedScan(chainId, target, { useLlm: false }).then((r) => r.result, () => null)
 );
 
 export async function generateMetadata({ searchParams }: { searchParams: SearchParams }): Promise<Metadata> {
   const sp = await searchParams;
   const target = parseAddress(typeof sp.target === "string" ? sp.target : undefined);
   if (!target || typeof sp.chain !== "string") return BASE_META;
-  const chainId = normalizeChainId(sp.chain);
+  const chainId = parseChainId(sp.chain, null);
+  if (!chainId) return BASE_META;
   const card = `/api/card?target=${target}&chain=${chainId}`;
   const scan = await scanOnce(chainId, target);
   const title = scan ? `${scan.target.label || shortAddr(target)} · ${scan.band} ${scan.score}/100` : `${shortAddr(target)} on ${chainName(chainId)}`;
@@ -58,9 +58,14 @@ export default async function AppPage({ searchParams }: { searchParams: SearchPa
   const sp = await searchParams;
   const preset = LIVE_DEMO_PRESETS[0];
   const target = parseAddress(typeof sp.target === "string" ? sp.target : undefined) ?? preset.targetAddress;
-  const chainId = normalizeChainId(typeof sp.chain === "string" ? sp.chain : preset.chainId);
+  const rawChain = typeof sp.chain === "string" ? sp.chain : undefined;
+  const parsedChain = parseChainId(rawChain, preset.chainId);
+  // An unsupported chain (e.g. ?chain=1) is shown as such; it is never silently swapped for Base data.
+  const unsupportedChain = parsedChain ? null : (rawChain ?? "").slice(0, 24);
+  const chainId: ChainId = parsedChain ?? preset.chainId;
   const tab = TABS.includes(sp.tab as TabKey) ? (sp.tab as TabKey) : "briefing";
+  const escrow = parseAddress(typeof sp.escrow === "string" ? sp.escrow : undefined);
   // SSR the first scan so the workspace paints live telemetry immediately (deterministic brief; LLM brief loads client-side).
-  const initial = await scanOnce(chainId, target);
-  return <Workspace initialScan={initial} initialTarget={target} initialChainId={chainId} initialTab={tab} />;
+  const initial = unsupportedChain ? null : await scanOnce(chainId, target);
+  return <Workspace initialScan={initial} initialTarget={target} initialChainId={chainId} initialTab={tab} initialEscrow={escrow} unsupportedChain={unsupportedChain} />;
 }
