@@ -3,9 +3,20 @@
 import { useEffect, useState } from "react";
 import type { RibbonTelemetry } from "@/lib/engine/telemetry";
 import { explorerBlock } from "@/lib/format";
+import { Led, type LedTone } from "./motion/led";
 import { NightShiftClock } from "./night-shift-clock";
 
 const POLL_MS = 30_000;
+
+/** Signed parity verdict labels (same vocabulary as the parity desk); critical colour only for UNBACKED. */
+const PARITY: Record<RibbonTelemetry["parity"], { label: string; tone: LedTone; cls: string }> = {
+  VERIFIED: { label: "EXACT", tone: "phosphor", cls: "text-phosphor" },
+  IN_FLIGHT: { label: "IN FLIGHT", tone: "phosphor", cls: "text-ink" },
+  OVER_BACKED: { label: "OVER BACKED", tone: "phosphor", cls: "text-ink" },
+  BACKED: { label: "BACKED", tone: "phosphor", cls: "text-ink" },
+  DRIFT: { label: "UNBACKED", tone: "crit", cls: "text-crit" },
+  UNKNOWN: { label: "UNREAD", tone: "idle", cls: "text-ink-meta" },
+};
 
 function fmtBlock(b: string | null) {
   return b ? `#${BigInt(b).toLocaleString("en-US")}` : "—";
@@ -39,23 +50,27 @@ export function TelemetryRibbonLive({ initial }: { initial: RibbonTelemetry }) {
     };
   }, [initial]);
 
-  const parityColor = t.parity === "VERIFIED" ? "text-phosphor" : t.parity === "DRIFT" ? "text-warn" : "text-ink-3";
+  const p = PARITY[t.parity] ?? PARITY.UNKNOWN;
+  const ms = (v: number | null | undefined) => (v == null ? null : `${v} ms`);
   return (
     <div className="border-b hairline bg-canvas/95">
-      <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-6 gap-y-1 px-4 py-1.5 mono text-[11px] text-ink-2">
-        <a href={t.baseBlock ? explorerBlock(8453, t.baseBlock) : "#"} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-ink">
-          <span className="dot-live inline-block h-1.5 w-1.5 rounded-full bg-base" />
-          <span className="text-ink-3">BASE</span>
+      <div className="wrap flex flex-wrap items-center gap-x-6 gap-y-1 py-1.5 mono text-[11px] text-ink-2">
+        <a href={t.baseBlock ? explorerBlock(8453, t.baseBlock) : "#"} target="_blank" rel="noreferrer" className="flex items-center gap-2 transition-colors duration-200 hover:text-ink">
+          <Led tone={t.baseBlock ? "base" : "idle"} mode="event" eventKey={t.baseBlock} />
+          <span className="text-ink-meta">BASE</span>
           <span className="tnum">{fmtBlock(t.baseBlock)}</span>
+          {ms(t.rpcLatencyMs?.base) && <span className="text-ink-meta max-[601px]:hidden">{ms(t.rpcLatencyMs?.base)}</span>}
         </a>
-        <a href={t.rhBlock ? explorerBlock(4663, t.rhBlock) : "#"} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-ink">
-          <span className="dot-live inline-block h-1.5 w-1.5 rounded-full bg-rh" />
-          <span className="text-ink-3">ROBINHOOD</span>
+        <a href={t.rhBlock ? explorerBlock(4663, t.rhBlock) : "#"} target="_blank" rel="noreferrer" className="flex items-center gap-2 transition-colors duration-200 hover:text-ink">
+          <Led tone={t.rhBlock ? "rh" : "idle"} mode="event" eventKey={t.rhBlock} />
+          <span className="text-ink-meta">ROBINHOOD</span>
           <span className="tnum">{fmtBlock(t.rhBlock)}</span>
+          {ms(t.rpcLatencyMs?.robinhood) && <span className="text-ink-meta max-[601px]:hidden">{ms(t.rpcLatencyMs?.robinhood)}</span>}
         </a>
-        <span className="flex items-center gap-1.5">
-          <span className="text-ink-3">$VIBES OFT 1:1</span>
-          <span className={parityColor}>● {t.parity}</span>
+        <span className="flex items-center gap-2" title="$VIBES LayerZero OFT: locked on Base vs circulating on Robinhood Chain">
+          <span className="text-ink-meta">$VIBES OFT 1:1</span>
+          <Led tone={p.tone} mode="event" eventKey={`${t.parity}:${t.deltaSigned ?? t.deltaRaw ?? ""}`} />
+          <span className={p.cls}>{p.label}</span>
         </span>
         <span className="ml-auto">
           <NightShiftClock />

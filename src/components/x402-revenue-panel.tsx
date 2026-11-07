@@ -30,7 +30,7 @@ export async function X402RevenuePanel() {
 
   if (error || !report) {
     return (
-      <Panel title="x402 revenue ledger · onchain" n="C" right={right} className="min-w-0">
+      <Panel variant="instrument" title="LIVE // x402 REVENUE · BASE USDC" right={right} className="min-w-0 [&_.label]:!text-ink-meta">
         <p className="mono text-[12px] text-warn">Revenue scan unavailable right now ({error ?? "no data"}). Nothing is shown rather than a guess; retry in a minute.</p>
       </Panel>
     );
@@ -38,7 +38,7 @@ export async function X402RevenuePanel() {
 
   if (!report.configured) {
     return (
-      <Panel title="x402 revenue ledger · onchain" n="C" right={right} className="min-w-0">
+      <Panel variant="instrument" title="LIVE // x402 REVENUE · BASE USDC" right={right} className="min-w-0 [&_.label]:!text-ink-meta">
         <p className="text-[13px] leading-relaxed text-ink-2">
           No receiver is configured on this deployment, so it has not taken any x402 payments and there is no revenue to show. Once{" "}
           <span className="mono text-ink">X402_RECEIVER_ADDRESS</span> is set, this panel sums every Base USDC <span className="mono">Transfer</span> into it, straight from{" "}
@@ -50,14 +50,14 @@ export async function X402RevenuePanel() {
 
   const r = report;
   return (
-    <Panel title="x402 revenue ledger · onchain" n="C" right={right} className="min-w-0">
-      <div className="grid grid-cols-2 gap-4 [&>*]:[overflow-wrap:anywhere] md:grid-cols-4">
+    <Panel variant="instrument" title="LIVE // x402 REVENUE · BASE USDC" right={right} className="min-w-0 [&_.label]:!text-ink-meta">
+      <div className="grid grid-cols-2 gap-y-5 md:grid-cols-4 md:divide-x md:divide-hair [&>*]:[overflow-wrap:anywhere] md:[&>*]:px-4 md:[&>*:first-child]:pl-0">
         <Stat label="USDC received" value={fmtUnits(r.totalAtomic, 6, 6)} tone="phosphor" sub={`${r.totalAtomic} atomic`} />
         <Stat label="Transfers in" value={r.transfers.toLocaleString("en-US")} sub={`price ${formatUnits(BigInt(r.priceAtomic), 6)} USDC / call`} />
         <Stat label="Unique payers" value={r.uniquePayers.toLocaleString("en-US")} />
         <Stat label="Server ledger" value={r.ledger.settlementsRecorded === null ? "n/a" : r.ledger.settlementsRecorded.toLocaleString("en-US")} sub="settlements delivered" />
       </div>
-      <p className="mt-4 mono text-[11px] leading-relaxed text-ink-3 [overflow-wrap:anywhere]">
+      <p className="mt-5 border-t border-hair pt-3 mono text-[12px] leading-relaxed text-ink-meta [overflow-wrap:anywhere]">
         Receiver{" "}
         <a href={r.explorer} target="_blank" rel="noreferrer" className="text-ink-2 underline decoration-white/10 underline-offset-2 hover:text-ink">
           {shortAddr(r.receiver, 6)} ↗
@@ -71,9 +71,9 @@ export async function X402RevenuePanel() {
         <p className="mt-4 text-[13px] text-ink-2">No USDC has reached the receiver in the scanned range yet. The first settled x402 call will show up here with its Basescan link.</p>
       ) : (
         <div className="mt-4 max-w-full overflow-x-auto [-webkit-overflow-scrolling:touch]">
-          <table className="w-full min-w-[520px] mono text-[11px]">
+          <table className="w-full min-w-[520px] mono text-[12px]">
             <thead>
-              <tr className="text-left text-ink-3">
+              <tr className="text-left text-ink-meta">
                 <th className="py-1 pr-3 font-normal">tx</th>
                 <th className="py-1 pr-3 font-normal">block</th>
                 <th className="py-1 pr-3 font-normal">payer</th>
@@ -89,10 +89,10 @@ export async function X402RevenuePanel() {
                       {shortAddr(row.tx, 6)} ↗
                     </a>
                   </td>
-                  <td className="py-1.5 pr-3 tnum text-ink-3">{row.block}</td>
+                  <td className="py-1.5 pr-3 tnum text-ink-meta">{row.block}</td>
                   <td className="py-1.5 pr-3 text-ink-2">{shortAddr(row.payer, 4)}</td>
                   <td className="py-1.5 pr-3 text-right tnum text-ink">{formatUnits(BigInt(row.amountAtomic), 6)}</td>
-                  <td className="py-1.5 text-ink-3">{row.viaEip3009 === null ? "receipt n/a" : row.viaEip3009 ? `x402 / EIP-3009 · via ${shortAddr(row.submittedBy, 4)}` : "plain transfer"}</td>
+                  <td className="py-1.5 text-ink-meta">{row.viaEip3009 === null ? "receipt n/a" : row.viaEip3009 ? `x402 / EIP-3009 · via ${shortAddr(row.submittedBy, 4)}` : "plain transfer"}</td>
                 </tr>
               ))}
             </tbody>

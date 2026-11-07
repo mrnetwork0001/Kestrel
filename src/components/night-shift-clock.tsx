@@ -10,7 +10,7 @@ export function NightShiftClock() {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
-  if (!now) return <span className="text-ink-3">UTC --:--:--</span>;
+  if (!now) return <span className="text-ink-meta">UTC --:--:--</span>;
   const hh = now.getUTCHours();
   const night = hh >= 22 || hh < 6;
   const time = now.toISOString().slice(11, 19);
@@ -18,7 +18,7 @@ export function NightShiftClock() {
     <span className="flex items-center gap-2">
       <span className="tnum text-ink-2">{time} UTC</span>
       {/* Secondary chrome: dropped on phones so the ribbon stays one short line. */}
-      <span className={`${night ? "text-phosphor" : "text-ink-3"} max-[601px]:hidden`}>{night ? "NIGHT SHIFT ACTIVE >_" : "DAY DESK · SENTINEL ARMED >_"}</span>
+      <span className={`${night ? "text-phosphor" : "text-ink-meta"} max-[601px]:hidden`}>{night ? "NIGHT SHIFT ACTIVE >_" : "DAY DESK · SENTINEL ARMED >_"}</span>
     </span>
   );
 }

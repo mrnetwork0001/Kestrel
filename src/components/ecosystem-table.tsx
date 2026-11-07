@@ -2,13 +2,14 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { Countdown } from "@/components/countdown";
-import { AddrLink, BandBadge, ChainBadge, cx, TxLink } from "@/components/ui";
+import { ChainDot } from "@/components/editorial";
+import { AddrLink, BandBadge, cx, TxLink } from "@/components/ui";
 import { fmtUnits } from "@/lib/format";
 import type { EcosystemRow } from "@/lib/vibestarter/ecosystem";
 
 /**
- * Sortable Vibestarter Ecosystem Health Board. Desktop (≥ xl): one table row per launch plus a signal line.
- * Below xl: cards with a sort picker. All external strings (titles, symbols, URLs) render as plain text.
+ * Sortable Vibestarter Ecosystem Health Board. Desktop (≥ xl): broadsheet table, one row pair per launch (cells + signal line).
+ * Below xl: ruled stacks with a sort picker. All external strings (titles, symbols, URLs) render as plain text.
  */
 
 type SortKey = "attention" | "launch" | "xray" | "lock" | "depth" | "escrow" | "next" | "refund" | "app" | "github" | "capsule";
@@ -68,13 +69,13 @@ function cmp(a: SortVal, b: SortVal): number {
 const eth = (wei: string | null | undefined, frac = 4) => (wei == null ? "—" : `${fmtUnits(wei, 18, frac)} ETH`);
 
 function Unavail({ children = "unavailable" }: { children?: ReactNode }) {
-  return <span className="mono text-[11px] text-ink-3">{children}</span>;
+  return <span className="mono text-[11px] text-ink-meta">{children}</span>;
 }
 
 /** Phone/tablet card layout (<=900px): standalone links get a 36px touch target. */
 const TAP = "max-[901px]:inline-flex max-[901px]:min-h-9 max-[901px]:items-center max-[901px]:gap-1";
 
-const TONE: Record<string, string> = { critical: "text-crit", warn: "text-warn", info: "text-ink-3" };
+const TONE: Record<string, string> = { critical: "text-crit", warn: "text-warn", info: "text-ink-meta" };
 
 /* ───────────── cells (shared by table + cards) ───────────── */
 
@@ -82,12 +83,12 @@ function LaunchCell({ r }: { r: EcosystemRow }) {
   return (
     <div className="min-w-0">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[14px] font-medium text-ink">{r.title ?? "Untitled raise"}</span>
-        {r.token?.symbol && <span className="mono text-[11px] text-ink-3">${r.token.symbol}</span>}
+        <span className="text-[15px] font-medium text-ink">{r.title ?? "Untitled raise"}</span>
+        {r.token?.symbol && <span className="mono text-[11px] text-ink-meta">${r.token.symbol}</span>}
       </div>
-      <div className="mt-1 flex flex-wrap items-center gap-1.5">
-        <ChainBadge chainId={r.chainId} />
-        {r.apiStatus && <span className="mono text-[10px] tracking-wider text-ink-3">{r.apiStatus}</span>}
+      <div className="mt-1 flex flex-wrap items-center gap-2.5">
+        <ChainDot chainId={r.chainId} />
+        {r.apiStatus && <span className="mono text-[11px] tracking-wider text-ink-meta">{r.apiStatus}</span>}
       </div>
       <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] max-[901px]:gap-x-4 max-[901px]:gap-y-0">
         <AddrLink chainId={r.chainId} address={r.escrow} label="escrow" className={TAP} />
@@ -98,7 +99,7 @@ function LaunchCell({ r }: { r: EcosystemRow }) {
           </a>
         )}
         <a href={`/app?target=${r.escrow}&chain=${r.chainId}&tab=shield`} className={cx("mono text-phosphor underline decoration-phosphor/30 underline-offset-2 hover:decoration-phosphor", TAP)}>
-          shield →
+          shield
         </a>
       </div>
     </div>
@@ -115,7 +116,7 @@ function XrayCell({ r }: { r: EcosystemRow }) {
         <span className={cx("tnum text-[16px]", t.band === "CRITICAL" ? "text-crit" : t.band === "ELEVATED" ? "text-warn" : "text-phosphor")}>{t.score}</span>
         <BandBadge band={t.band} className="whitespace-nowrap !text-[10px]" />
       </div>
-      <p className="mt-1 text-[11px] text-ink-3">{top ? `${top.title} (+${top.points})` : "No scored findings"}</p>
+      <p className="mt-1 text-[11px] text-ink-meta">{top ? `${top.title} (+${top.points})` : "No scored findings"}</p>
       {t.degraded && <p className="mono text-[10px] text-warn">partial read</p>}
     </div>
   );
@@ -131,7 +132,7 @@ function LockCell({ r }: { r: EcosystemRow }) {
     return (
       <div title={l.note}>
         <span className="whitespace-nowrap tnum text-[16px] text-phosphor">{l.lockedShareBps != null ? `${(l.lockedShareBps / 100).toFixed(2)}%` : "locked"}</span>
-        <p className="mt-1 text-[11px] text-ink-3">
+        <p className="mt-1 text-[11px] text-ink-meta">
           {l.claimerIsImmutableClone ? "soulbound · immutable claimer" : "held by fee claimer"}
           {l.ethPaired ? ` · ${eth(l.ethPaired, 3)} paired` : ""}
         </p>
@@ -142,7 +143,7 @@ function LockCell({ r }: { r: EcosystemRow }) {
       </div>
     );
   }
-  return <span className={cx("mono text-[12px]", l.status === "unavailable" ? "text-ink-3" : "text-crit")} title={l.note}>{l.status === "unavailable" ? "unavailable" : l.status === "rescued" ? "LP rescued — no lock" : "not locked"}</span>;
+  return <span className={cx("mono text-[12px]", l.status === "unavailable" ? "text-ink-meta" : "text-crit")} title={l.note}>{l.status === "unavailable" ? "unavailable" : l.status === "rescued" ? "LP rescued — no lock" : "not locked"}</span>;
 }
 
 function DepthCell({ r }: { r: EcosystemRow }) {
@@ -152,7 +153,7 @@ function DepthCell({ r }: { r: EcosystemRow }) {
   return (
     <div title={p.note}>
       <span className="whitespace-nowrap tnum text-[15px] text-ink">{p.quoteHeld !== null && p.quoteDecimals !== null ? `${fmtUnits(p.quoteHeld, p.quoteDecimals, 3)} ${p.quoteSymbol}` : "depth unscored"}</span>
-      <p className="mt-1 text-[11px] text-ink-3">{p.venue}</p>
+      <p className="mt-1 text-[11px] text-ink-meta">{p.venue}</p>
       <AddrLink chainId={r.chainId} address={p.address} label="pool" className={cx("text-[11px]", TAP)} />
     </div>
   );
@@ -166,7 +167,7 @@ function EscrowCell({ r }: { r: EcosystemRow }) {
     <div>
       <span className={cx("mono text-[12px] tracking-wider", tone)}>{e.stateLabel.toUpperCase()}</span>
       <p className="mt-1 whitespace-nowrap tnum text-[13px] text-ink-2">{eth(e.totalRaised, 3)} raised</p>
-      <p className="mt-0.5 text-[11px] text-ink-3">
+      <p className="mt-0.5 text-[11px] text-ink-meta">
         {e.tranchesPaid}/{e.tranchesTotal} tranches paid · {eth(e.escrowBalance, 3)} held
       </p>
     </div>
@@ -198,14 +199,14 @@ function NextCell({ r, nowSec }: { r: EcosystemRow; nowSec: number }) {
               <Countdown to={n.at} initialNow={nowSec} />
             </p>
           ) : (
-            <p className="mt-1 mono text-[11px] text-ink-3">no fixed time</p>
+            <p className="mt-1 mono text-[11px] text-ink-meta">no fixed time</p>
           )}
         </>
       ) : (
         <Unavail>no scheduled event</Unavail>
       )}
       {lw && !lw.open && (
-        <p className="mt-1 text-[11px] text-ink-3">
+        <p className="mt-1 text-[11px] text-ink-meta">
           Last: {lw.label} window {lw.challenged ? "challenged" : "unchallenged"}
           {lw.claimed ? ", paid" : ""}
         </p>
@@ -221,10 +222,10 @@ function RefundCell({ r }: { r: EcosystemRow }) {
   return (
     <div title={f.note}>
       <span className="whitespace-nowrap tnum text-[14px] text-warn">{f.unclaimedEthEstimate ? eth(f.unclaimedEthEstimate) : "unknown"}</span>
-      <p className="mt-1 text-[11px] text-ink-3">
+      <p className="mt-1 text-[11px] text-ink-meta">
         {f.mode} refunds{f.redeemedBps != null ? ` · ${(f.redeemedBps / 100).toFixed(2)}% redeemed` : ""}
       </p>
-      {f.sweepAfter && <p className="text-[11px] text-ink-3">closes {new Date(f.sweepAfter * 1000).toISOString().slice(0, 10)}</p>}
+      {f.sweepAfter && <p className="text-[11px] text-ink-meta">closes {new Date(f.sweepAfter * 1000).toISOString().slice(0, 10)}</p>}
     </div>
   );
 }
@@ -243,13 +244,13 @@ function AppCell({ r }: { r: EcosystemRow }) {
       {a ? (
         <span className={cx("whitespace-nowrap mono text-[12px]", a.ok ? "text-phosphor" : "text-crit")}>
           ● {a.status ? `HTTP ${a.status}` : "unreachable"}
-          {a.latencyMs != null && <span className="text-ink-3"> · {a.latencyMs} ms</span>}
+          {a.latencyMs != null && <span className="text-ink-meta"> · {a.latencyMs} ms</span>}
         </span>
       ) : (
         <Unavail>not probed</Unavail>
       )}
       <p className="mt-1 truncate text-[11px]">
-        <a href={r.appUrl} target="_blank" rel="noreferrer nofollow" className="mono text-ink-3 underline decoration-white/10 underline-offset-2 hover:text-ink max-[901px]:block max-[901px]:truncate max-[901px]:py-2.5">
+        <a href={r.appUrl} target="_blank" rel="noreferrer nofollow" className="mono text-ink-meta underline decoration-white/10 underline-offset-2 hover:text-ink max-[901px]:block max-[901px]:truncate max-[901px]:py-2.5">
           {host} ↗
         </a>
       </p>
@@ -260,9 +261,10 @@ function AppCell({ r }: { r: EcosystemRow }) {
 function GithubCell({ r }: { r: EcosystemRow }) {
   const g = r.github;
   if (!g) return <Unavail>{r.githubLogin ? "unavailable" : "GitHub login not resolved"}</Unavail>;
+  const idLogin = g.login.startsWith("id:") ? g.login.slice(3) : null;
   const link = (
-    <a href={g.profileUrl} target="_blank" rel="noreferrer" className={cx("mono text-[11px] text-ink-3 underline decoration-white/10 underline-offset-2 hover:text-ink", TAP)}>
-      @{g.login} ↗
+    <a href={g.profileUrl} target="_blank" rel="noreferrer" title={g.note} className={cx("mono text-[11px] text-ink-meta underline decoration-white/10 underline-offset-2 hover:text-ink", TAP)}>
+      {idLogin ? `GitHub account #${idLogin}` : `@${g.login}`} ↗
     </a>
   );
   if (g.status !== "ok")
@@ -276,13 +278,13 @@ function GithubCell({ r }: { r: EcosystemRow }) {
     <div title={g.note}>
       <span className="whitespace-nowrap tnum text-[14px] text-ink">
         {g.commits30d ?? "—"}
-        {g.commitsCapped ? "+" : ""} <span className="text-[11px] text-ink-3">commits/30d</span>
+        {g.commitsCapped ? "+" : ""} <span className="text-[11px] text-ink-meta">commits/30d</span>
       </span>
-      <p className="mt-0.5 text-[11px] text-ink-3">
+      <p className="mt-0.5 text-[11px] text-ink-meta">
         {g.pushes30d ?? "—"} pushes · {g.activeDays30d ?? "—"} active days
       </p>
       {g.capsuleRepo && (
-        <p className={cx("text-[11px]", g.capsuleRepo.status === "ok" ? "text-ink-3" : "text-warn")}>
+        <p className={cx("text-[11px]", g.capsuleRepo.status === "ok" ? "text-ink-meta" : "text-warn")}>
           capsule repo {g.capsuleRepo.status === "ok" ? `pushed ${g.capsuleRepo.pushedAt?.slice(0, 10) ?? "—"}` : g.capsuleRepo.status === "not-found" ? "404" : "unreadable"}
         </p>
       )}
@@ -298,7 +300,7 @@ function CapsuleCell({ r }: { r: EcosystemRow }) {
     <div title={c.capsuleHash ?? undefined}>
       <span className={cx("whitespace-nowrap mono text-[12px]", c.registered ? "text-phosphor" : "text-warn")}>{c.registered ? "✓ registered" : "not registered"}</span>
       {(c.provenanceLabel || c.agentName) && (
-        <p className="mt-1 text-[11px] text-ink-3">
+        <p className="mt-1 text-[11px] text-ink-meta">
           {[c.provenanceLabel, c.agentName].filter(Boolean).join(" · ")}
         </p>
       )}
@@ -307,12 +309,13 @@ function CapsuleCell({ r }: { r: EcosystemRow }) {
 }
 
 function Signals({ r }: { r: EcosystemRow }) {
-  if (!r.signals.length) return <span className="mono text-[11px] text-ink-3">No active warnings from the live reads.</span>;
+  if (!r.signals.length) return <span className="mono text-[11px] text-ink-meta">No active warnings from the live reads.</span>;
   return (
     <ul className="flex flex-wrap gap-x-5 gap-y-1">
       {r.signals.map((s, i) => (
         <li key={i} className={cx("text-[12px]", TONE[s.tone])}>
-          ▸ {s.text}
+          <span aria-hidden className="mr-1.5 text-ink-3">·</span>
+          {s.text}
         </li>
       ))}
     </ul>
@@ -321,16 +324,16 @@ function Signals({ r }: { r: EcosystemRow }) {
 
 /* ───────────── board ───────────── */
 
-const COLS: { key: SortKey; label: string; cell: (r: EcosystemRow, now: number) => ReactNode; w?: string }[] = [
+const COLS: { key: SortKey; label: string; cell: (r: EcosystemRow, now: number) => ReactNode; w?: string; num?: boolean }[] = [
   { key: "launch", label: "Launch", cell: (r) => <LaunchCell r={r} />, w: "min-w-[170px]" },
-  { key: "xray", label: "Token X-Ray", cell: (r) => <XrayCell r={r} /> },
-  { key: "lock", label: "Proof-of-Lock", cell: (r) => <LockCell r={r} /> },
-  { key: "depth", label: "Pool depth", cell: (r) => <DepthCell r={r} /> },
+  { key: "xray", label: "Token X-Ray", cell: (r) => <XrayCell r={r} />, num: true },
+  { key: "lock", label: "Proof-of-Lock", cell: (r) => <LockCell r={r} />, num: true },
+  { key: "depth", label: "Pool depth", cell: (r) => <DepthCell r={r} />, num: true },
   { key: "escrow", label: "Escrow", cell: (r) => <EscrowCell r={r} /> },
   { key: "next", label: "Next window", cell: (r, now) => <NextCell r={r} nowSec={now} />, w: "min-w-[135px]" },
-  { key: "refund", label: "Refund radar", cell: (r) => <RefundCell r={r} /> },
+  { key: "refund", label: "Refund radar", cell: (r) => <RefundCell r={r} />, num: true },
   { key: "app", label: "App HTTP", cell: (r) => <AppCell r={r} /> },
-  { key: "github", label: "Founder GitHub", cell: (r) => <GithubCell r={r} /> },
+  { key: "github", label: "Founder GitHub", cell: (r) => <GithubCell r={r} />, num: true },
   { key: "capsule", label: "Origin Capsule", cell: (r) => <CapsuleCell r={r} /> },
 ];
 
@@ -360,7 +363,7 @@ export function EcosystemTable({ rows, nowSec }: { rows: EcosystemRow[]; nowSec:
     <div>
       {/* sort picker (cards) */}
       <div className="mb-3 flex flex-wrap items-center gap-2 xl:hidden max-[601px]:[&>select]:min-w-0 max-[601px]:[&>select]:flex-1">
-        <label htmlFor="eco-sort" className="label">
+        <label htmlFor="eco-sort" className="t-kicker">
           Sort by
         </label>
         <select
@@ -388,46 +391,45 @@ export function EcosystemTable({ rows, nowSec }: { rows: EcosystemRow[]; nowSec:
         </button>
       </div>
 
-      {/* desktop table */}
-      <div className="hidden overflow-x-auto border hairline xl:block">
+      {/* desktop broadsheet table (>= xl): no outer box, sticky kicker header, hover-elevated row pairs */}
+      <div className="hidden xl:block">
         <table className="w-full border-collapse text-left">
           <caption className="sr-only">Vibestarter launches on Base and Robinhood Chain with live health checks. Click a column header to sort.</caption>
-          <thead>
-            <tr className="border-b hairline bg-elevated">
+          <thead className="sticky top-0 z-10 bg-canvas/95 backdrop-blur-sm">
+            <tr className="border-b border-hair-strong">
               {COLS.map((c) => {
                 const active = sort.key === c.key;
                 return (
-                  <th key={c.key} scope="col" aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"} className={cx("px-2.5 py-2.5 align-bottom", c.w)}>
-                    <button type="button" onClick={() => toggle(c.key)} className={cx("label text-left hover:text-ink", active && "!text-phosphor")}>
-                      {c.label} {active ? (sort.dir === "asc" ? "↑" : "↓") : <span className="opacity-30">↕</span>}
+                  <th key={c.key} scope="col" aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"} className={cx("px-2.5 py-3 align-bottom first:pl-3", c.w, c.num && "text-right")}>
+                    <button type="button" onClick={() => toggle(c.key)} className={cx("t-kicker inline-flex items-center gap-1 hover:!text-ink", c.num && "flex-row-reverse", active && "!text-phosphor")}>
+                      <span>{c.label}</span>
+                      <span aria-hidden className={active ? undefined : "opacity-30"}>{active ? (sort.dir === "asc" ? "↑" : "↓") : "↕"}</span>
                     </button>
                   </th>
                 );
               })}
             </tr>
           </thead>
-          <tbody>
-            {sorted.map((r) => (
-              <RowPair key={r.key} r={r} nowSec={nowSec} />
-            ))}
-          </tbody>
+          {sorted.map((r) => (
+            <RowPair key={r.key} r={r} nowSec={nowSec} />
+          ))}
         </table>
       </div>
 
-      {/* cards */}
-      <ul className="grid gap-3 md:grid-cols-2 xl:hidden [&>*]:min-w-0">
+      {/* <xl: ruled 2-line stacks (paper, no card boxes) */}
+      <ul className="divide-y divide-hair border-y border-hair xl:hidden">
         {sorted.map((r) => (
-          <li key={r.key} className="panel overflow-hidden p-4 max-[601px]:p-3.5">
+          <li key={r.key} className="min-w-0 py-5">
             <LaunchCell r={r} />
-            <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 max-[601px]:gap-x-3">
+            <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 md:grid-cols-3 max-[601px]:gap-x-3">
               {COLS.slice(1).map((c) => (
                 <div key={c.key} className="min-w-0">
-                  <dt className="label mb-1 !text-[10px]">{c.label}</dt>
+                  <dt className="t-kicker mb-1">{c.label}</dt>
                   <dd className="min-w-0 break-words [overflow-wrap:anywhere]">{c.cell(r, nowSec)}</dd>
                 </div>
               ))}
             </dl>
-            <div className="mt-4 border-t hairline pt-3">
+            <div className="mt-4 border-t border-hair pt-3">
               <Signals r={r} />
             </div>
           </li>
@@ -439,19 +441,19 @@ export function EcosystemTable({ rows, nowSec }: { rows: EcosystemRow[]; nowSec:
 
 function RowPair({ r, nowSec }: { r: EcosystemRow; nowSec: number }) {
   return (
-    <>
-      <tr className="align-top">
+    <tbody className="group border-b border-hair">
+      <tr className="align-top transition-colors duration-200 group-hover:bg-elevated">
         {COLS.map((c) => (
-          <td key={c.key} className={cx("px-2.5 pt-3.5 pb-2", c.w)}>
+          <td key={c.key} className={cx("min-h-11 px-2.5 pb-2 pt-4 first:pl-3", c.w, c.num && "text-right [&_.flex]:justify-end")}>
             {c.cell(r, nowSec)}
           </td>
         ))}
       </tr>
-      <tr className="border-b hairline">
-        <td colSpan={COLS.length} className="px-2.5 pb-3">
+      <tr className="transition-colors duration-200 group-hover:bg-elevated">
+        <td colSpan={COLS.length} className="px-3 pb-4">
           <Signals r={r} />
         </td>
       </tr>
-    </>
+    </tbody>
   );
 }

@@ -6,8 +6,8 @@ export default function GlobalError({ reset }: { error: Error & { digest?: strin
     <html lang="en">
       <body style={{ margin: 0, minHeight: "100vh", background: "#07090D", color: "#F3F6FA", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ maxWidth: 520, padding: 24 }}>
-          <p style={{ fontSize: 11, letterSpacing: "0.12em", color: "#5F6B7C" }}>[ KESTREL // SYSTEM FAULT ]</p>
-          <p style={{ marginTop: 12, fontSize: 18 }}>
+          <p style={{ fontSize: 11, letterSpacing: "0.14em", color: "#7D8899", textTransform: "uppercase" }}>Kestrel · system fault</p>
+          <p style={{ marginTop: 12, fontSize: 22, lineHeight: 1.3 }}>
             <span style={{ color: "#91D982" }}>&gt;_</span> Kestrel hit an unexpected error.
           </p>
           <p style={{ marginTop: 8, fontSize: 13, color: "#9BA7B8", lineHeight: 1.6 }}>No data was shown in place of the live read. Try again in a moment.</p>

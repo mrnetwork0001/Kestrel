@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
-import { SectionLabel } from "@/components/ui";
+import { Kicker, Wrap } from "@/components/editorial";
 
 export default function ErrorBoundary({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
@@ -10,23 +10,23 @@ export default function ErrorBoundary({ error, reset }: { error: Error & { diges
   }, [error]);
 
   return (
-    <div className="mx-auto max-w-[880px] px-4 py-24">
-      <SectionLabel n="ERR">Read interrupted</SectionLabel>
-      <div className="panel mt-4 p-6">
-        <h1 className="font-serif text-[44px] leading-tight text-ink">A live read did not come back.</h1>
-        <p className="mt-3 max-w-[560px] text-[14px] text-ink-2">
+    <Wrap className="py-24 max-[901px]:py-12">
+      <div className="max-w-[880px] border-l-2 border-warn pl-8 max-[601px]:pl-5">
+        <Kicker tone="warn">Read interrupted</Kicker>
+        <h1 className="t-hero mt-5 max-w-[18ch]">A live read did not come back.</h1>
+        <p className="mt-5 max-w-[56ch] text-[17px] leading-relaxed text-ink-2">
           Kestrel never shows placeholder numbers, so this view stopped instead. Public RPCs on Base and Robinhood Chain occasionally rate-limit; retrying usually clears it.
         </p>
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <button onClick={reset} className="rounded-[2px] bg-phosphor px-4 py-2 mono text-[12px] font-semibold text-canvas hover:bg-[#a6e698]">
+        <div className="mt-8 flex flex-wrap items-center gap-3">
+          <button onClick={reset} className="btn-primary press">
             RETRY READ
           </button>
-          <Link href="/" className="rounded-[2px] border border-hair-strong px-4 py-2 mono text-[12px] text-ink-2 hover:text-ink">
+          <Link href="/" className="btn-ghost press">
             BACK TO BRIEFING
           </Link>
-          {error.digest && <span className="mono text-[11px] text-ink-3">ref {error.digest}</span>}
+          {error.digest && <span className="t-meta">ref {error.digest}</span>}
         </div>
       </div>
-    </div>
+    </Wrap>
   );
 }

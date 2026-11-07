@@ -114,14 +114,16 @@ export function X402Playground({ defaultAddress }: { defaultAddress: string }) {
           href: receipt?.transaction ? `https://basescan.org/tx/${receipt.transaction}` : undefined,
         });
       } else if (!res.ok) {
-        push({ dir: "←", tone: "err", text: `HTTP ${res.status}\n${JSON.stringify(body, null, 2)}` });
+        const retry = res.headers.get("Retry-After");
+        push({ dir: "←", tone: res.status === 503 ? "warn" : "err", text: `HTTP ${res.status}${retry ? ` · Retry-After ${retry}s` : ""}\n${JSON.stringify(body, null, 2)}` });
       } else {
         const b = body ?? {};
-        const shown = mode === "full" ? { verdict: b.verdict, riskScore: b.riskScore, band: b.band, reasons: (b.reasons as unknown[] | undefined)?.slice(0, 4), tier: b.tier, payment: b.payment } : b;
+        const shown = mode === "full" ? { verdict: b.verdict, riskScore: b.riskScore, band: b.band, status: b.status, intent: b.intent, retryAfterSec: b.retryAfterSec, scanError: b.scanError, reasons: (b.reasons as unknown[] | undefined)?.slice(0, 4), tier: b.tier, payment: b.payment } : b;
+        const status = res.headers.get("X-Kestrel-Guard-Status");
         push({
           dir: "←",
-          tone: "ok",
-          text: `HTTP 200${receipt ? `\nsettlement receipt: ${JSON.stringify(receipt)}` : ""}\n${JSON.stringify(shown, null, 2)}`,
+          tone: b.status === "degraded" ? "warn" : "ok",
+          text: `HTTP 200${status ? ` · X-Kestrel-Guard-Status: ${status}` : ""}${b.status === "degraded" && b.retryAfterSec ? ` · degraded, re-run in ${String(b.retryAfterSec)}s` : ""}${receipt ? `\nsettlement receipt: ${JSON.stringify(receipt)}` : ""}\n${JSON.stringify(shown, null, 2)}`,
           href: receipt?.transaction ? `https://basescan.org/tx/${receipt.transaction}` : undefined,
         });
       }
@@ -183,6 +185,10 @@ export function X402Playground({ defaultAddress }: { defaultAddress: string }) {
   const price = version === 2 ? pr2?.accepts[0]?.amount : req1?.maxAmountRequired;
   return (
     <div className="panel min-w-0">
+      <div className="flex items-center justify-between gap-3 border-b hairline px-3 py-2">
+        <span className="label !text-ink-meta">[ LIVE // x402 GUARD · BASE USDC ]</span>
+        <span className="mono text-[11px] text-ink-meta">{busy ? "request in flight" : `${log.length} line${log.length === 1 ? "" : "s"}`}</span>
+      </div>
       <div className="flex flex-col gap-2 border-b hairline p-3 md:flex-row">
         <select value={chainId} onChange={(e) => setChainId(Number(e.target.value))} aria-label="Chain" className="rounded-[2px] border hairline bg-canvas px-2 py-2 mono text-[12px] text-ink max-[901px]:min-h-11 max-[901px]:text-[16px]">
           <option value={8453}>Base 8453</option>
@@ -202,12 +208,12 @@ export function X402Playground({ defaultAddress }: { defaultAddress: string }) {
             3 · PAY {price ? `${usdc(price)} USDC` : ""} (v{version}) & RETRY
           </button>
         ) : (
-          <button onClick={() => connectors[0] && connect({ connector: connectors[0], chainId: 8453 })} className="rounded-[2px] border border-hair-strong px-3 py-1.5 mono text-[11px] text-ink-2 hover:text-ink max-[901px]:min-h-11 max-[601px]:w-full">connect wallet to pay (step 3)</button>
+          <button onClick={() => connectors[0] && connect({ connector: connectors[0], chainId: 8453 })} className="rounded-[2px] border border-phosphor/50 px-3 py-1.5 mono text-[11px] text-phosphor hover:bg-phosphor hover:text-canvas max-[901px]:min-h-11 max-[601px]:w-full">CONNECT WALLET TO PAY (STEP 3)</button>
         )}
-        <button onClick={() => { setLog([]); setPr2(null); setReq1(null); }} className="ml-auto mono text-[11px] text-ink-3 hover:text-ink max-[901px]:min-h-9 max-[901px]:px-2">clear</button>
+        <button onClick={() => { setLog([]); setPr2(null); setReq1(null); }} className="ml-auto mono text-[11px] text-ink-meta hover:text-ink max-[901px]:min-h-9 max-[901px]:px-2">clear</button>
       </div>
       {isConnected && (
-        <label className="flex items-start gap-2 border-b hairline px-3 py-2 text-[12px] text-ink-3 max-[901px]:gap-3 max-[901px]:py-3">
+        <label className="flex items-start gap-2 border-b hairline px-3 py-2 text-[12px] text-ink-2 max-[901px]:gap-3 max-[901px]:py-3">
           <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} className="mt-0.5 max-[901px]:h-5 max-[901px]:w-5 max-[901px]:shrink-0" />
           <span>
             I understand step 3 signs a real EIP-3009 authorization for {price ? `${usdc(price)} USDC` : "the quoted USDC price"} on Base mainnet, which Kestrel settles onchain before returning the verdict. An EOA wallet is recommended.
@@ -216,7 +222,7 @@ export function X402Playground({ defaultAddress }: { defaultAddress: string }) {
       )}
       <div className="max-h-[460px] min-h-[220px] overflow-auto p-4 mono text-[11px] leading-relaxed max-[901px]:max-h-[60vh] max-[601px]:min-h-[180px] max-[601px]:p-3">
         {log.length === 0 && (
-          <p className="text-ink-3">
+          <p className="text-ink-meta">
             Step 1 = free verdict. Step 2 = the real HTTP 402 (x402 v2 PAYMENT-REQUIRED header + v1 JSON body). Step 3 signs an EIP-3009 USDC authorization; the server verifies it through the
             facilitator, runs the scan, settles the payment onchain and only then returns the verdict + receipt.
           </p>

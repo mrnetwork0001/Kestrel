@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Led } from "./motion/led";
 
 type NavItem = { href: string; label: string };
 
@@ -89,9 +90,9 @@ export function MobileNav({ items }: { items: NavItem[] }) {
     <div className="ml-auto flex items-center gap-2 min-[901px]:hidden">
       <Link
         href="/rescue"
-        className="inline-flex h-10 items-center gap-1.5 rounded-[2px] border border-crit/60 bg-crit/10 px-3 mono text-[11px] font-semibold tracking-[0.06em] text-crit hover:bg-crit/20"
+        className="press inline-flex h-11 items-center gap-2 rounded-[2px] border border-crit/60 bg-crit/10 px-3 mono text-[11px] font-semibold tracking-[0.06em] text-crit hover:bg-crit/20"
       >
-        <span aria-hidden className="dot-live inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-crit" />
+        <Led tone="crit" />
         PANIC BUNKER
       </Link>
       <button
@@ -101,7 +102,7 @@ export function MobileNav({ items }: { items: NavItem[] }) {
         aria-expanded={open}
         aria-controls={DRAWER_ID}
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex h-10 w-10 shrink-0 flex-col items-center justify-center gap-[4.5px] rounded-[2px] border border-hair-strong bg-surface text-ink"
+        className="inline-flex h-11 w-11 shrink-0 flex-col items-center justify-center gap-[4.5px] rounded-[2px] border border-hair-strong bg-surface text-ink"
       >
         <span className={`block h-[1.5px] w-4 bg-current transition-[translate,rotate,opacity] duration-200 ${open ? "translate-y-[6px] rotate-45" : ""}`} />
         <span className={`block h-[1.5px] w-4 bg-current transition-opacity duration-200 ${open ? "opacity-0" : ""}`} />
@@ -133,7 +134,7 @@ export function MobileNav({ items }: { items: NavItem[] }) {
                   <span className="mono text-[15px] font-semibold tracking-tight text-ink">
                     <span className="text-phosphor">&gt;_</span> KESTREL
                   </span>
-                  <span className="mono text-[11px] text-ink-3">$KEST</span>
+                  <span className="mono text-[11px] text-ink-meta">$KEST</span>
                 </Link>
                 <button
                   ref={closeRef}
@@ -146,7 +147,7 @@ export function MobileNav({ items }: { items: NavItem[] }) {
                 </button>
               </div>
               <nav aria-label="Site" className="flex-1 overflow-y-auto overscroll-contain px-2 py-3">
-                <p className="label px-3 pb-2">Navigate</p>
+                <p className="t-kicker px-3 pb-2">Navigate</p>
                 <ul>
                   {items.map((n) => {
                     const active = isActive(n.href);
@@ -162,7 +163,7 @@ export function MobileNav({ items }: { items: NavItem[] }) {
                           }`}
                         >
                           <span className={danger ? "text-crit" : undefined}>{n.label}</span>
-                          <span aria-hidden className="mono text-[12px] text-ink-3">
+                          <span aria-hidden className="mono text-[12px] text-ink-meta">
                             {n.href}
                           </span>
                         </Link>
