@@ -51,9 +51,9 @@ export function RefundRadar({ e }: { e: EscrowReport }) {
         )}
       </div>
       {r.sweepAfter && (
-        <div className="border border-warn/40 bg-warn/[0.05] p-4 max-[600px]:p-3">
+        <div className="border border-warn/40 bg-warn/[0.05] p-4 max-[601px]:p-3">
           <p className="label text-warn">Holder refund window closes in</p>
-          <p className="mt-2 tnum text-[28px] text-warn max-[600px]:text-[24px]">
+          <p className="mt-2 tnum text-[28px] text-warn max-[601px]:text-[24px]">
             <Countdown to={r.sweepAfter} initialNow={e.oracleTime} />
           </p>
           <p className="mt-1 text-[12px] text-ink-2">
@@ -137,13 +137,13 @@ function WalletRefundCheck({ e }: { e: EscrowReport }) {
   };
 
   return (
-    <div className="border hairline p-4 max-[600px]:p-3">
+    <div className="border hairline p-4 max-[601px]:p-3">
       <p className="label">Your refund · wallet check</p>
       {!isConnected || !address ? (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <span className="text-[12px] text-ink-3">Connect a wallet to read your contribution and refund status from the escrow (read-only until you choose to sign).</span>
           {connectors.map((c) => (
-            <button key={c.uid} onClick={() => connect({ connector: c, chainId })} disabled={connecting} className="rounded-[2px] border border-hair-strong px-3 py-1.5 mono text-[11px] text-ink hover:border-phosphor/60 hover:text-phosphor disabled:opacity-40 max-[600px]:flex-1">
+            <button key={c.uid} onClick={() => connect({ connector: c, chainId })} disabled={connecting} className="rounded-[2px] border border-hair-strong px-3 py-1.5 mono text-[11px] text-ink hover:border-phosphor/60 hover:text-phosphor disabled:opacity-40 max-[601px]:flex-1">
               {c.name}
             </button>
           ))}
@@ -170,11 +170,11 @@ function WalletRefundCheck({ e }: { e: EscrowReport }) {
             )}
           </dl>
           {r.mode === "contributor" && w.contributed > 0n && !w.refundClaimed && (
-            <div className="flex flex-wrap items-center gap-2 max-[600px]:grid max-[600px]:grid-cols-1">
-              <button onClick={simulate} disabled={sim.status === "pending"} className="rounded-[2px] border border-hair-strong px-3 py-1.5 mono text-[11px] text-ink hover:border-phosphor/60 hover:text-phosphor disabled:opacity-40 max-[900px]:min-h-[44px]">
+            <div className="flex flex-wrap items-center gap-2 max-[601px]:grid max-[601px]:grid-cols-1">
+              <button onClick={simulate} disabled={sim.status === "pending"} className="rounded-[2px] border border-hair-strong px-3 py-1.5 mono text-[11px] text-ink hover:border-phosphor/60 hover:text-phosphor disabled:opacity-40 max-[901px]:min-h-[44px]">
                 {sim.status === "pending" ? "simulating…" : "1 · Simulate claimContributorRefund()"}
               </button>
-              <button onClick={claim} disabled={sim.status !== "ok" || tx.status === "signing" || tx.status === "sent"} className="rounded-[2px] border border-phosphor/50 px-3 py-1.5 mono text-[11px] text-phosphor hover:bg-phosphor/10 disabled:opacity-30 max-[900px]:min-h-[44px]">
+              <button onClick={claim} disabled={sim.status !== "ok" || tx.status === "signing" || tx.status === "sent"} className="rounded-[2px] border border-phosphor/50 px-3 py-1.5 mono text-[11px] text-phosphor hover:bg-phosphor/10 disabled:opacity-30 max-[901px]:min-h-[44px]">
                 2 · Sign claim
               </button>
             </div>

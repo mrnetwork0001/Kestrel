@@ -136,7 +136,7 @@ export function ChallengeCopilot({ escrow, chainId }: { escrow: string; chainId:
     <Panel
       title="Backer Challenge Co-pilot"
       n="07"
-      className="max-[600px]:border-x-0"
+      className="max-[601px]:border-x-0"
       right={
         <span className="whitespace-nowrap mono text-[10px] text-ink-3">
           {isFetching ? "refreshing…" : <a href={explorerBlock(r.chainId, r.block.number)} target="_blank" rel="noreferrer" className="hover:text-ink">block #{BigInt(r.block.number).toLocaleString("en-US")} ↗</a>}
@@ -217,7 +217,7 @@ function LiveChallenge({ r }: { r: CopilotReport }) {
   const [full, setFull] = useState(false);
   const reason = full ? c.reason : c.reason.slice(0, 280);
   return (
-    <div className={cx("border p-4 max-[600px]:p-3", c.active ? "border-crit/50 bg-crit/[0.05]" : "hairline")}>
+    <div className={cx("border p-4 max-[601px]:p-3", c.active ? "border-crit/50 bg-crit/[0.05]" : "hairline")}>
       <p className={cx("label", c.active ? "text-crit" : "text-ink-3")}>{c.active ? `Live challenge #${c.seq} · tranche ${c.tranche}` : `Previous challenge #${c.seq} · ${c.stateLabel}`}</p>
       <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-4">
         <Stat label="Challenger" value={<AddrLink chainId={r.chainId} address={c.challenger} />} />
@@ -242,13 +242,13 @@ function LiveChallenge({ r }: { r: CopilotReport }) {
 
 function CheckRow({ s }: { s: ReadinessStep }) {
   return (
-    <li className="flex items-start gap-2 text-[12px] max-[600px]:flex-wrap max-[600px]:gap-y-0.5">
+    <li className="flex items-start gap-2 text-[12px] max-[601px]:flex-wrap max-[601px]:gap-y-0.5">
       <span className={cx("w-4 shrink-0 mono", s.status === "pass" ? "text-phosphor" : s.status === "fail" ? "text-crit" : "text-ink-3")}>{s.status === "pass" ? "✓" : s.status === "fail" ? "✗" : "?"}</span>
       <span className="min-w-0 flex-1 text-ink-2">
         {s.label}
         {s.detail && <span className="text-ink-3"> · {s.detail}</span>}
       </span>
-      <span className={cx("shrink-0 mono text-[10px] max-[600px]:basis-full max-[600px]:pl-6 max-[600px]:[overflow-wrap:anywhere]", s.status === "fail" ? "text-crit" : "text-ink-3")}>{s.revert}</span>
+      <span className={cx("shrink-0 mono text-[10px] max-[601px]:basis-full max-[601px]:pl-6 max-[601px]:[overflow-wrap:anywhere]", s.status === "fail" ? "text-crit" : "text-ink-3")}>{s.revert}</span>
     </li>
   );
 }
@@ -258,7 +258,7 @@ function Position({ r, isConnected }: { r: CopilotReport; isConnected: boolean }
   const w = r.wallet;
   const firstFail = r.raiseChecklist.find((s) => s.status === "fail" && s.id !== "allowance");
   return (
-    <div className="border hairline p-4 max-[600px]:p-3">
+    <div className="border hairline p-4 max-[601px]:p-3">
       <p className="label">Your position · readiness in contract revert order</p>
       {!isConnected ? (
         <div className="mt-3">
@@ -272,7 +272,7 @@ function Position({ r, isConnected }: { r: CopilotReport; isConnected: boolean }
           </div>
         </div>
       ) : w ? (
-        <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[12px] max-[900px]:grid-cols-[auto_minmax(0,1fr)] max-[900px]:[overflow-wrap:anywhere] max-[600px]:gap-x-3">
+        <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[12px] max-[901px]:grid-cols-[auto_minmax(0,1fr)] max-[901px]:[overflow-wrap:anywhere] max-[601px]:gap-x-3">
           <dt className="text-ink-3">Wallet</dt>
           <dd><AddrLink chainId={r.chainId} address={w.address} /> <span className="mono text-[11px] text-ink-3">{fmtUnits(w.nativeBalance, 18, 5)} Ξ gas</span></dd>
           <dt className="text-ink-3">{r.token.symbol}</dt>
@@ -331,7 +331,7 @@ function OutcomeCalculator({ r }: { r: CopilotReport }) {
   const refund = snap && units != null && BigInt(snap.frozenTotalSupply) > 0n ? (units * BigInt(snap.frozenEthBalance)) / BigInt(snap.frozenTotalSupply) : null;
   const n = r.next;
   return (
-    <div className="border hairline p-4 max-[600px]:p-3">
+    <div className="border hairline p-4 max-[601px]:p-3">
       <p className="label">Outcome calculator</p>
       {n ? (
         <ul className="mt-3 space-y-1.5 text-[12px] text-ink-2">
@@ -344,8 +344,8 @@ function OutcomeCalculator({ r }: { r: CopilotReport }) {
       )}
       <div className="mt-4 border-t hairline pt-3">
         <label className="label" htmlFor="kest-calc">Refund estimate if a challenge is upheld</label>
-        <div className="mt-2 flex items-center gap-2 max-[600px]:flex-wrap">
-          <input id="kest-calc" value={amt} onChange={(e) => setAmt(e.target.value)} inputMode="decimal" placeholder={`${r.token.symbol} amount`} className="w-44 rounded-[2px] border border-hair-strong bg-transparent px-2 py-1.5 mono text-[12px] text-ink focus:border-phosphor/60 focus:outline-none max-[900px]:text-[16px] max-[600px]:w-full" />
+        <div className="mt-2 flex items-center gap-2 max-[601px]:flex-wrap">
+          <input id="kest-calc" value={amt} onChange={(e) => setAmt(e.target.value)} inputMode="decimal" placeholder={`${r.token.symbol} amount`} className="w-44 rounded-[2px] border border-hair-strong bg-transparent px-2 py-1.5 mono text-[12px] text-ink focus:border-phosphor/60 focus:outline-none max-[901px]:text-[16px] max-[601px]:w-full" />
           <span className="mono text-[11px] text-ink-3">{r.token.symbol} →</span>
           <span className="tnum text-[16px] text-ink">{snap ? (refund != null ? eth(refund.toString(), 6) : "enter an amount") : "unavailable"}</span>
         </div>
@@ -393,7 +393,7 @@ function DryRun({ r }: { r: CopilotReport }) {
   }
   const sc = res?.scenarios.find((s) => s.outcome === tab) ?? res?.scenarios[0];
   return (
-    <div className="border border-phosphor/25 bg-phosphor/[0.02] p-4 max-[600px]:p-3">
+    <div className="border border-phosphor/25 bg-phosphor/[0.02] p-4 max-[601px]:p-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="label text-phosphor">Challenge Dry-Run · no wallet needed</p>
@@ -401,7 +401,7 @@ function DryRun({ r }: { r: CopilotReport }) {
             No 72-hour window is open right now, so Kestrel runs the deployed escrow code itself in <span className="mono">eth_simulateV1</span> with a few storage slots overridden: a synthetic challenger files, holders vote, then the admin rejects, upholds, or nobody rules.
           </p>
         </div>
-        <button onClick={run} disabled={busy} className="rounded-[2px] border border-phosphor/60 px-4 py-2 mono text-[12px] text-phosphor hover:bg-phosphor/10 disabled:opacity-40 max-[900px]:min-h-[44px] max-[600px]:w-full">
+        <button onClick={run} disabled={busy} className="rounded-[2px] border border-phosphor/60 px-4 py-2 mono text-[12px] text-phosphor hover:bg-phosphor/10 disabled:opacity-40 max-[901px]:min-h-[44px] max-[601px]:w-full">
           {busy ? "simulating…" : res ? "↻ RE-RUN DRY-RUN" : "▶ RUN DRY-RUN"}
         </button>
       </div>
@@ -415,7 +415,7 @@ function DryRun({ r }: { r: CopilotReport }) {
           {res.reason && <p className="mt-2 text-[12px] text-warn">{res.reason}</p>}
           <div className="mt-3 flex flex-wrap gap-1">
             {res.scenarios.map((s) => (
-              <button key={s.outcome} onClick={() => setTab(s.outcome)} className={cx("rounded-[2px] border px-3 py-1.5 mono text-[11px] max-[600px]:flex-[1_1_45%]", tab === s.outcome ? "border-phosphor/60 text-phosphor" : "border-hair-strong text-ink-3 hover:text-ink")}>
+              <button key={s.outcome} onClick={() => setTab(s.outcome)} className={cx("rounded-[2px] border px-3 py-1.5 mono text-[11px] max-[601px]:flex-[1_1_45%]", tab === s.outcome ? "border-phosphor/60 text-phosphor" : "border-hair-strong text-ink-3 hover:text-ink")}>
                 {s.ok ? "✓" : "✗"} {s.title}
               </button>
             ))}
@@ -460,7 +460,7 @@ function Scenario({ sc, res }: { sc: DryRunScenario; res: DryRunResult }) {
       {facts.length > 0 && (
         <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
           {facts.map((x) => (
-            <div key={x.k} className="min-w-0 border hairline px-3 py-2 max-[600px]:px-2">
+            <div key={x.k} className="min-w-0 border hairline px-3 py-2 max-[601px]:px-2">
               <p className="mono text-[10px] text-ink-3">{x.k}</p>
               <p className="mt-0.5 tnum text-[13px] text-ink [overflow-wrap:anywhere]">{x.v}</p>
             </div>
@@ -471,7 +471,7 @@ function Scenario({ sc, res }: { sc: DryRunScenario; res: DryRunResult }) {
         {sc.steps.map((s, i) => {
           const good = s.expectFailure ? s.status === "failure" : s.status === "success";
           return (
-            <li key={i} className={cx("grid grid-cols-[28px_1fr] gap-2 border-l-2 py-1 pl-2 text-[11px] max-[900px]:grid-cols-[auto_minmax(0,1fr)] max-[900px]:[overflow-wrap:anywhere]", s.kind === "action" ? (good ? "border-phosphor/50" : "border-crit/60") : "border-white/10")}>
+            <li key={i} className={cx("grid grid-cols-[28px_1fr] gap-2 border-l-2 py-1 pl-2 text-[11px] max-[901px]:grid-cols-[auto_minmax(0,1fr)] max-[901px]:[overflow-wrap:anywhere]", s.kind === "action" ? (good ? "border-phosphor/50" : "border-crit/60") : "border-white/10")}>
               <span className="mono text-ink-3">b{s.block}</span>
               <div className="min-w-0">
                 <p className={cx(s.kind === "action" ? "text-ink" : "text-ink-3")}>
@@ -605,7 +605,7 @@ function Actions({ r, address, isConnected, walletChainId, onDone }: { r: Copilo
   const disabledAll = !isConnected || !address || r.gen === "unknown";
 
   return (
-    <div className="border hairline p-4 max-[600px]:p-3">
+    <div className="border hairline p-4 max-[601px]:p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="label">Actions · simulate first, then sign</p>
         {isConnected && (
@@ -618,7 +618,7 @@ function Actions({ r, address, isConnected, walletChainId, onDone }: { r: Copilo
       {v1 ? (
         <div className="mt-3 border border-warn/40 bg-warn/[0.04] p-3 text-[12px] text-ink-2">
           This is the Genesis (v1) escrow: raiseChallenge / supportChallenge / opposeChallenge each require an EIP-712 TermsAcceptance signature that only Vibestarter&apos;s backend can issue (SIWE session + Starter Card + checks). Kestrel will not fake it.
-          <a href={r.vibestarterUrl} target="_blank" rel="noreferrer" className="mt-2 block mono text-[12px] text-warn hover:underline">Continue on Vibestarter ↗</a>
+          <a href={r.vibestarterUrl} target="_blank" rel="noreferrer" className="mt-2 block mono text-[12px] text-warn hover:underline max-[901px]:flex max-[901px]:min-h-[36px] max-[901px]:items-center">Continue on Vibestarter ↗</a>
         </div>
       ) : (
         <>
@@ -627,7 +627,7 @@ function Actions({ r, address, isConnected, walletChainId, onDone }: { r: Copilo
               No live eligibility credential for this wallet. Kestrel cannot issue one. <a href="https://app.vibestarter.xyz" target="_blank" rel="noreferrer" className="underline">Get a Vibestarter credential (Starter Card signup) ↗</a>
             </p>
           )}
-          <div className="mt-3 grid gap-4 lg:grid-cols-2 max-[600px]:gap-3">
+          <div className="mt-3 grid gap-4 lg:grid-cols-2 max-[601px]:gap-3">
             <div className="border hairline p-3">
               <p className="text-[13px] text-ink">Raise a challenge</p>
               <textarea value={reason} onChange={(e) => setReason(e.target.value)} maxLength={1000} rows={3} placeholder="Why should this tranche be withheld? (plain text, stored on-chain, max 1000 chars)" className="mt-2 w-full rounded-[2px] border border-hair-strong bg-transparent p-2 text-[12px] text-ink placeholder:text-ink-3 focus:border-phosphor/60 focus:outline-none" />
@@ -654,7 +654,7 @@ function Actions({ r, address, isConnected, walletChainId, onDone }: { r: Copilo
         </>
       )}
 
-      <div className="mt-4 grid gap-4 md:grid-cols-3 max-[600px]:gap-3">
+      <div className="mt-4 grid gap-4 md:grid-cols-3 max-[601px]:gap-3">
         <div className="border hairline p-3">
           <p className="text-[13px] text-ink">Expire a stale challenge</p>
           <p className="mt-1 text-[11px] text-ink-3">Permissionless after the {Math.round(r.constants.adjudicationWindow / 3600)}h adjudication window: full bond back to the challenger, no slash.</p>
@@ -702,11 +702,11 @@ function ActButtons({
   return (
     <div className="mt-2">
       {verdict && !verdict.ok && <p className="mb-1 mono text-[10px] text-ink-3">predicted: {verdict.predictedRevert ? `${verdict.predictedRevert} — ` : ""}{verdict.reason}</p>}
-      <div className="flex flex-wrap items-center gap-2 max-[600px]:grid max-[600px]:grid-cols-1">
-        <button onClick={onSim} disabled={disabled || st.sim === "pending"} className="rounded-[2px] border border-hair-strong px-3 py-1.5 mono text-[11px] text-ink hover:border-phosphor/60 hover:text-phosphor disabled:cursor-not-allowed disabled:opacity-30 max-[900px]:min-h-[44px]">
+      <div className="flex flex-wrap items-center gap-2 max-[601px]:grid max-[601px]:grid-cols-1">
+        <button onClick={onSim} disabled={disabled || st.sim === "pending"} className="rounded-[2px] border border-hair-strong px-3 py-1.5 mono text-[11px] text-ink hover:border-phosphor/60 hover:text-phosphor disabled:cursor-not-allowed disabled:opacity-30 max-[901px]:min-h-[44px]">
           {st.sim === "pending" ? "simulating…" : `1 · SIMULATE${label ? ` ${label.toUpperCase()}` : ""}`}
         </button>
-        <button onClick={onSign} disabled={!canSign} className="rounded-[2px] bg-crit px-3 py-1.5 mono text-[11px] font-semibold text-white hover:bg-[#ff6668] disabled:cursor-not-allowed disabled:opacity-30 max-[900px]:min-h-[44px]">
+        <button onClick={onSign} disabled={!canSign} className="rounded-[2px] bg-crit px-3 py-1.5 mono text-[11px] font-semibold text-white hover:bg-[#ff6668] disabled:cursor-not-allowed disabled:opacity-30 max-[901px]:min-h-[44px]">
           2 · {atomicLabel ?? `SIGN${label ? ` ${label.toUpperCase()}` : ""}`}
         </button>
       </div>
@@ -735,9 +735,9 @@ function RulesAndTrust({ r }: { r: CopilotReport }) {
   const k = r.constants;
   return (
     <div className="grid gap-6 md:grid-cols-2">
-      <div className="border hairline p-4 max-[600px]:p-3">
+      <div className="border hairline p-4 max-[601px]:p-3">
         <p className="label">Rules · read live from the escrow</p>
-        <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[12px] max-[900px]:grid-cols-[auto_minmax(0,1fr)] max-[900px]:[overflow-wrap:anywhere] max-[600px]:gap-x-3">
+        <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[12px] max-[901px]:grid-cols-[auto_minmax(0,1fr)] max-[901px]:[overflow-wrap:anywhere] max-[601px]:gap-x-3">
           <dt className="text-ink-3">Challenge window</dt>
           <dd className="text-ink-2">{k.challengeWindow / 3600}h after the founder calls requestTranche</dd>
           <dt className="text-ink-3">Bond</dt>
@@ -757,9 +757,9 @@ function RulesAndTrust({ r }: { r: CopilotReport }) {
           Docs: <a className="hover:text-ink" href="https://app.vibestarter.xyz/docs/tranches" target="_blank" rel="noreferrer">/docs/tranches ↗</a> · <a className="hover:text-ink" href="https://app.vibestarter.xyz/docs/escrow" target="_blank" rel="noreferrer">/docs/escrow ↗</a> · <a className="hover:text-ink" href={r.vibestarterUrl} target="_blank" rel="noreferrer">raise page ↗</a>
         </p>
       </div>
-      <div className="border hairline p-4 max-[600px]:p-3">
+      <div className="border hairline p-4 max-[601px]:p-3">
         <p className="label">Trust surface · facts only</p>
-        <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[12px] max-[900px]:grid-cols-[auto_minmax(0,1fr)] max-[900px]:[overflow-wrap:anywhere] max-[600px]:gap-x-3">
+        <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[12px] max-[901px]:grid-cols-[auto_minmax(0,1fr)] max-[901px]:[overflow-wrap:anywhere] max-[601px]:gap-x-3">
           <dt className="text-ink-3">Adjudicator</dt>
           <dd className="text-ink-2">{r.admin ? <AddrLink chainId={r.chainId} address={r.admin} /> : "unavailable"} {r.adminIsContract === false ? "· EOA (one key upholds/rejects)" : r.adminSafe ? `· Safe ${r.adminSafe.threshold}-of-${r.adminSafe.owners.length}` : r.adminIsContract ? "· contract" : ""}</dd>
           {r.trust.platformSafe && (

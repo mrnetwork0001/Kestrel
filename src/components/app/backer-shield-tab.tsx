@@ -74,13 +74,13 @@ export function BackerShieldTab({ focus }: { focus: string | null }) {
       {universe && <UniverseStrip u={universe} count={escrows.length} />}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
         <Panel title={`Escrows · ${escrows.length}`} n="01" right={<span className="mono text-[10px] text-ink-3">{isFetching ? "refreshing…" : "live · both chains"}</span>}>
-          <ul className="-mx-4 -my-4 divide-y divide-white/[0.06] max-[900px]:max-h-[min(60vh,440px)] max-[900px]:overflow-y-auto max-[900px]:overscroll-contain max-[600px]:-mx-3 max-[600px]:-my-3">
+          <ul className="-mx-4 -my-4 divide-y divide-white/[0.06] max-[901px]:max-h-[min(60vh,440px)] max-[901px]:overflow-y-auto max-[901px]:overscroll-contain max-[601px]:-mx-3 max-[601px]:-my-3">
             {escrows.map((e) => {
               const win = e.tranches.find((t) => t.status === "CHALLENGE_WINDOW");
               const ne = e.nextEvent;
               return (
                 <li key={`${e.chainId}-${e.address}`}>
-                  <button onClick={() => setSelected(e.address)} className={cx("w-full px-4 py-3 text-left transition-colors max-[600px]:px-3", current?.address === e.address && current.chainId === e.chainId ? "bg-elevated" : "hover:bg-white/[0.02]")}>
+                  <button onClick={() => setSelected(e.address)} className={cx("w-full px-4 py-3 text-left transition-colors max-[601px]:px-3", current?.address === e.address && current.chainId === e.chainId ? "bg-elevated" : "hover:bg-white/[0.02]")}>
                     <div className="flex items-center justify-between gap-2">
                       <span className="truncate text-[14px] text-ink">{e.title ?? "Untitled raise"}</span>
                       <ChainBadge chainId={e.chainId} />
@@ -120,7 +120,7 @@ export function BackerShieldTab({ focus }: { focus: string | null }) {
 
 function UniverseStrip({ u, count }: { u: UniverseSummary; count: number }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border hairline bg-surface px-4 py-3 mono text-[10px] text-ink-3 max-[600px]:gap-x-3 max-[600px]:px-3">
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border hairline bg-surface px-4 py-3 mono text-[10px] text-ink-3 max-[601px]:gap-x-3 max-[601px]:px-3">
       <span className="text-ink-2">LAUNCH UNIVERSE · {count} escrows</span>
       {u.factories.map((f) => (
         <span key={`${f.chainId}:${f.address}`} className="flex min-w-0 flex-wrap items-center gap-1.5 break-all">
@@ -149,9 +149,9 @@ function EscrowDetail({ e }: { e: ShieldEscrow }) {
   return (
     <div className="min-w-0 space-y-6">
       <Panel title={e.title ? `${e.title} · tranche escrow` : "Tranche escrow"} n="02" right={<AddrLink chainId={e.chainId} address={e.address} className="text-[11px]" />}>
-        {e.tagline && <p className="mb-4 text-[13px] text-ink-3 max-[600px]:mb-3">{e.tagline}</p>}
+        {e.tagline && <p className="mb-4 text-[13px] text-ink-3 max-[601px]:mb-3">{e.tagline}</p>}
         <div className="mb-4 flex flex-wrap gap-x-4 gap-y-1 mono text-[10px] text-ink-3">
-          <a href={vsUrl} target="_blank" rel="noreferrer" className="text-ink-2 hover:text-ink">Raise page on Vibestarter ↗</a>
+          <a href={vsUrl} target="_blank" rel="noreferrer" className="text-ink-2 hover:text-ink max-[901px]:inline-flex max-[901px]:min-h-[36px] max-[901px]:items-center">Raise page on Vibestarter ↗</a>
           {e.generation && e.generation !== "unknown" && (
             <span>escrow {e.generation} · {e.generation === "v1" ? "challenges need a Vibestarter terms signature · 72 h auto-expiry" : "challenges gated by onchain eligibility registry · 7 d adjudication"}</span>
           )}
@@ -163,16 +163,16 @@ function EscrowDetail({ e }: { e: ShieldEscrow }) {
           <Stat label="Backers" value={e.contributorCount ?? "—"} sub={e.holderCount != null ? `${e.holderCount} token holders` : undefined} />
         </div>
         {win && (
-          <div className="mt-5 border border-warn/40 bg-warn/[0.05] p-4 max-[600px]:p-3">
+          <div className="mt-5 border border-warn/40 bg-warn/[0.05] p-4 max-[601px]:p-3">
             <p className="label text-warn">72-hour backer challenge window · {win.label}</p>
-            <p className="mt-2 tnum text-[32px] text-warn max-[600px]:text-[28px]">
+            <p className="mt-2 tnum text-[32px] text-warn max-[601px]:text-[28px]">
               <Countdown to={win.windowEndsAt} initialNow={nowSec} />
             </p>
             <p className="mt-1 text-[12px] text-ink-2">
               Founder requested {fmtUnits(win.amount, 18, 4)} Ξ at {fmtUtc(win.requestedAt)}. Window closes {fmtUtc(win.windowEndsAt)}.
               {e.challengeThresholdBps != null && ` Holders of ≥ ${(e.challengeThresholdBps / 100).toFixed(2)}% of token supply may raise a challenge.`}
             </p>
-            <a href={vsUrl} target="_blank" rel="noreferrer" className="mt-3 inline-block mono text-[11px] text-warn hover:underline">Review on Vibestarter ↗</a>
+            <a href={vsUrl} target="_blank" rel="noreferrer" className="mt-3 inline-block mono text-[11px] text-warn hover:underline max-[901px]:inline-flex max-[901px]:min-h-[36px] max-[901px]:items-center">Review on Vibestarter ↗</a>
           </div>
         )}
         {!win && e.nextEvent && <NextEventBlock ev={e.nextEvent} nowSec={nowSec} />}
@@ -198,17 +198,17 @@ function EscrowDetail({ e }: { e: ShieldEscrow }) {
           </p>
         )}
         {/* <=600px: the nested co-pilot panel bleeds to this panel's edges so its own boxes get the width back. */}
-        <div className="mt-5 max-[600px]:-mx-3">
+        <div className="mt-5 max-[601px]:-mx-3">
           <ChallengeCopilot escrow={e.address} chainId={e.chainId} title={e.title} />
         </div>
       </Panel>
 
       <Panel title="Tranche timeline · 10% kickstart + 6 × 15% of escrowed funds" n="03">
-        <ol className="grid gap-2 sm:grid-cols-2 xl:grid-cols-7 max-[600px]:flex max-[600px]:snap-x max-[600px]:snap-mandatory max-[600px]:overflow-x-auto max-[600px]:overscroll-x-contain max-[600px]:pb-2">
+        <ol className="grid gap-2 sm:grid-cols-2 xl:grid-cols-7 max-[601px]:flex max-[601px]:snap-x max-[601px]:snap-mandatory max-[601px]:overflow-x-auto max-[601px]:overscroll-x-contain max-[601px]:pb-2">
           {e.tranches.map((t) => {
             const isNext = e.nextEvent?.tranche === t.index && e.nextEvent.kind === "tranche-unlock";
             return (
-              <li key={t.index} className={cx("border p-3 max-[600px]:w-[140px] max-[600px]:shrink-0 max-[600px]:snap-start", STATUS_STYLE[t.status], isNext && "border-base/60")}>
+              <li key={t.index} className={cx("border p-3 max-[601px]:w-[140px] max-[601px]:shrink-0 max-[601px]:snap-start", STATUS_STYLE[t.status], isNext && "border-base/60")}>
                 <p className="mono text-[10px] text-ink-3">{t.index === 0 ? "KICKSTART" : `MONTH ${t.index}`}</p>
                 <p className="mt-1 tnum text-[14px] text-ink">{fmtUnits(t.amount, 18, 3)} Ξ</p>
                 <p className="mt-0.5 mono text-[10px] text-ink-3" title="Share of escrowed funds · share of total raise (escrow holds 85%; 15% went to permanent LP)">
@@ -347,14 +347,14 @@ const NEXT_TONE: Record<EscrowNextEvent["kind"], string> = {
 
 function NextEventBlock({ ev, nowSec }: { ev: EscrowNextEvent; nowSec: number }) {
   return (
-    <div className={cx("mt-5 border p-4 max-[600px]:p-3", NEXT_TONE[ev.kind])}>
+    <div className={cx("mt-5 border p-4 max-[601px]:p-3", NEXT_TONE[ev.kind])}>
       <p className="label">
         Next · {ev.label}
         {ev.amount && BigInt(ev.amount) > 0n ? ` · ${fmtUnits(ev.amount, 18, 4)} Ξ` : ""}
       </p>
       {ev.at ? (
         <>
-          <p className="mt-2 tnum text-[32px] max-[600px]:text-[28px]">
+          <p className="mt-2 tnum text-[32px] max-[601px]:text-[28px]">
             <TickTo to={ev.at} initialNow={nowSec} done="due now" />
           </p>
           <p className="mt-1 mono text-[11px] text-ink-3">{fmtUtc(ev.at)}</p>
