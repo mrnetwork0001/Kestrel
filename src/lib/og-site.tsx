@@ -17,6 +17,13 @@ function Cell({ label, value, color, sub }: { label: string; value: string; colo
 }
 
 function Telemetry({ p }: { p: ParityReport }) {
+  // Verdict, not `verified`: a LayerZero packet in flight is expected, not drift. Only UNBACKED is a warning.
+  const verdict = p.verdict ?? (p.verified ? "EXACT" : "IN_FLIGHT");
+  const pv =
+    verdict === "EXACT" ? { value: "EXACT", color: OG.phosphor, sub: "locked = circulating" }
+    : verdict === "IN_FLIGHT" ? { value: "IN FLIGHT", color: OG.ink, sub: `${p.pendingPackets ?? "some"} packet${p.pendingPackets === 1 ? "" : "s"} in flight` }
+    : verdict === "OVER_BACKED" ? { value: "OVER BACKED", color: OG.ink, sub: "locked > circulating" }
+    : { value: "UNBACKED", color: OG.crit, sub: "circulating > locked" };
   const spreadColor = p.spreadBps === null ? OG.ink3 : Math.abs(p.spreadBps) >= 300 ? OG.warn : OG.ink;
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
@@ -27,7 +34,7 @@ function Telemetry({ p }: { p: ParityReport }) {
       <div style={{ display: "flex", border: `1px solid ${OG.hairStrong}`, background: OG.surface, borderLeft: "none" }}>
         <Cell label="BASE 8453" value={`#${BigInt(p.base.number).toLocaleString("en-US")}`} color={OG.base} />
         <Cell label="ROBINHOOD 4663" value={`#${BigInt(p.robinhood.number).toLocaleString("en-US")}`} color={OG.rh} />
-        <Cell label="$VIBES OFT PARITY" value={p.verified ? "VERIFIED" : "DRIFT"} color={p.verified ? OG.phosphor : OG.warn} sub={p.verified ? "locked = circulating" : "locked ≠ circulating"} />
+        <Cell label="$VIBES OFT PARITY" value={pv.value} color={pv.color} sub={pv.sub} />
         <Cell label="BASE ↔ RH SPREAD" value={p.spreadBps === null ? "n/a" : fmtBps(p.spreadBps)} color={spreadColor} sub={p.spreadBps === null ? undefined : `${p.spreadBps} bps`} />
       </div>
     </div>

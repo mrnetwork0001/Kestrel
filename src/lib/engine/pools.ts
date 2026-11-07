@@ -220,7 +220,7 @@ async function v2Overnight(ctx: PoolCtx, r0: bigint, r1: bigint, supplyNow: bigi
   try {
     fromBlock = await overnightFromBlock(ctx);
   } catch {
-    return { ...skipped(), note: "Could not resolve historical block height." };
+    return { ...skipped(), note: "Could not resolve historical block height.", degraded: "Overnight pool read failed (historical block height unreadable): LP and price changes are UNKNOWN" };
   }
   const [hist, rawLogs] = await Promise.all([
     settled(
@@ -314,6 +314,7 @@ async function v2Overnight(ctx: PoolCtx, r0: bigint, r1: bigint, supplyNow: bigi
     reserve0ChangeBps: lpChangeBps, lpChangeBps, lpMethod, quoteReserveChangeBps,
     priceChangeBps, priceOrientation: orientation(token0, token1, quoteSide),
     swapCount, token0Volume, quoteVolume, note,
+    ...(method === "unavailable" ? { degraded: "Overnight pool read failed (neither historical state nor event logs were served): LP and price changes are UNKNOWN" } : {}),
   };
 }
 
@@ -344,7 +345,7 @@ async function clOvernight(ctx: PoolCtx, sqrtNow: bigint, Lnow: bigint, tickNow:
   try {
     fromBlock = await overnightFromBlock(ctx);
   } catch {
-    return { ...skipped(), note: "Could not resolve historical block height." };
+    return { ...skipped(), note: "Could not resolve historical block height.", degraded: "Overnight pool read failed (historical block height unreadable): LP and price changes are UNKNOWN" };
   }
   const [hist, rawLogs] = await Promise.all([
     settled(
@@ -398,13 +399,15 @@ async function clOvernight(ctx: PoolCtx, sqrtNow: bigint, Lnow: bigint, tickNow:
 
   let lpChangeBps: number | null = null;
   let lpMethod: string | null = null;
+  let activeLiquidityChangeBps: number | null = null;
   if (rawLogs.ok) {
     const before = Lnow - dLInRange;
     lpChangeBps = dLInRange === 0n ? 0 : before > 0n ? Number((dLInRange * 10_000n) / before) : null;
     lpMethod = "liquidity added/removed by Mint/Burn in ranges covering the current tick";
-  } else if (hist.ok) {
-    lpChangeBps = bpsChange(hist.value[1], Lnow);
-    lpMethod = "active liquidity L at the current tick (also moves when price crosses ticks)";
+  }
+  if (hist.ok) {
+    // Active L also moves whenever price crosses initialized ticks, so it is NEVER published as an LP withdrawal.
+    activeLiquidityChangeBps = bpsChange(hist.value[1], Lnow);
   }
 
   let quoteReserveChangeBps: number | null = null;
@@ -415,7 +418,7 @@ async function clOvernight(ctx: PoolCtx, sqrtNow: bigint, Lnow: bigint, tickNow:
   }
 
   const method: OvernightPoolDelta["method"] = hist.ok ? "historical-state" : rawLogs.ok ? "event-logs" : "unavailable";
-  const flow = swapCount !== null ? `${swapCount} swaps, ${lpEvents} LP mint/burn events` : "event logs unavailable";
+  const flow = swapCount !== null ? `${swapCount} swaps, ${lpEvents} LP mint/burn events` : "event logs unavailable — LP add/remove flow not measured (active-liquidity change is shown separately; it also moves when price crosses ticks)";
   const note = hist.ok
     ? `slot0()/liquidity() at block #${fromBlock} vs latest; ${flow}.`
     : rawLogs.ok
@@ -425,9 +428,10 @@ async function clOvernight(ctx: PoolCtx, sqrtNow: bigint, Lnow: bigint, tickNow:
       : "Historical state pruned and event logs unavailable on public RPC.";
   return {
     method, hours: OVERNIGHT_HOURS, fromBlock: fromBlock.toString(),
-    reserve0ChangeBps: lpChangeBps, lpChangeBps, lpMethod, quoteReserveChangeBps,
+    reserve0ChangeBps: lpChangeBps, lpChangeBps, lpMethod, activeLiquidityChangeBps, quoteReserveChangeBps,
     priceChangeBps, priceOrientation: orientation(token0, token1, quoteSide),
     swapCount, token0Volume, quoteVolume, note,
+    ...(method === "unavailable" ? { degraded: "Overnight pool read failed (neither historical state nor event logs were served): LP and price changes are UNKNOWN" } : {}),
   };
 }
 
@@ -516,7 +520,10 @@ export async function discoverPools(chainId: ChainId, token: Address, quotes?: A
   return cached(key, 300, async () => {
     const client = getPublicClientForChain(chainId);
     const probes = (await Promise.all(quoteList.map(async (q) => (await venueProbes(chainId, token, q)).map((p) => ({ ...p, quote: q }))))).flat();
-    const res = (await client.multicall({ allowFailure: true, contracts: probes.map((p) => p.call) as never[] })) as { status: "success" | "failure"; result?: unknown }[];
+    const res = (await client.multicall({ allowFailure: true, contracts: probes.map((p) => p.call) as never[] })) as { status: "success" | "failure"; result?: unknown; error?: unknown }[];
+    // An RPC failure on any probe is UNKNOWN, not "no pool on that venue": throw so cached() never stores it.
+    const probeFails = res.filter((r) => isRpcFailure(r)).length;
+    if (probeFails) throw new Error(`Pool discovery: ${probeFails}/${res.length} venue probes failed (RPC error) — retry`);
     const found = new Map<string, (typeof probes)[number]>();
     res.forEach((r, i) => {
       const addr = r.status === "success" && typeof r.result === "string" ? r.result : ZERO;
@@ -528,6 +535,8 @@ export async function discoverPools(chainId: ChainId, token: Address, quotes?: A
       allowFailure: true,
       contracts: entries.map(([addr, p]) => ({ address: p.quote, abi: ERC20_ABI, functionName: "balanceOf" as const, args: [getAddress(addr)] as const })),
     });
+    const balFails = bals.filter((b) => isRpcFailure(b)).length;
+    if (balFails) throw new Error(`Pool discovery: ${balFails}/${bals.length} pool depth reads failed (RPC error) — retry`);
     const out: PoolCandidate[] = entries.map(([addr, p], i) => {
       const qa = QUOTE_ASSETS[chainId].find((q) => q.address.toLowerCase() === p.quote.toLowerCase());
       const b = bals[i];

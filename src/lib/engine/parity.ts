@@ -51,14 +51,23 @@ async function readBacking(baseBlockNumber: bigint, rhBlockNumber: bigint) {
   return { locked, rhSupply, rhReserve };
 }
 
-function pendingOf(bridge: OftBridgeReport | null): number {
-  return bridge ? bridge.lanes.reduce((n, l) => n + l.nonces.unverified + l.nonces.awaitingExecution.length, 0) : 0;
+/** Packets in flight across both lanes; null when the bridge or any lane's nonces could not be read (UNKNOWN, never 0). */
+function pendingOf(bridge: OftBridgeReport | null): number | null {
+  if (!bridge || bridge.lanes.some((l) => l.nonces.known === false)) return null;
+  return bridge.lanes.reduce((n, l) => n + l.nonces.unverified + l.nonces.awaitingExecution.length, 0);
 }
 
-function verdictOf(deltaSigned: bigint, pending: number): ParityVerdict {
+function verdictOf(deltaSigned: bigint, pending: number | null): ParityVerdict {
   // In-flight/stuck packets always make locked > circulating (lock / reserve-return happens at send, release at receive),
-  // so only circulating > locked is a real backing failure.
-  return deltaSigned === 0n ? "EXACT" : deltaSigned < 0n ? "UNBACKED" : pending > 0 ? "IN_FLIGHT" : "OVER_BACKED";
+  // so only circulating > locked is a real backing failure. With unreadable nonces a positive Δ cannot be called
+  // OVER_BACKED ("no packet in flight" is unknown): report the IN_FLIGHT candidate with pendingPackets = null.
+  return deltaSigned === 0n ? "EXACT" : deltaSigned < 0n ? "UNBACKED" : pending === null || pending > 0 ? "IN_FLIGHT" : "OVER_BACKED";
+}
+
+function bridgeDegradedOf(bridge: OftBridgeReport | null): string | undefined {
+  if (!bridge) return "OFT bridge read failed: LayerZero nonces, peers and the in-flight count are UNKNOWN";
+  const bad = bridge.lanes.filter((l) => l.peersOk === null || l.nonces.known === false);
+  return bad.length ? `OFT ${bad.map((l) => l.direction).join(" + ")} lane read incomplete (peers/nonces UNKNOWN)` : undefined;
 }
 
 /**
@@ -170,6 +179,7 @@ export async function getBridgeParity(opts: { overnight?: boolean; notionalWei?:
     verified: delta === 0n,
     verdict,
     pendingPackets: pendingOf(finalBridge),
+    ...(bridgeDegradedOf(finalBridge) ? { bridgeDegraded: bridgeDegradedOf(finalBridge) } : {}),
     basePool,
     rhPool,
     baseVibesPerWeth: baseP.toString(),

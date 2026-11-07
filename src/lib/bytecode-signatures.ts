@@ -134,8 +134,17 @@ export function inspectRawBytecode(bytecodeHex: string | undefined | null): Byte
     return { ...empty, byteSize: 23, eip7702Delegate: `0x${clean.slice(6)}` };
   }
 
-  const cloneMatch = clean.match(/^363d3d373d3d3d363d73([0-9a-f]{40})5af43d82803e903d91602b57fd5bf3$/);
-  const eip1167CloneTarget = cloneMatch ? `0x${cloneMatch[1]}` : null;
+  // Minimal-proxy clone targets (immutable forwarders to a fixed logic address):
+  //  - EIP-1167 (exact 45-byte runtime)
+  //  - ERC-7511 PUSH0 minimal proxy (Solady clone_PUSH0, 44 bytes)
+  //  - EIP-1167 runtime + appended immutable args (Solady LibClone CWIA)
+  //  - other small forwarders with a hard-coded PUSH20 <logic> GAS DELEGATECALL (wighawag clones-with-immutable-args)
+  const cloneMatch =
+    clean.match(/^363d3d373d3d3d363d73([0-9a-f]{40})5af43d82803e903d91602b57fd5bf3$/) ??
+    clean.match(/^365f5f375f5f365f73([0-9a-f]{40})5af43d5f5f3e5f3d91602a57fd5bf3$/) ??
+    clean.match(/^363d3d373d3d3d363d73([0-9a-f]{40})5af43d82803e903d91602b57fd5bf3[0-9a-f]*$/) ??
+    (clean.length <= 512 ? clean.match(/73([0-9a-f]{40})5af4/) : null);
+  const eip1167CloneTarget = cloneMatch && !/^0{40}$/.test(cloneMatch[1]) ? `0x${cloneMatch[1]}` : null;
 
   const bytes = stripMetadata(hexToBytes(clean));
   const push4 = new Set<string>();

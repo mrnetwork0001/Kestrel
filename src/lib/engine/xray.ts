@@ -150,6 +150,10 @@ export async function xrayContract(chainId: ChainId, address: Address): Promise<
     }
   }
 
+  // A small DELEGATECALL forwarder with no resolvable logic (Diamond, slot-0 singleton proxy, unknown clone): only
+  // the forwarder's bytes were scanned, so "no privileged selectors" would be a false all-clear.
+  const unresolvedDelegatecall = top.isContract && top.hasDelegatecall && proxyKind === "none" && !logicAddr && top.byteSize < 4096;
+
   const controllers: ControllerPosture[] = [];
   let upgradeAuthority: ControllerPosture | null = null;
   if (top.isContract) {
@@ -225,6 +229,7 @@ export async function xrayContract(chainId: ChainId, address: Address): Promise<
     hasDelegatecall: top.hasDelegatecall || analyzed.hasDelegatecall,
     push4Count: analyzed.push4Count,
     controllers,
+    ...(unresolvedDelegatecall ? { unresolvedDelegatecall: true } : {}),
     degraded: degradedReasons.length > 0,
     degradedReasons,
   };

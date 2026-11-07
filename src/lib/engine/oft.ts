@@ -250,6 +250,8 @@ export async function readOftBridge(opts: { blocks?: { base: PinnedBlock; robinh
     const inFlight = cb ? cb[0] : 0n;
     const sendCfg = r2[i].sendCfg;
     const recvCfg = r2[j].recvCfg;
+    // Missing nonces are UNKNOWN — never 0 (that turned a failed read into the lane's whole history "in flight").
+    const noncesKnown = a.outN !== null && b.inN !== null;
     const outbound = a.outN ?? 0n;
     const inbound = b.inN ?? 0n;
     return {
@@ -260,7 +262,8 @@ export async function readOftBridge(opts: { blocks?: { base: PinnedBlock; robinh
       dstEid: dst.eid,
       srcAdapter: src.adapter,
       dstAdapter: dst.adapter,
-      peersOk: a.peer?.toLowerCase() === b32(dst.adapter) && b.peer?.toLowerCase() === b32(src.adapter),
+      // A failed peers() read is UNKNOWN (null), never a mismatch.
+      peersOk: a.peer == null || b.peer == null ? null : a.peer.toLowerCase() === b32(dst.adapter) && b.peer.toLowerCase() === b32(src.adapter),
       nativeFeeWei: (a.quote?.nativeFee ?? 0n).toString(),
       feeBreakdown: fees[i],
       enforcedLzReceiveGas: a.enforced ? (lzReceiveGas(a.enforced)?.toString() ?? null) : null,
@@ -289,10 +292,11 @@ export async function readOftBridge(opts: { blocks?: { base: PinnedBlock; robinh
             sendCfg.optionalDVNThreshold === recvCfg.optionalDVNThreshold // DVN addresses differ per chain by design; compare counts only
           : null,
       nonces: {
-        outbound: outbound.toString(),
-        inboundVerified: inbound.toString(),
-        lazyExecuted: (b.lazyN ?? 0n).toString(),
-        unverified: outbound > inbound ? Number(outbound - inbound) : 0,
+        outbound: a.outN !== null ? a.outN.toString() : "unknown",
+        inboundVerified: b.inN !== null ? b.inN.toString() : "unknown",
+        lazyExecuted: b.lazyN !== null ? b.lazyN.toString() : "unknown",
+        unverified: noncesKnown && outbound > inbound ? Number(outbound - inbound) : 0,
+        known: noncesKnown,
         awaitingExecution: r2[j].awaiting,
       },
     };
