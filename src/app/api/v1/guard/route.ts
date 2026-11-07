@@ -1,4 +1,5 @@
 import { apiError, json, preflight, rateLimited } from "@/lib/api";
+import { cached } from "@/lib/cache";
 import { errMsg, normalizeChainId, parseAddress } from "@/lib/engine/chain-utils";
 import { guardVerdict } from "@/lib/engine/guard";
 import { buildRequirements, verifyPayment, X402_VERSION } from "@/lib/x402";
@@ -14,7 +15,7 @@ export const maxDuration = 60;
  * without it the endpoint answers HTTP 402 with x402 payment requirements.
  */
 async function handle(req: Request, input: { address?: unknown; chainId?: unknown; mode?: unknown }) {
-  if (rateLimited(req, 60)) return apiError("Rate limited.", 429);
+  if (await rateLimited(req, 60)) return apiError("Rate limited.", 429);
   const address = parseAddress(input.address);
   if (!address) return apiError("`address` must be a valid 0x address.");
   const chainId = normalizeChainId(input.chainId ?? 8453);
@@ -36,7 +37,10 @@ async function handle(req: Request, input: { address?: unknown; chainId?: unknow
   }
 
   try {
-    const result = await guardVerdict(chainId, address, mode);
+    const result =
+      mode === "preview"
+        ? await cached(`guard:preview:${chainId}:${address.toLowerCase()}`, 30, () => guardVerdict(chainId, address, "preview"))
+        : await guardVerdict(chainId, address, mode);
     return json(result, { headers: paymentResponse ? { "X-PAYMENT-RESPONSE": paymentResponse } : {} });
   } catch (e) {
     return apiError(`Guard scan failed: ${errMsg(e)}`, 502);

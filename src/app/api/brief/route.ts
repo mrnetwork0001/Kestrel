@@ -10,7 +10,7 @@ export const maxDuration = 60;
  * Provider order: 0G Compute Router → Anthropic → deterministic rule-based brief from live findings.
  */
 export async function POST(req: Request) {
-  if (rateLimited(req, 15)) return apiError("Rate limited — slow down.", 429);
+  if (await rateLimited(req, 15)) return apiError("Rate limited — slow down.", 429);
   let body: { address?: string; chainId?: number } = {};
   try {
     body = await req.json();
