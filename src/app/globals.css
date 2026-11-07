@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Kestrel "Night Shift" Design System — see docs/DESIGN_SYSTEM.md
+   ========================================================================== */
+
+:root {
+  --bg-canvas: #07090d;
+  --bg-surface: #0c1017;
+  --bg-elevated: #121822;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text-primary: #f3f6fa;
+  --text-secondary: #9ba7b8;
+  --text-muted: #5f6b7c;
+  --accent-phosphor: #91d982;
+  --chain-base: #38bdf8;
+  --chain-robinhood: #c8ff00;
+  --signal-warn: #ffb020;
+  --signal-critical: #ff4d4f;
+}
+
+@theme inline {
+  --color-canvas: var(--bg-canvas);
+  --color-surface: var(--bg-surface);
+  --color-elevated: var(--bg-elevated);
+  --color-hair: var(--border-subtle);
+  --color-hair-strong: var(--border-strong);
+  --color-ink: var(--text-primary);
+  --color-ink-2: var(--text-secondary);
+  --color-ink-3: var(--text-muted);
+  --color-phosphor: var(--accent-phosphor);
+  --color-base: var(--chain-base);
+  --color-rh: var(--chain-robinhood);
+  --color-warn: var(--signal-warn);
+  --color-crit: var(--signal-critical);
+  --font-serif: var(--font-instrument-serif), ui-serif, Georgia, serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --radius-xs: 2px;
+}
+
+html,
+body {
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  /* 1px architectural grid, barely visible */
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: -1px -1px;
+}
+
+.mono,
+.tnum {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "zero" 1;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 2px;
+}
+
+.hairline {
+  border-color: var(--border-subtle);
+}
+
+::selection {
+  background: rgba(145, 217, 130, 0.25);
+  color: var(--text-primary);
+}
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.cursor-blink::after {
+  content: "_";
+  margin-left: 2px;
+  color: var(--accent-phosphor);
+  animation: blink 1.1s steps(1) infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.dot-live {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+input[type="range"] {
+  accent-color: var(--accent-phosphor);
+}
+
+:focus-visible {
+  outline: 1px solid var(--accent-phosphor);
+  outline-offset: 2px;
+}
