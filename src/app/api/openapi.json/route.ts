@@ -1,4 +1,5 @@
 import { json, preflight } from "@/lib/api";
+import { siteUrl } from "@/lib/site";
 import { x402Config } from "@/lib/x402";
 
 export const runtime = "nodejs";
@@ -7,7 +8,7 @@ const addr = { name: "address", in: "query", required: true, schema: { type: "st
 const chain = { name: "chainId", in: "query", required: false, schema: { type: "integer", enum: [8453, 4663], default: 8453 } };
 
 export async function GET(req: Request) {
-  const origin = process.env.NEXT_PUBLIC_APP_URL || new URL(req.url).origin;
+  const origin = siteUrl(req);
   const cfg = x402Config();
   const spec = {
     openapi: "3.1.0",

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CONTRACTS } from "@/config/contracts";
 import { Panel, SectionLabel } from "@/components/ui";
 import { X402Playground } from "@/components/x402-playground";
+import { siteUrl } from "@/lib/site";
 import { x402Config } from "@/lib/x402";
 
 export const metadata: Metadata = {
@@ -16,7 +17,7 @@ function Code({ children }: { children: string }) {
 
 export default function AgentsPage() {
   const cfg = x402Config();
-  const origin = (process.env.NEXT_PUBLIC_APP_URL || "https://your-kestrel-deployment").replace(/\/+$/, "");
+  const origin = siteUrl();
   return (
     <div className="mx-auto max-w-[1100px] px-4 pb-10 pt-12">
       <SectionLabel n="07">For autonomous agents</SectionLabel>

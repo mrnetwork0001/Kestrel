@@ -7,6 +7,7 @@ import { readAllEscrows } from "@/lib/engine/escrow";
 import { getBridgeParity } from "@/lib/engine/parity";
 import { readPool } from "@/lib/engine/pools";
 import { fmtBps, fmtDuration, fmtUnits, shortAddr } from "@/lib/format";
+import { siteUrl } from "@/lib/site";
 
 export const runtime = "nodejs";
 export const maxDuration = 45;
@@ -45,7 +46,7 @@ async function assertSafeWebhook(raw: string): Promise<URL> {
  * real Night-Shift Pager alert (webhook and/or Telegram) with a 1-click /rescue deep link.
  */
 export async function POST(req: Request) {
-  if (rateLimited(req, 6)) return apiError("Rate limited — max 6 test pages per minute.", 429);
+  if (await rateLimited(req, 6)) return apiError("Rate limited — max 6 test pages per minute.", 429);
   let body: Body;
   try {
     body = await req.json();
@@ -87,9 +88,7 @@ export async function POST(req: Request) {
       ...(rules.watchChallengeWindows ? [{ rule: "Vibestarter 72h challenge window open", fired: openWindows.length > 0, observed: openWindows.length ? `${openWindows.length} open` : "none" }] : []),
     ];
 
-    const envUrl = process.env.NEXT_PUBLIC_APP_URL;
-    const appUrl = (envUrl && !envUrl.includes("localhost") ? envUrl : new URL(req.url).origin).replace(/\/+$/, "");
-    const deepLink = `${appUrl}/rescue?target=${target}&chain=${chainId}`;
+    const deepLink = `${siteUrl(req)}/rescue?target=${target}&chain=${chainId}`;
     const fired = triggers.filter((t) => t.fired);
     const lines = [
       `>_ KESTREL NIGHT-SHIFT PAGER · TEST`,

@@ -4,16 +4,15 @@ import { Suspense, type ReactNode } from "react";
 import { Providers } from "@/components/providers";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { TelemetryRibbon } from "@/components/telemetry-ribbon";
+import { siteUrl } from "@/lib/site";
 import "./globals.css";
 
 const serif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-instrument-serif" });
 const sans = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono" });
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-
 export const metadata: Metadata = {
-  metadataBase: new URL(appUrl),
+  metadataBase: new URL(siteUrl()),
   title: { default: "Kestrel ($KEST) — Overnight Sentinel for Base & Robinhood Chain", template: "%s · Kestrel" },
   description:
     "Autonomous overnight risk, liquidity, bridge parity, and tranche-escrow sentinel for Base & Robinhood Chain. Live onchain threat scores, EIP-5792 atomic Panic Bunker, rug stress tests, $VIBES OFT parity, and Vibestarter Backer Shield.",
