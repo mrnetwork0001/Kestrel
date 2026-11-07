@@ -1,0 +1,46 @@
+# Kestrel ($KEST)
+
+> Autonomous overnight risk, liquidity, bridge parity, and tranche-escrow sentinel for Base (chain 8453) and Robinhood Chain (chain 4663). Tagline: "Stay asleep. Kestrel watches the chain." Every number is read live from mainnet RPCs or Vibestarter's public API — no mock data, no wallet required to explore.
+
+## What it does
+
+1. While You Slept briefing — paste any wallet, token, pool or Vibestarter escrow address on Base or Robinhood Chain. Kestrel classifies it, reads it live, and returns a 0–100 Overnight Threat Score (NOMINAL 0–29, ELEVATED 30–64, CRITICAL 65–100) with traceable findings and a Morning Desk Brief (0G Compute or Anthropic when configured, otherwise a deterministic brief built only from live facts).
+2. Panic Bunker (EIP-5792) — builds one rescue bundle: approve(spender, 0) for each risky ERC-20 allowance, a single Permit2.lockdown() for Permit2 sub-allowances, and optional Aerodrome unwinds to USDC (live getAmountsOut quote, 3% max slippage). Every call is simulated (simulateContract, plus sequential eth_simulateV1 for approve→swap) before signing. Atomic via wallet_sendCalls when wallet_getCapabilities reports support; guided sequential writeContract otherwise. Non-custodial.
+3. Simulate the Rug — exact BigInt constant-product math on live Aerodrome getReserves() (live fee from PoolFactory.getFee) and Uniswap v3 active-range math from slot0().sqrtPriceX96 + liquidity(). Scenarios: top overnight-active whale dumps 100% (real wallet from Transfer logs), 50% LP pulled, OFT bridge saturated, black-swan cascade.
+4. Base ↔ Robinhood Parity Radar — verifies the $VIBES LayerZero OFT invariant BaseAdapter.balanceOf(VIBES) == RH.totalSupply() − RHReserveAdapter.balanceOf(VIBES) at the latest block on both chains, and the Aerodrome vs Uniswap v3 VIBES/WETH spread net of both pool fees, with live gas.
+5. Vibestarter Backer Shield — every VibesTranchEscrow on Base and Robinhood Chain (factory getAllEscrows + Genesis escrow + public API): 10% kickstart + six 15% monthly tranches, live 72-hour challenge-window countdowns, active challenges, permanent LP lock, Origin Capsule (VibesRegistry), founder GitHub/Ethos/X signals, founder app HTTP health.
+6. Bytecode & EIP-1967 X-Ray — opcode-level walk of eth_getCode (PUSH4 selectors only, metadata stripped), EIP-1967 implementation/admin/beacon slots, EIP-1167 clones, EIP-7702 delegated EOAs, owner()/admin posture (renounced, EOA, Safe m-of-n, contract), flags mint/burn/pause/blacklist/tax/max-tx/upgrade selectors and SELFDESTRUCT.
+7. Agent pre-trade gate — /api/v1/guard returns ALLOW | WARN | BLOCK. Free preview tier; full tier paid per call with x402 (HTTP 402, scheme "exact", Base USDC via EIP-3009). Also exposed as a Streamable HTTP MCP server.
+8. Night-Shift Pager — arm thresholds (LP drop %, cross-chain spread, challenge window opened, parity drift); a live test evaluates them against current chain state and dispatches a webhook (Discord/Slack/custom) or Telegram alert with a /rescue deep link.
+
+## Pages
+
+- / — Landing page with live SSR telemetry ($VIBES scan, OFT parity, spread, Genesis escrow countdown) and Launch App.
+- /app — Sentinel workspace: Briefing & X-Ray, Simulate the Rug, Parity Radar, Backer Shield, Panic Bunker, Night-Shift Pager. Deep-linkable: /app?target=0x…&chain=8453&tab=briefing|chaos|parity|shield|bunker|pager
+- /rescue?target=0x…&chain=8453 — Panic Bunker deep link (calldata preview without a wallet).
+- /how-it-works — Problem, architecture, X-Ray method, AMM math, parity, overnight deltas, EIP-5792 rescue, scoring.
+- /agents — Guard + x402 docs, live x402 handshake playground, MCP setup.
+- /token — Proposed $KEST utility (watcher slots, agent firewall credits, Panic Bunker policies) and risk disclosure. No token is deployed.
+
+## Machine endpoints
+
+- GET /api/scan?address=0x…&chainId=8453|4663[&llm=0] — unified live scan (ScanResult JSON).
+- GET /api/parity — $VIBES OFT parity + cross-venue spread.
+- GET /api/backer-shield[?escrow=0x…&chainId=8453] — Vibestarter escrows.
+- POST /api/brief {address, chainId} — Morning Desk Brief.
+- GET|POST /api/v1/guard?address=0x…&chainId=8453&mode=preview|full — verdict; mode=full answers 402 with x402 requirements until an X-PAYMENT header is supplied.
+- POST /api/mcp — MCP (JSON-RPC 2.0): tools scan_contract, check_bridge_parity, simulate_exit, inspect_vibestarter_escrow.
+- POST /api/pager/test — evaluate rules + dispatch test alert.
+- GET /api/openapi.json — OpenAPI 3.1.
+
+## Verified mainnet contracts
+
+- Base $VIBES 0xefFC8815487084a97edfdfF968b56Ea123421Acb · Robinhood $VIBES 0x9A73D60b9c8C2d330EB6D885E69fCc1399c33C18
+- Base OFT adapter 0x408021Cb4ef1033675C70CF97788F3E03f45A381 · Robinhood reserve adapter 0x37F26e3025b3DC50e0EE9f610D386803B42D0685
+- Base Aerodrome WETH/VIBES 0x07F78058685b75F89288f025a0a154A96021Ac45 · Robinhood Uniswap v3 WETH/VIBES (1%) 0x3A9BFEc8ae16Bf023C3119C38A04Fb054A19bAc5
+- VibesTranchEscrowFactory 0x36C7e2d87F4E2d33b70304EbaA81eE88CB04Bf86 · Genesis escrow 0x0e9bf34baed84a80d7647dafe4db52169147c911 · VibesRegistry 0x66b74176F53d3081a87F75e10aD6cF554174Aef9
+- Base USDC 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 · Permit2 0x000000000022D473030F116dDEE9F6B43aC78BA3
+
+## Built with
+
+Next.js 15, viem, wagmi, Tailwind v4. Built end-to-end with Claude Code. Consumes Vibestarter's MCP (https://app.vibestarter.xyz/mcp) and public campaigns API.
