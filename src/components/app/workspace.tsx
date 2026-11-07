@@ -131,16 +131,16 @@ export function Workspace({ initialScan, initialTarget, initialChainId, initialT
   };
 
   return (
-    <div className="mx-auto max-w-[1400px] px-4 pb-10 pt-8 max-[900px]:pt-4 max-[600px]:px-2.5 max-[600px]:pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
+    <div className="mx-auto max-w-[1400px] px-4 pb-10 pt-8 max-[901px]:pt-4 max-[601px]:px-2.5 max-[601px]:pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
       {/* Omnibar: one row on desktop; ≤900px stacks chain toggle / input / RUN SCAN */}
       <form onSubmit={onSubmit} className="panel flex flex-col gap-2 p-2 min-[901px]:flex-row min-[901px]:items-stretch">
-        <div className="flex shrink-0 overflow-hidden rounded-[2px] border hairline mono text-[11px] max-[900px]:grid max-[900px]:grid-cols-2">
+        <div className="flex shrink-0 overflow-hidden rounded-[2px] border hairline mono text-[11px] max-[901px]:grid max-[901px]:grid-cols-2">
           {[8453, 4663].map((c) => (
             <button
               type="button"
               key={c}
               onClick={() => setInputChain(c)}
-              className={cx("px-3 py-2 tracking-wider transition-colors max-[900px]:min-h-10", inputChain === c ? (c === 4663 ? "bg-rh/15 text-rh" : "bg-base/15 text-base") : "text-ink-3 hover:text-ink")}
+              className={cx("px-3 py-2 tracking-wider transition-colors max-[901px]:min-h-10", inputChain === c ? (c === 4663 ? "bg-rh/15 text-rh" : "bg-base/15 text-base") : "text-ink-3 hover:text-ink")}
             >
               {c === 4663 ? "ROBINHOOD 4663" : "BASE 8453"}
             </button>
@@ -153,18 +153,18 @@ export function Workspace({ initialScan, initialTarget, initialChainId, initialT
             onChange={(e) => setInput(e.target.value)}
             placeholder="Paste any wallet, token, pool or Vibestarter escrow address…"
             spellCheck={false}
-            className="w-full min-w-0 bg-transparent py-2 mono text-[13px] text-ink placeholder:text-ink-3 focus:outline-none max-[900px]:text-[16px]"
+            className="w-full min-w-0 bg-transparent py-2 mono text-[13px] text-ink placeholder:text-ink-3 focus:outline-none max-[901px]:text-[16px]"
             aria-label="Target address"
           />
         </label>
-        <button type="submit" className="rounded-[2px] bg-phosphor px-5 py-2 mono text-[12px] font-semibold text-canvas hover:bg-[#a6e698] max-[900px]:min-h-11">
+        <button type="submit" className="rounded-[2px] bg-phosphor px-5 py-2 mono text-[12px] font-semibold text-canvas hover:bg-[#a6e698] max-[901px]:min-h-11">
           {scan.isFetching ? "SCANNING…" : "RUN SCAN"}
         </button>
       </form>
       {inputError && <p className="mt-2 mono text-[12px] text-crit">{inputError}</p>}
 
       {/* Presets: wrap on desktop; ≤600px one horizontally scrollable, edge-to-edge line (right edge fades) */}
-      <div className="mt-3 flex flex-wrap gap-2 max-[600px]:-mx-2.5 max-[600px]:flex-nowrap max-[600px]:overflow-x-auto max-[600px]:pl-2.5 max-[600px]:pr-8 max-[600px]:[mask-image:linear-gradient(to_right,#000_calc(100%-28px),transparent)] max-[600px]:[scrollbar-width:none] max-[600px]:[&::-webkit-scrollbar]:hidden">
+      <div className="mt-3 flex flex-wrap gap-2 max-[601px]:-mx-2.5 max-[601px]:flex-nowrap max-[601px]:overflow-x-auto max-[601px]:pl-2.5 max-[601px]:pr-8 max-[601px]:[mask-image:linear-gradient(to_right,#000_calc(100%-28px),transparent)] max-[601px]:[scrollbar-width:none] max-[601px]:[&::-webkit-scrollbar]:hidden">
         {LIVE_DEMO_PRESETS.map((p) => {
           const active = p.targetAddress.toLowerCase() === target.toLowerCase() && p.chainId === chainId;
           return (
@@ -174,7 +174,7 @@ export function Workspace({ initialScan, initialTarget, initialChainId, initialT
                 load(p.targetAddress, p.chainId);
                 setTab(p.kind === "escrow" ? "shield" : p.kind === "pool" ? "chaos" : "briefing");
               }}
-              className={cx("flex max-w-full items-center gap-2 rounded-[2px] border px-2.5 py-1.5 text-left text-[12px] transition-colors max-[900px]:min-h-10 max-[600px]:max-w-none max-[600px]:shrink-0 max-[600px]:whitespace-nowrap", active ? "border-phosphor/50 bg-phosphor/[0.06] text-ink" : "hairline text-ink-2 hover:border-hair-strong hover:text-ink")}
+              className={cx("flex max-w-full items-center gap-2 rounded-[2px] border px-2.5 py-1.5 text-left text-[12px] transition-colors max-[901px]:min-h-10 max-[601px]:max-w-none max-[601px]:shrink-0 max-[601px]:whitespace-nowrap", active ? "border-phosphor/50 bg-phosphor/[0.06] text-ink" : "hairline text-ink-2 hover:border-hair-strong hover:text-ink")}
             >
               <ChainBadge chainId={p.chainId} className="shrink-0" />
               <span className="text-left">{p.label}</span>
@@ -184,11 +184,11 @@ export function Workspace({ initialScan, initialTarget, initialChainId, initialT
       </div>
 
       {/* Tabs: ≤900px a sticky, horizontally scrollable segmented row pinned under the top bar */}
-      <div className="relative mt-6 max-[900px]:sticky max-[900px]:z-20 max-[900px]:mt-4 max-[900px]:top-[var(--ws-tabs-top)] max-[900px]:bg-canvas/85 max-[900px]:backdrop-blur-md" style={{ "--ws-tabs-top": `${tabsTop}px` } as CSSProperties}>
+      <div className="relative mt-6 max-[901px]:sticky max-[901px]:z-20 max-[901px]:mt-4 max-[901px]:top-[var(--ws-tabs-top)] max-[901px]:bg-canvas/85 max-[901px]:backdrop-blur-md" style={{ "--ws-tabs-top": `${tabsTop}px` } as CSSProperties}>
         <nav
           ref={tabsRef}
           onScroll={syncFade}
-          className="flex gap-px overflow-x-auto border hairline bg-white/[0.06] max-[900px]:snap-x max-[900px]:[scrollbar-width:none] max-[900px]:[&::-webkit-scrollbar]:hidden"
+          className="flex gap-px overflow-x-auto border hairline bg-white/[0.06] max-[901px]:snap-x max-[901px]:[scrollbar-width:none] max-[901px]:[&::-webkit-scrollbar]:hidden"
           role="tablist"
         >
           {TABS.map((t) => (
@@ -198,7 +198,7 @@ export function Workspace({ initialScan, initialTarget, initialChainId, initialT
               aria-selected={tab === t.key}
               onClick={() => selectTab(t.key)}
               className={cx(
-                "flex min-w-fit flex-1 items-baseline gap-2 px-4 py-3 text-left transition-colors max-[900px]:snap-start max-[900px]:whitespace-nowrap max-[600px]:px-3",
+                "flex min-w-fit flex-1 items-baseline gap-2 px-4 py-3 text-left transition-colors max-[901px]:snap-start max-[901px]:whitespace-nowrap max-[601px]:px-3",
                 tab === t.key ? "bg-elevated text-ink shadow-[inset_0_-2px_0_var(--accent-phosphor)]" : "bg-surface text-ink-3 hover:text-ink"
               )}
             >
@@ -207,11 +207,11 @@ export function Workspace({ initialScan, initialTarget, initialChainId, initialT
             </button>
           ))}
         </nav>
-        <span aria-hidden className={cx("pointer-events-none absolute inset-y-px left-px hidden w-8 bg-gradient-to-r from-canvas to-transparent transition-opacity max-[900px]:block", fade.left ? "opacity-100" : "opacity-0")} />
-        <span aria-hidden className={cx("pointer-events-none absolute inset-y-px right-px hidden w-10 bg-gradient-to-l from-canvas to-transparent transition-opacity max-[900px]:block", fade.right ? "opacity-100" : "opacity-0")} />
+        <span aria-hidden className={cx("pointer-events-none absolute inset-y-px left-px hidden w-8 bg-gradient-to-r from-canvas to-transparent transition-opacity max-[901px]:block", fade.left ? "opacity-100" : "opacity-0")} />
+        <span aria-hidden className={cx("pointer-events-none absolute inset-y-px right-px hidden w-10 bg-gradient-to-l from-canvas to-transparent transition-opacity max-[901px]:block", fade.right ? "opacity-100" : "opacity-0")} />
       </div>
 
-      <div ref={contentRef} className="mt-6 max-[900px]:mt-4">
+      <div ref={contentRef} className="mt-6 max-[901px]:mt-4">
         {tab === "briefing" && <BriefingTab scan={scan.data ?? null} loading={scan.isFetching} error={scan.error?.message ?? null} onScan={load} />}
         {tab === "chaos" && <ChaosLabTab scan={scan.data ?? null} />}
         {tab === "parity" && <ParityTab />}

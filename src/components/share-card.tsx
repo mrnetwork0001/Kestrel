@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { chainName } from "@/lib/format";
 import type { ThreatBand } from "@/lib/engine/types";
 
-const BTN = "rounded-[2px] border border-hair-strong px-2.5 py-1 mono text-[10px] tracking-wider text-ink-2 hover:border-phosphor/60 hover:text-phosphor max-[900px]:inline-flex max-[900px]:min-h-9 max-[900px]:items-center";
+const BTN = "rounded-[2px] border border-hair-strong px-2.5 py-1 mono text-[10px] tracking-wider text-ink-2 hover:border-phosphor/60 hover:text-phosphor max-[901px]:inline-flex max-[901px]:min-h-9 max-[901px]:items-center";
 
 /** Copy / X / Farcaster share for the current scan, with a live preview of its /api/card Threat Card. */
 export function ShareCard({ address, chainId, label, score, band }: { address: string; chainId: number; label: string; score: number; band: ThreatBand }) {
