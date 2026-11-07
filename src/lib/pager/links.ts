@@ -67,10 +67,14 @@ const q = (params: Record<string, string | number | undefined>) =>
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
     .join("&");
 
-/** Relative Panic Bunker deep link (Base only). `revoke` = "token:spender" preselects one approval. */
+/**
+ * Relative Panic Bunker deep link. The bunker signs on Base; a Robinhood Chain target (`chainId: 4663`) opens
+ * read-only with that notice. `revoke` = "token:spender" preselects one approval.
+ */
 export function rescueHref(target: string | null, opts: { chainId?: ChainId; revoke?: string } = {}): string {
   const revoke = opts.revoke && /^0x[0-9a-fA-F]{40}:0x[0-9a-fA-F]{40}$/.test(opts.revoke) ? opts.revoke : undefined;
-  return `/rescue?${q({ target: target && ADDR.test(target) ? target : undefined, chain: 8453, from: "pager", revoke })}`;
+  const chain: ChainId = opts.chainId === 4663 ? 4663 : 8453;
+  return `/rescue?${q({ target: target && ADDR.test(target) ? target : undefined, chain, from: "pager", revoke })}`;
 }
 
 /** Relative workspace link for a target and tab. */
@@ -89,7 +93,8 @@ export function watchActions(w: Pick<Watch, "kind" | "chainId" | "target">, extr
     case "pool":
       return [
         { label: "Simulate exit", href: appHref(w.target, w.chainId, "chaos") },
-        { label: "Open Panic Bunker", href: rescueHref(null) },
+        // /rescue highlights the token / pool legs and previews the exit for a deep-linked token or pool.
+        { label: "Open Panic Bunker", href: rescueHref(w.target, { chainId: w.chainId }) },
       ];
     case "escrow":
       return [{ label: "Backer Shield", href: appHref(w.target, w.chainId, "shield") }];

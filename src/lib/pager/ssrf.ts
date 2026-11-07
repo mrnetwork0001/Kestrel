@@ -15,6 +15,7 @@
  *    swap in a private address between check and connect.
  *  - Redirects are never followed (a 3xx is returned as a failure), total time and response size are capped.
  */
+import "server-only";
 import { lookup } from "node:dns/promises";
 import { request as httpsRequest } from "node:https";
 import { request as httpRequest, type IncomingHttpHeaders } from "node:http";
@@ -178,7 +179,7 @@ export interface SafeUrlOptions {
   /** Allow plain http:// (read-only probes only). Webhooks are always https. */
   allowHttp?: boolean;
   /** Allowed ports. Defaults to [443] (plus [80] when allowHttp). */
-  ports?: number[];
+  ports?: readonly number[];
 }
 
 export interface ResolvedTarget {
@@ -258,7 +259,7 @@ export interface SafeRequestInit {
   /** Max response bytes read (the rest is discarded and the socket destroyed). Default 64 KiB. */
   maxBytes?: number;
   allowHttp?: boolean;
-  ports?: number[];
+  ports?: readonly number[];
 }
 
 export interface SafeResponse {

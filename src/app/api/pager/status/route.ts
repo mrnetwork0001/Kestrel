@@ -2,7 +2,7 @@ import { after } from "next/server";
 import { apiError, json, preflight } from "@/lib/api";
 import { kvMissingInProd, kvMode, kvSet } from "@/lib/kv";
 import { ipHash } from "@/lib/pager/auth";
-import { inProcessSchedulerEnabled, inProcessSchedulerInfo } from "@/lib/pager/scheduler";
+import { ensureInProcessScheduler, inProcessSchedulerEnabled, inProcessSchedulerInfo } from "@/lib/pager/scheduler";
 import { schedulerConfigured } from "@/lib/pager/schedule-auth";
 import { cadenceSec, limit } from "@/lib/pager/limits";
 import * as store from "@/lib/pager/store";
@@ -46,6 +46,7 @@ const n = (s: string | undefined) => (s && /^\d+$/.test(s) ? BigInt(s) : null);
  * `?log=N` returns up to 50 tick summaries (default 10).
  */
 export async function GET(req: Request) {
+  ensureInProcessScheduler(); // self-heal: re-arm the long-running server's scheduler if boot skipped it
   const limited = await limit("status", ipHash(req));
   if (limited) return limited;
   const url = new URL(req.url);

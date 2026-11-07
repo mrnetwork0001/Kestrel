@@ -7,12 +7,13 @@
  * - `buildDigest` diffs every watch against the snapshot, counts checks + blocks covered, and writes a Morning
  *   Desk Brief (0G Compute → Anthropic → deterministic). Every number comes from tick state that was read live
  *   onchain; nothing is fabricated. If the sentinel did not run, the digest says so.
- * - `finishSleep` builds the digest, queues it in the outbox (the tick's delivery loop sends it), archives it
- *   for the UI and clears the session + wake index.
+ * - `finishSleep` atomically claims the session (GETDEL), builds the digest, sends it right away under a
+ *   per-item lock (channels that fail stay in the outbox for the tick's retry loop), and archives it for the UI.
  *
  * All uint256 values stay decimal strings / BigInt until formatted with fmtUnits. External strings (labels,
  * token symbols, alert titles) are carried as plain text; renderers escape them per channel.
  */
+import "server-only";
 import { llmComplete } from "@/lib/engine/brief";
 import type { ChainId, Severity } from "@/lib/engine/types";
 import { chainName, fmtBps, fmtUnits, shortAddr } from "@/lib/format";
@@ -509,6 +510,7 @@ export async function buildDigest(
     perWatch,
     pagedCount: paged.length,
     deferredCount: session.deferred.length,
+    policy: session.policy,
   };
 
   const pagedTitles = paged.map((p) => p.title);
@@ -549,7 +551,11 @@ export function digestText(d: DigestPayload, opts: { maxChars?: number } = {}): 
       ? `Kestrel ran ${d.checks} check${d.checks === 1 ? "" : "s"}${blk.length ? ` across ${blk.join(" and ")}` : ""}.`
       : "No sentinel checks ran during this window."
   );
-  head.push(`${d.pagedCount} page${d.pagedCount === 1 ? "" : "s"} sent · ${d.deferredCount} warning${d.deferredCount === 1 ? "" : "s"} held for this digest.`);
+  head.push(
+    d.policy === "page-all"
+      ? `${d.pagedCount} page${d.pagedCount === 1 ? "" : "s"} sent (page-all: every severity pages).`
+      : `${d.pagedCount} page${d.pagedCount === 1 ? "" : "s"} sent · ${d.deferredCount} warning${d.deferredCount === 1 ? "" : "s"} held for this digest.`
+  );
   const tail = [`Desk brief (${d.brief.source}${d.brief.model ? ` · ${d.brief.model}` : ""}): ${d.brief.text}`];
 
   let used = head.join("\n").length + tail.join("\n").length + 4;
@@ -626,18 +632,15 @@ export async function finishSleep(
   opts: { digest?: boolean; deliver?: boolean; useLlm?: boolean; now?: number; briefTimeoutMs?: number } = {}
 ): Promise<FinishSleepResult> {
   const none = { digest: null, delivered: [], queued: false, hasChannel: false };
-  const session = await store.getSleep(deskId);
-  if (!session) {
-    await store.deleteSleep(deskId).catch(() => undefined); // clear a dangling wake-index entry
-    return { ...none, session: null };
-  }
-  const desk = opts.digest === false ? null : await store.getDesk(deskId);
-  if (!desk) {
-    await store.deleteSleep(deskId);
-    return { ...none, session };
-  }
-  // Clear the session first so a concurrent tick cannot build a second digest for the same night.
-  await store.deleteSleep(deskId);
+  // Atomic claim (GETDEL + ZREM): exactly one of the "I'm awake" route and a tick's due-wake pass gets the
+  // session, so the same night can never be digested (and sent) twice. Also clears a dangling wake entry.
+  const session = await store.takeSleep(deskId);
+  if (!session) return { ...none, session: null };
+  const desk = opts.digest === false ? null : await store.getDesk(deskId).catch((e) => {
+    void store.putSleep(session).catch(() => undefined); // restore: storage hiccup, let the next attempt retry
+    throw e;
+  });
+  if (!desk) return { ...none, session };
   let digest: DigestPayload;
   try {
     const [watches, global] = await Promise.all([store.listWatches(deskId), store.getGlobal()]);
@@ -653,8 +656,11 @@ export async function finishSleep(
   const hasChannel = !!(item.status.telegram || item.status.webhook);
   let delivered: Delivery[] = [];
   let queued = false;
+  // Per-item lock: same contract as the tick's outbox loop (never two concurrent senders for one item id).
+  const lockId = `outbox:${item.id}`;
+  const lock = hasChannel && opts.deliver !== false ? await store.tryItemLock(lockId).catch(() => null) : null;
   if (hasChannel) {
-    if (opts.deliver !== false) {
+    if (opts.deliver !== false && lock) {
       try {
         const r = await deliverOutboxItem(desk, item);
         delivered = r.deliveries;
@@ -673,7 +679,11 @@ export async function finishSleep(
     } else {
       queued = true;
     }
-    if (queued) await store.outboxPut([item]);
+    try {
+      if (queued) await store.outboxPut([item]);
+    } finally {
+      if (lock) await store.releaseItemLock(lockId, lock).catch(() => undefined);
+    }
   }
   return { digest, session, delivered, queued, hasChannel };
 }

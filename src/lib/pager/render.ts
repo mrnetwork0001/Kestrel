@@ -290,7 +290,7 @@ export function renderAlerts(desk: Pick<Desk, "id"> | null, alerts: PagerAlert[]
     const label = opts.labels?.[a.watchId];
     return {
       severity: a.severity,
-      title: `${a.resolves ? "RESOLVED: " : ""}${a.title}`,
+      title: `${a.resolves && !/^RESOLVED:/i.test(a.title) ? "RESOLVED: " : ""}${a.title}`,
       lines: [...(label ? [`Watch: ${label}`] : []), ...a.lines],
       footer: `${chainName(a.chainId)} · block #${fmtBlock(a.block)} · ${hhmm(a.at)}`,
       links: [...a.actions.slice(0, 2), ...a.evidence.slice(0, 2)],
@@ -324,9 +324,15 @@ export function renderDigest(desk: Pick<Desk, "id"> | null, d: DigestPayload): R
     .map((cid) => [cid, d.blocks[cid]] as const)
     .filter((e): e is readonly [ChainId, { from: string; to: string; count: string }] => !!e[1])
     .map(([cid, b]) => `${fmtBlock(b.count)} ${chainName(cid)} blocks (#${fmtBlock(b.from)} → #${fmtBlock(b.to)})`);
+  const pages = `${d.pagedCount} page${d.pagedCount === 1 ? "" : "s"} sent`;
   const intro = [
-    `Kestrel ran ${d.checks.toLocaleString("en-US")} checks${chainParts.length ? ` across ${chainParts.join(" and ")}` : ""}.`,
-    `${d.pagedCount} critical page${d.pagedCount === 1 ? "" : "s"} sent · ${d.deferredCount} warning${d.deferredCount === 1 ? "" : "s"} held for this digest.`,
+    d.checks > 0
+      ? `Kestrel ran ${d.checks.toLocaleString("en-US")} check${d.checks === 1 ? "" : "s"}${chainParts.length ? ` across ${chainParts.join(" and ")}` : ""}.`
+      : "No sentinel checks ran during this window, so nothing was verified overnight.",
+    // page-all pages every severity, so "critical" would be wrong; critical-only holds warnings for this digest.
+    d.policy === "page-all"
+      ? `${pages} (page-all: every severity pages).`
+      : `${pages} · ${d.deferredCount} warning${d.deferredCount === 1 ? "" : "s"} held for this digest.`,
   ];
   const blocks: Block[] = d.perWatch.map((w) => ({
     severity: w.severity,

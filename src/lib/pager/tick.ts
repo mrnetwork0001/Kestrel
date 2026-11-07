@@ -14,10 +14,11 @@
  * Exactly-once facts, at-least-once pages: dedupe keys live in WatchState and are committed in the same MULTI as
  * the outbox, so a crash after commit re-delivers from the outbox and never re-fires the alert.
  */
+import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import type { ChainId } from "@/lib/engine/types";
 import { kvMissingInProd } from "@/lib/kv";
-import { applyDeliveryOutcomes, deliverOutboxItem, type Delivery } from "@/lib/pager/deliver";
+import { applyDeliveryOutcomes, deliverOutboxItem, telegramActive, type Delivery } from "@/lib/pager/deliver";
 import { routeAlertsForSleep, runDueDigests } from "@/lib/pager/digest";
 import { applyScan, computeGlobals, evaluateWatch, markErrored, scanDue } from "@/lib/pager/evaluate";
 import { buildPlan, prefetchChangedImpls, probeChain, type ChainSnapshot } from "@/lib/pager/probes";
@@ -132,12 +133,17 @@ async function runDueScans(
     .sort((a, b) => ((nextStates[a.id] ?? states[a.id])?.scan?.at ?? 0) - ((nextStates[b.id] ?? states[b.id])?.scan?.at ?? 0))
     .slice(0, max);
   if (!due.length) return 0;
-  const { scanTarget } = await import("@/lib/engine/scan");
+  const { scanDegradedReasons, scanTarget } = await import("@/lib/engine/scan");
   let scans = 0;
   for (const w of due) {
     if (deadline - Date.now() < 15_000) break;
     try {
       const r = await withTimeout(scanTarget(w.chainId, w.target, { useLlm: false }), Math.min(20_000, deadline - Date.now() - 5_000), "band scan");
+      // Degraded scans carry degradation points and miss findings: never compare them for band changes.
+      if (scanDegradedReasons(r).length) {
+        console.warn(`[pager] band scan ${w.id} degraded; skipped`);
+        continue;
+      }
       const st = structuredClone(nextStates[w.id] ?? states[w.id] ?? blankState(w, now));
       const out = applyScan({ now, snap }, w, st, { score: r.score, band: r.band, block: { number: r.block.number }, findings: r.findings });
       nextStates[w.id] = st;
@@ -160,6 +166,8 @@ interface DeliveryStats {
 /**
  * Delivers pending outbox items (oldest first) until the deadline. Successful channels are marked "sent" and
  * never repeated; items are removed when every channel is done, after MAX_OUTBOX_ATTEMPTS, or after 24 h.
+ * Each item is sent under a per-item lock and re-read inside it, so a concurrent sender (the sleep route's
+ * "I'm awake" digest, an overlapping manual tick) never sends the same item twice.
  * Channel health (webhook failure counters, Telegram blocked/migrated chats) is written back to the desk.
  */
 export async function deliverOutbox(opts: { deadline: number; desks?: Record<string, Desk>; labels?: Record<string, string>; only?: OutboxItem[] }): Promise<{ stats: DeliveryStats; deliveries: Delivery[] }> {
@@ -187,16 +195,26 @@ export async function deliverOutbox(opts: { deadline: number; desks?: Record<str
         drop.push(item.id);
         return;
       }
+      const lockId = `outbox:${item.id}`;
+      const token = await store.tryItemLock(lockId).catch(() => null);
+      if (!token) return; // another sender holds this item right now; whatever it leaves pending is retried next tick
+      let cur: OutboxItem | null = item;
       try {
-        const r = await deliverOutboxItem(desk, item, { labels: opts.labels });
+        // Re-read under the lock: the other sender may have finished (removed) it or advanced its channel status.
+        cur = (await store.outboxGet(item.id)) ?? (opts.only ? item : null);
+        if (!cur) return;
+        const r = await deliverOutboxItem(desk, cur, { labels: opts.labels });
         for (const d of r.deliveries) (d.ok ? stats.ok++ : stats.failed++, all.push(d));
         if (r.deliveries.length) outcomes.set(desk.id, [...(outcomes.get(desk.id) ?? []), ...r.deliveries]);
-        if (r.done) drop.push(item.id);
-        else await store.outboxUpdate({ ...item, status: r.status, attempts: item.attempts + 1 });
+        // Settle the item before releasing the lock, so the next holder never sees a stale "pending" status.
+        if (r.done) await store.outboxRemove([cur.id]);
+        else await store.outboxUpdate({ ...cur, status: r.status, attempts: cur.attempts + 1 });
       } catch (e) {
         stats.failed++;
         console.warn(`[pager] outbox ${item.id.slice(0, 12)}… failed: ${errText(e)}`);
-        await store.outboxUpdate({ ...item, attempts: item.attempts + 1 }).catch(() => undefined);
+        if (cur) await store.outboxUpdate({ ...cur, attempts: cur.attempts + 1 }).catch(() => undefined);
+      } finally {
+        await store.releaseItemLock(lockId, token).catch(() => undefined);
       }
     },
     () => opts.deadline - Date.now() < 3_000
@@ -245,7 +263,9 @@ export async function runTick(o: TickOptions): Promise<TickResult> {
 
   let locked = false;
   if (!o.dryRun) {
-    locked = await store.acquireTickLock(tickId, 90_000);
+    // The lock must outlive the whole tick (budget + commit/delivery margin), or a second tick could load the same
+    // pre-commit states and page the same alert twice.
+    locked = await store.acquireTickLock(tickId, Math.max(90_000, deadline - started + 30_000));
     if (!locked) return base({ skipped: "locked" });
   }
 
@@ -329,20 +349,23 @@ export async function runTick(o: TickOptions): Promise<TickResult> {
     const history: Record<string, PagerAlert[]> = {};
     const preview: TickPreviewAlert[] = [];
     let deferred = 0;
+    const sessions = byDesk.size ? await store.getSleeps([...byDesk.keys()]).catch(() => ({}) as Record<string, SleepSession>) : {};
     for (const [deskId, list] of byDesk) {
       const desk = desks[deskId];
       let page = list;
       let held: PagerAlert[] = [];
-      const session = await store.getSleep(deskId).catch(() => null);
+      let wokeYou = false;
+      const session = sessions[deskId] ?? null;
       if (session) {
         const r = routeAlertsForSleep(session, list);
         page = r.page;
         held = r.defer;
+        wokeYou = r.wokeYou;
         sleeps.push(r.session);
         deferred += held.length;
       }
       history[deskId] = [...page, ...held];
-      const tg = !!desk?.channels.telegram && !desk.channels.telegram.disabledReason;
+      const tg = telegramActive(desk);
       const wh = !!desk?.channels.webhook && !desk.channels.webhook.disabledReason;
       if (page.length && (tg || wh)) {
         outbox.push({
@@ -353,17 +376,24 @@ export async function runTick(o: TickOptions): Promise<TickResult> {
           status: { ...(tg ? { telegram: "pending" as const } : {}), ...(wh ? { webhook: "pending" as const } : {}) },
           attempts: 0,
           createdAt: started,
+          // Persisted on the item so a retry in a later tick still opens with "Woke you because:".
+          ...(wokeYou ? { wokeYou: true } : {}),
         });
       }
       for (const a of page) preview.push({ deskId, watchId: a.watchId, label: labels[a.watchId] ?? "", severity: a.severity, title: a.title, lines: a.lines, block: a.block, route: tg || wh ? "page" : "history-only" });
       for (const a of held) preview.push({ deskId, watchId: a.watchId, label: labels[a.watchId] ?? "", severity: a.severity, title: a.title, lines: a.lines, block: a.block, route: "defer" });
     }
 
-    // global: cursors advance only for chains that probed OK
+    // global: cursors advance only for chains that probed OK, and only as far as their LOGS were processed:
+    // a failed log window (logsOk=false → logsCursor = range.from − 1) is retried next tick (dedupe keys in
+    // WatchState prevent double alerts), never silently skipped for approvals / burns / transfers / admin logs.
     const cursor = { ...global.cursor };
     for (const cid of CHAINS) {
       const s = snap[cid];
-      if (s) cursor[cid] = s.range.to.toString();
+      if (!s) continue;
+      const prev = cursor[cid] && /^\d+$/.test(cursor[cid]!) ? BigInt(cursor[cid]!) : null;
+      const next = s.logsCursor;
+      if (prev === null || next > prev) cursor[cid] = next.toString();
     }
     const nextGlobal: PagerGlobal = {
       ...global,

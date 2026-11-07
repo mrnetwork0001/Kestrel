@@ -2,6 +2,7 @@ import { after } from "next/server";
 import { apiError, json, preflight } from "@/lib/api";
 import { kvSet } from "@/lib/kv";
 import { verifySchedulerRequest } from "@/lib/pager/schedule-auth";
+import { ensureInProcessScheduler } from "@/lib/pager/scheduler";
 import { runTick } from "@/lib/pager/tick";
 
 export const runtime = "nodejs";
@@ -16,6 +17,7 @@ export const maxDuration = 60;
  * `dry=1` evaluates live state without persisting, delivering or taking the lock.
  */
 async function handle(req: Request) {
+  ensureInProcessScheduler(); // no-op on Vercel / PAGER_INPROCESS=0 / already armed
   const raw = req.method === "POST" ? (await req.text().catch(() => "")).slice(0, 1_048_576) : "";
   const auth = verifySchedulerRequest(req, raw);
   if (!auth.ok) return apiError(auth.reason, 401);

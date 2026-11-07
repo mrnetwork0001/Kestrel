@@ -8,6 +8,7 @@
  *  - Local development only: when NO scheduler secret is configured and the server runs under `next dev`,
  *    requests addressed to localhost are accepted (`via: "dev-open"`) so the tick can be exercised without setup.
  */
+import "server-only";
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 export type SchedulerVia = "cron-secret" | "qstash" | "dev-open";

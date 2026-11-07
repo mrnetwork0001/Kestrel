@@ -8,6 +8,7 @@ import { fmtBps, fmtDuration, fmtUnits, shortAddr } from "@/lib/format";
 import { deliverTelegram, deliverWebhook } from "@/lib/pager/deliver";
 import { absUrl, rescueHref } from "@/lib/pager/links";
 import { renderNotice } from "@/lib/pager/render";
+import { deskKeyFrom, requireDeskByKey } from "@/lib/pager/auth";
 import { assertSafeWebhook } from "@/lib/pager/ssrf";
 import { getTgChat } from "@/lib/pager/store";
 import { tgBotUsername, tgConfigured } from "@/lib/pager/telegram";
@@ -26,8 +27,9 @@ interface Body {
 /**
  * POST /api/pager/test — evaluates the user's armed rules against LIVE chain state and dispatches a
  * real Night-Shift Pager alert (webhook and/or Telegram) with a 1-click /rescue deep link.
- * Webhooks go through the shared SSRF guard (re-checked and IP-pinned at send time). Telegram only delivers to a
- * chat that has linked itself via the bot's /start deep link, so the bot cannot be used to message strangers.
+ * Webhooks go through the shared SSRF guard (re-checked and IP-pinned at send time). Telegram requires the desk key
+ * (Authorization: Bearer kst_…) and only delivers to the chat THAT desk verified through the bot's /start deep link,
+ * so the bot cannot be used to message other Kestrel users or strangers.
  * With no destination the response carries `dryRun: true` (nothing was sent).
  */
 export async function POST(req: Request) {
@@ -55,7 +57,20 @@ export async function POST(req: Request) {
       return apiError(errMsg(e));
     }
   }
-  const tgChat = body.telegramChatId && /^-?\d{4,20}$/.test(body.telegramChatId) ? body.telegramChatId : null;
+  const tgChat = body.telegramChatId && /^-?\d{4,20}$/.test(String(body.telegramChatId)) ? String(body.telegramChatId) : null;
+  // Telegram: only the caller's OWN verified chat (desk key required; the reverse index must point at that desk).
+  let tgDeskError: string | null = null;
+  if (tgChat) {
+    const key = deskKeyFrom(req);
+    const desk = key ? await requireDeskByKey(key) : null;
+    if (!desk) tgDeskError = "Telegram test pages need your desk key (Authorization: Bearer kst_…). Or use POST /api/pager/watches/{id}/test with dispatch:true.";
+    else if (desk instanceof Response) tgDeskError = "Desk key rejected.";
+    else {
+      const owner = await getTgChat(tgChat).catch(() => null);
+      const t = desk.channels.telegram;
+      if (owner !== desk.id || !t || !t.verified || t.chatId !== tgChat) tgDeskError = "This chat is not the verified Telegram chat of your desk.";
+    }
+  }
 
   try {
     const [parity, escrows, basePool] = await Promise.all([
@@ -69,12 +84,20 @@ export async function POST(req: Request) {
     const triggers = [
       { rule: `Aerodrome VIBES LP drop > ${rules.lpDropPct}% (8h)`, fired: lpDelta !== null && lpDelta <= -rules.lpDropPct * 100, observed: lpDelta !== null ? fmtBps(lpDelta) : "n/a" },
       { rule: `Base ↔ RH spread > ${(rules.maxSpreadBps / 100).toFixed(1)}%`, fired: parity.spreadBps !== null && Math.abs(parity.spreadBps) > rules.maxSpreadBps, observed: parity.spreadBps !== null ? fmtBps(parity.spreadBps) : "n/a" },
-      ...(rules.parityDrift ? [{ rule: "$VIBES OFT 1:1 parity drift", fired: !parity.verified, observed: parity.verified ? "Δ 0" : `Δ ${fmtUnits(parity.delta, 18, 4)}` }] : []),
+      // Only UNBACKED (circulating > locked, re-read at fresh blocks) is a backing failure. IN_FLIGHT / OVER_BACKED
+      // (locked ≥ circulating: packets in flight, or extra locked) are not, so they never fire this page.
+      ...(rules.parityDrift
+        ? [{
+            rule: "$VIBES OFT 1:1 parity: unbacked supply",
+            fired: parity.verdict === "UNBACKED",
+            observed: parity.verdict === "EXACT" ? "EXACT · Δ 0" : `${parity.verdict} · Δ ${fmtUnits(parity.delta, 18, 4)}${parity.pendingPackets ? ` · ${parity.pendingPackets} packet(s) in flight` : ""}`,
+          }]
+        : []),
       ...(rules.watchChallengeWindows ? [{ rule: "Vibestarter 72h challenge window open", fired: openWindows.length > 0, observed: openWindows.length ? `${openWindows.length} open` : "none" }] : []),
     ];
 
     // Canonical origin only (never the request Host); /rescue is the Base Panic Bunker.
-    const rescuePath = rescueHref(chainId === 8453 ? target : null);
+    const rescuePath = rescueHref(target, { chainId });
     const deepLink = absUrl(rescuePath);
     const fired = triggers.filter((t) => t.fired);
     const lines = [
@@ -105,13 +128,13 @@ export async function POST(req: Request) {
     if (tgChat) {
       if (!tgConfigured()) {
         delivered.push({ channel: "telegram", ok: false, status: null, error: "TELEGRAM_BOT_TOKEN not configured on server" });
-      } else if (!(await getTgChat(tgChat).catch(() => null))) {
+      } else if (tgDeskError) {
         const bot = await tgBotUsername().catch(() => null);
         delivered.push({
           channel: "telegram",
           ok: false,
           status: null,
-          error: `Chat not linked. Open a desk in the Night-Shift Pager and press LINK TELEGRAM${bot ? ` (t.me/${bot})` : ""}; Kestrel only messages chats that started the bot through a link.`,
+          error: `${tgDeskError} Link a chat with LINK TELEGRAM in the Night-Shift Pager${bot ? ` (t.me/${bot})` : ""}; Kestrel only messages chats that started the bot through your desk's link.`,
         });
       } else {
         const d = await deliverTelegram(tgChat, rendered);

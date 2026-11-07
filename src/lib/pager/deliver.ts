@@ -6,6 +6,7 @@
  * follows redirects, and caps time (8 s) and response size. Outcomes are returned, never thrown; the caller
  * (tick / sleep route) persists channel health via `applyDeliveryOutcomes`.
  */
+import "server-only";
 import { createHmac, randomBytes } from "node:crypto";
 import type { Desk, OutboxItem } from "@/lib/pager/types";
 import { renderAlerts, renderDigest, type Rendered } from "@/lib/pager/render";
@@ -126,10 +127,18 @@ export async function deliverWebhook(hook: { url: string; kind?: WebhookKind; se
   }
 }
 
-/** Active channels on a desk (not disabled). */
+/**
+ * Active channels on a desk (not disabled). Telegram counts only when the chat VERIFIED itself through the bot's
+ * /start deep link: a manually typed chat id (verified:false) never receives pages (audit pager-relay-abuse).
+ */
+export function telegramActive(desk: Desk | null | undefined): boolean {
+  const t = desk?.channels.telegram;
+  return !!t && t.verified === true && !t.disabledReason;
+}
+
 export function activeChannels(desk: Desk): { telegram: boolean; webhook: boolean } {
   return {
-    telegram: !!desk.channels.telegram && !desk.channels.telegram.disabledReason,
+    telegram: telegramActive(desk),
     webhook: !!desk.channels.webhook && !desk.channels.webhook.disabledReason,
   };
 }
@@ -147,11 +156,14 @@ export async function deliver(desk: Desk, r: Rendered, opts: { deliveryId: strin
   return Promise.all(jobs);
 }
 
-/** Renders an outbox item for delivery (alerts → one message per desk; digest → While You Slept). */
+/**
+ * Renders an outbox item for delivery (alerts → one message per desk; digest → While You Slept). The item's own
+ * `wokeYou` flag (set when Sleep Mode let a CRITICAL page through) survives retries in later ticks.
+ */
 export function renderOutboxItem(desk: Desk, item: OutboxItem, opts: { wokeYou?: boolean; labels?: Record<string, string> } = {}): Rendered | null {
   if (item.kind === "digest") return item.digest ? renderDigest(desk, item.digest) : null;
   if (!item.alerts.length) return null;
-  return renderAlerts(desk, item.alerts, opts);
+  return renderAlerts(desk, item.alerts, { ...opts, wokeYou: opts.wokeYou ?? item.wokeYou });
 }
 
 /**
@@ -177,7 +189,9 @@ export async function deliverOutboxItem(desk: Desk, item: OutboxItem, opts: { la
 /**
  * Applies delivery outcomes to the desk's channel health: resets webhook failures on success, counts
  * consecutive failures (disable after 10), disables on permanent errors, follows Telegram chat migrations.
- * Returns the updated desk and whether it changed (persist with store.putDesk when changed).
+ * Returns the updated desk and whether it changed. Persist with `store.updateDesk(id, d => applyDeliveryOutcomes(d, ds))`
+ * (locked re-read), never a blind putDesk: a concurrent PATCH /desk or Telegram link must not be reverted.
+ * Outcomes for a destination that was replaced since the send (new webhook host) are ignored.
  */
 export function applyDeliveryOutcomes(desk: Desk, deliveries: Delivery[]): { desk: Desk; changed: boolean } {
   let next = desk;
@@ -185,6 +199,8 @@ export function applyDeliveryOutcomes(desk: Desk, deliveries: Delivery[]): { des
   for (const d of deliveries) {
     if (d.channel === "webhook" && next.channels.webhook) {
       const w = next.channels.webhook;
+      // d.target is "<kind|webhook> <host>": skip outcomes from a webhook the user has replaced since the send.
+      if (d.target.split(" ").pop() !== hostOf(w.url)) continue;
       const failures = d.ok ? 0 : w.failures + 1;
       const disabledReason = d.disable ?? (failures >= WEBHOOK_DISABLE_AFTER ? `Disabled after ${failures} consecutive failures (last: ${d.error ?? "error"})`.slice(0, 200) : w.disabledReason);
       if (failures !== w.failures || disabledReason !== w.disabledReason) {

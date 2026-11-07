@@ -7,10 +7,12 @@
  *   - polling mode (no webhook; works on localhost): getUpdates is polled by GET /api/pager/telegram/link and by
  *     every tick, processing ALL pending updates (idempotent across instances; offset kept in KV).
  * A chat is only ever bound through a /start token the bot actually received, so the bot cannot be pointed
- * at a stranger's chat (audit `pager-relay-abuse`). Manual chat ids remain possible as `verified: false`.
+ * at a stranger's chat (audit `pager-relay-abuse`). Manual chat ids are stored as `verified: false` (a pending
+ * link) and receive NOTHING (deliver.ts telegramActive) until that chat completes /start through the desk's link.
  *
  * The bot token is part of every Bot API URL: it is never logged, and errors never include the URL.
  */
+import "server-only";
 import { randomBytes } from "node:crypto";
 import { kvDel, kvGet, kvSet } from "@/lib/kv";
 import { createTgLink, delTgChat, getTgChat, getTgOffset, setTgChat, setTgOffset, takeTgLink, updateDesk } from "@/lib/pager/store";
