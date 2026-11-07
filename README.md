@@ -35,12 +35,24 @@ DeFi liquidity pools, cross-chain LayerZero bridges, and time-released raise esc
 node scripts/verify-onchain.mjs
 
 # 2. Configure environment (optional — all core onchain reads work without API keys)
-cp .env.example .env
+cp .env.example .env.local
 
 # 3. Install & run locally
 npm install
 npm run dev
 ```
+
+The landing page (`/`) is server-rendered with live telemetry; the interactive workspace lives at **`/app`**.
+
+**Optional env vars** (see `.env.example`):
+
+- `NEXT_PUBLIC_APP_URL` — canonical URL for a custom domain (on Vercel it is auto-detected).
+- `KV_REST_API_URL` / `KV_REST_API_TOKEN` (or `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`) — Upstash Redis for shared rate limits and response caching across serverless instances; in-memory when unset.
+- `ZG_COMPUTE_API_KEY` / `ANTHROPIC_API_KEY` — LLM Morning Desk Brief (a deterministic onchain brief is used otherwise).
+- `X402_RECEIVER_ADDRESS`, `X402_PRICE_USDC_ATOMIC`, `X402_FACILITATOR_URL` — paid `mode=full` on `/api/v1/guard`.
+- `TELEGRAM_BOT_TOKEN`, `CRON_SECRET` — Night-Shift Pager delivery and the scheduled pager tick.
+- `GITHUB_TOKEN` — higher GitHub API limits for founder velocity.
+- `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`, `NEXT_PUBLIC_*_RPC_URL` — WalletConnect and RPC overrides.
 
 ---
 
