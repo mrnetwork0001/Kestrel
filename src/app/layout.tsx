@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Instrument_Serif, Inter, JetBrains_Mono } from "next/font/google";
 import { Suspense, type ReactNode } from "react";
 import { Providers } from "@/components/providers";
+import { RibbonGate } from "@/components/ribbon-gate";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { TelemetryRibbon } from "@/components/telemetry-ribbon";
 import { siteUrl } from "@/lib/site";
@@ -20,8 +21,9 @@ export const metadata: Metadata = {
     title: "Kestrel — Stay asleep. Kestrel watches the chain.",
     description: "Live overnight defense desk for Base (8453) & Robinhood Chain (4663).",
     type: "website",
+    siteName: "Kestrel",
   },
-  alternates: { canonical: "/" },
+  // No root canonical: it would be inherited by every route and fold them all into "/". Each page sets its own.
 };
 
 export const viewport: Viewport = { themeColor: "#07090D" };
@@ -35,9 +37,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" className={`${serif.variable} ${sans.variable} ${mono.variable}`}>
       <body className="min-h-screen">
         <Providers>
-          <Suspense fallback={<RibbonFallback />}>
-            <TelemetryRibbon />
-          </Suspense>
+          <RibbonGate>
+            <Suspense fallback={<RibbonFallback />}>
+              <TelemetryRibbon />
+            </Suspense>
+          </RibbonGate>
           <SiteHeader />
           <main>{children}</main>
           <SiteFooter />
