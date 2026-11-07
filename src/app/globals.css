@@ -18,9 +18,28 @@
   --chain-robinhood: #c8ff00;
   --signal-warn: #ffb020;
   --signal-critical: #ff4d4f;
+
+  /* Night Edition: readable meta text (AA 5.55:1 canvas, 5.31:1 surface, 4.96:1 elevated). --text-muted stays for K-60. */
+  --text-meta: #7d8899;
+  /* Motion tokens ("ink and print": set, drawn, settled once) */
+  --ease-ink: cubic-bezier(0.2, 0.7, 0.1, 1); /* reveals */
+  --ease-rule: cubic-bezier(0.65, 0, 0.35, 1); /* rules, bars, indicator */
+  --ease-press: cubic-bezier(0.3, 0, 0.2, 1); /* hover / press */
+  --d-press: 110ms;
+  --d-hover: 200ms;
+  --d-tab: 260ms;
+  --d-rise: 520ms;
+  --d-word: 520ms;
+  --d-rule: 700ms;
+  --d-bar: 900ms;
+  --d-flash: 600ms;
+  --rv-step: 60ms; /* rows / blocks */
+  --rv-word: 32ms; /* words */
+  --rv-digit: 24ms; /* digits, right to left */
 }
 
 @theme inline {
+  --color-ink-meta: var(--text-meta);
   --color-canvas: var(--bg-canvas);
   --color-surface: var(--bg-surface);
   --color-elevated: var(--bg-elevated);
@@ -207,3 +226,294 @@ input[type="range"] {
     scroll-behavior: auto !important;
   }
 }
+
+/* ==========================================================================
+   NIGHT EDITION foundation (spec: scratchpad/design/spec.md §1–§4)
+   Static/final states live outside media queries, so no-JS, crawlers and
+   reduced motion always see the finished page. Every hidden "before" state
+   is scoped to html.js (set pre-paint in layout.tsx, never under reduced
+   motion) AND sits inside @media (prefers-reduced-motion: no-preference).
+   ========================================================================== */
+
+/* ---------- Type scale (plain classes; Tailwind utilities override) ---------- */
+@layer components {
+  .t-display-xl,
+  .t-hero,
+  .t-h2,
+  .t-h3,
+  .t-stand {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    color: var(--text-primary);
+    text-wrap: balance;
+  }
+  .t-display-xl { font-size: clamp(52px, 8.4vw, 128px); line-height: 0.94; letter-spacing: -0.02em; }
+  .t-hero { font-size: clamp(42px, 5.2vw, 76px); line-height: 1; letter-spacing: -0.015em; }
+  .t-h2 { font-size: clamp(34px, 4.4vw, 60px); line-height: 1.03; letter-spacing: -0.01em; max-width: 18ch; }
+  .t-h3 { font-size: clamp(24px, 2.2vw, 32px); line-height: 1.12; }
+  .t-stand { font-size: clamp(20px, 1.8vw, 26px); line-height: 1.3; text-wrap: pretty; }
+  .t-body-l { font-family: var(--font-sans); font-size: 17px; line-height: 1.6; color: var(--text-secondary); max-width: 62ch; text-wrap: pretty; }
+  .t-body { font-family: var(--font-sans); font-size: 15px; line-height: 1.6; color: var(--text-secondary); text-wrap: pretty; }
+  .t-data-xl,
+  .t-data-l,
+  .t-data-m,
+  .t-kicker,
+  .t-meta {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "zero" 1;
+  }
+  .t-data-xl { font-size: clamp(52px, 5vw, 72px); line-height: 0.95; letter-spacing: -0.02em; }
+  .t-data-l { font-size: clamp(30px, 3vw, 40px); line-height: 1; }
+  .t-data-m { font-size: 24px; line-height: 1.1; }
+  .t-kicker { font-size: 11px; line-height: 1.4; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-meta); }
+  .t-meta { font-size: 12px; line-height: 1.5; color: var(--text-meta); }
+
+  /* ---------- Layout ---------- */
+  .wrap {
+    margin-inline: auto;
+    max-width: 1400px;
+    padding-inline: clamp(16px, 2.5vw, 36px);
+  }
+  /* Landing section rhythm: 128 / 88 / 64. */
+  .sec-y { padding-block: 128px; }
+  @media (max-width: 900px) { .sec-y { padding-block: 88px; } }
+  @media (max-width: 600px) { .sec-y { padding-block: 64px; } }
+  /* Full-bleed surface band (Wrap band). The surface lives on ::before so it can fade in (data-rv="fill"). */
+  .band { position: relative; isolation: isolate; }
+  .band::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--bg-surface); pointer-events: none; }
+
+  /* ---------- Buttons ---------- */
+  .btn-primary,
+  .btn-outline,
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 0 20px;
+    border-radius: 2px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .btn-primary { background: var(--accent-phosphor); color: var(--bg-canvas); font-weight: 600; }
+  .btn-primary:hover { background: #a6e698; }
+  .btn-outline { border: 1px solid rgba(145, 217, 130, 0.5); color: var(--accent-phosphor); }
+  .btn-outline:hover { background: var(--accent-phosphor); color: var(--bg-canvas); }
+  .btn-ghost { border: 1px solid var(--border-strong); color: var(--text-primary); }
+  .btn-ghost:hover { border-color: rgba(145, 217, 130, 0.6); color: var(--accent-phosphor); }
+  .btn-primary:active,
+  .btn-outline:active,
+  .btn-ghost:active,
+  .press:active { transform: translateY(1px); }
+
+  /* ---------- InkLink (underline inks in; works across wrapped lines) ---------- */
+  .ink-link,
+  .ink-target .ink-line {
+    background-image: linear-gradient(currentColor, currentColor), linear-gradient(rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.16));
+    background-position: 0 100%, 0 100%;
+    background-repeat: no-repeat;
+    background-size: 0% 1px, 100% 1px;
+    padding-bottom: 2px;
+  }
+  .ink-link:hover,
+  .ink-target:hover .ink-line,
+  .ink-target:focus-visible .ink-line { background-size: 100% 1px, 100% 1px; }
+  .ink-target { color: var(--text-secondary); }
+  .ink-target:hover { color: var(--text-primary); }
+  @media (max-width: 900px) {
+    .ink-target { display: inline-flex; align-items: center; min-height: 44px; }
+  }
+
+  /* ---------- Index rows (instrument index, escrow list, presets) ---------- */
+  .idx-row { position: relative; isolation: isolate; display: block; }
+  .idx-row::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--bg-elevated); clip-path: inset(0 100% 0 0); pointer-events: none; }
+  .idx-row:hover::before,
+  .idx-row:focus-visible::before,
+  .idx-row[aria-current]::before { clip-path: inset(0); }
+  .idx-row:hover .idx-title { transform: translateX(6px); }
+  .idx-row:hover .idx-fig { color: var(--accent-phosphor); }
+  .idx-title { display: inline-block; }
+  /* 2px phosphor reading tick (scroll-driven, §3.3). Hidden where unsupported. */
+  .idx-tick { position: absolute; left: 0; top: 18%; bottom: 18%; width: 2px; background: var(--accent-phosphor); transform: scaleY(0); pointer-events: none; }
+
+  /* Preset dot links: dot grows, text inks. */
+  .dot-link { color: var(--text-secondary); }
+  .dot-link:hover { color: var(--text-primary); }
+  .dot-link .dot { display: inline-block; }
+  .dot-link:hover .dot { transform: scale(1.5); }
+
+  /* ---------- Led (6px square, 2px 15% ring; not an orb) ---------- */
+  .led {
+    position: relative;
+    display: inline-block;
+    flex-shrink: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 1px;
+    background: currentColor;
+    box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 15%, transparent);
+    vertical-align: middle;
+  }
+  .led-phosphor { color: var(--accent-phosphor); }
+  .led-base { color: var(--chain-base); }
+  .led-rh { color: var(--chain-robinhood); }
+  .led-warn { color: var(--signal-warn); }
+  .led-crit { color: var(--signal-critical); }
+  .led-idle { color: var(--text-muted); }
+  .led-ping { position: absolute; inset: -2px; border-radius: 2px; box-shadow: 0 0 0 2px currentColor; opacity: 0; pointer-events: none; }
+
+  /* ---------- LiveValue flash overlay ---------- */
+  .live-value { position: relative; }
+  .live-value[data-flash]::after { content: ""; position: absolute; inset: -1px -3px; border-radius: 2px; background: rgba(145, 217, 130, 0.14); opacity: 0; pointer-events: none; }
+
+  /* ---------- App tabs ---------- */
+  .tab-indicator { position: absolute; left: 0; bottom: 0; width: 100px; height: 2px; background: var(--accent-phosphor); transform-origin: left; pointer-events: none; }
+  /* Fetch-in-flight: 1px phosphor segment on a rule (parent must be position:relative + overflow:hidden). */
+  .inflight { position: absolute; left: 0; bottom: 0; width: 30%; height: 1px; background: var(--accent-phosphor); pointer-events: none; }
+
+  /* ---------- Bars ---------- */
+  .bar-fill { transform-origin: left; transform: scaleX(var(--v, 1)); }
+}
+
+/* SplitWords: word masks only exist when JS will reveal them (keeps no-JS text flow untouched). */
+html.js [data-rv="words"] .w,
+html.js .hero-load .w {
+  display: inline-block;
+  overflow: clip;
+  overflow-clip-margin: 0.1em;
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+  overflow-wrap: normal;
+  vertical-align: baseline;
+}
+html.js [data-rv="words"] .w > span,
+html.js .hero-load .w > span,
+html.js [data-rv="settle"] .d > span { display: inline-block; }
+html.js [data-rv="words"] em,
+html.js .hero-load em { padding-right: 0.06em; margin-right: -0.06em; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* ---------- Reveal: shared ---------- */
+  html.js [data-rv]:not([data-in]) { will-change: transform, opacity; }
+
+  /* up (default) */
+  html.js [data-rv="up"] {
+    transition: opacity var(--d-rise) var(--ease-ink), transform var(--d-rise) var(--ease-ink);
+    transition-delay: calc(min(var(--i, 0), 8) * var(--rv-step) + var(--d, 0ms));
+  }
+  html.js [data-rv="up"]:not([data-in]) { opacity: 0; transform: translateY(12px); }
+
+  /* words */
+  html.js [data-rv="words"] .w > span {
+    transition: transform var(--d-word) var(--ease-ink);
+    transition-delay: calc(min(var(--i, 0), 12) * var(--rv-word) + var(--d, 0ms));
+  }
+  html.js [data-rv="words"]:not([data-in]) .w > span { transform: translateY(105%); }
+
+  /* rule */
+  html.js [data-rv="rule"] { transform-origin: left center; transition: transform var(--d-rule) var(--ease-rule) var(--d, 0ms); }
+  html.js [data-rv="rule"][data-axis="y"] { transform-origin: center top; }
+  html.js [data-rv="rule"]:not([data-in]) { transform: scaleX(0); }
+  html.js [data-rv="rule"][data-axis="y"]:not([data-in]) { transform: scaleY(0); }
+
+  /* settle */
+  html.js [data-rv="settle"] .d > span {
+    transition: opacity 440ms var(--ease-ink), transform 440ms var(--ease-ink);
+    transition-delay: calc(var(--i, 0) * var(--rv-digit) + var(--d, 0ms));
+  }
+  html.js [data-rv="settle"] .c { transition: opacity 440ms var(--ease-ink) var(--d, 0ms); }
+  html.js [data-rv="settle"]:not([data-in]) .d > span { opacity: 0; transform: translateY(-40%); }
+  html.js [data-rv="settle"]:not([data-in]) .c { opacity: 0; }
+
+  /* bar (children .bar-fill with --v ratio 0..1; segments stagger with --i) */
+  html.js [data-rv="bar"] .bar-fill { transition: transform var(--d-bar) var(--ease-rule); transition-delay: calc(var(--i, 0) * 70ms + var(--d, 0ms)); }
+  html.js [data-rv="bar"]:not([data-in]) .bar-fill { transform: scaleX(0); }
+
+  /* lines (teletype: each .ln wipes in) */
+  html.js [data-rv="lines"] .ln { transition: clip-path 320ms linear; transition-delay: calc(min(var(--i, 0), 24) * 40ms + var(--d, 0ms)); }
+  html.js [data-rv="lines"]:not([data-in]) .ln { clip-path: inset(0 100% 0 0); }
+
+  /* fill (bands) */
+  html.js [data-rv="fill"]::before { transition: opacity 600ms var(--ease-ink) var(--d, 0ms); }
+  html.js [data-rv="fill"]:not([data-in])::before { opacity: 0; }
+
+  /* Failsafe: if hydration dies, everything shows after 2.5s. */
+  html.js [data-rv]:not([data-in]),
+  html.js [data-rv]:not([data-in]) .w > span,
+  html.js [data-rv]:not([data-in]) .d > span,
+  html.js [data-rv]:not([data-in]) .c,
+  html.js [data-rv]:not([data-in]) .ln,
+  html.js [data-rv]:not([data-in]) .bar-fill {
+    animation: rv-failsafe 0s 2.5s forwards;
+  }
+  html.js [data-rv]:not([data-in])::before { animation: rv-failsafe 0s 2.5s forwards; }
+  html.js [data-rv="bar"]:not([data-in]) .bar-fill { animation-name: rv-failsafe-bar; }
+
+  /* ---------- Hero load (CSS only, no observer; finishes by ~900ms) ---------- */
+  html.js .hero-load .w > span { animation: hl-word var(--d-word) var(--ease-ink) both; animation-delay: calc(min(var(--i, 0), 12) * var(--rv-word) + var(--d, 0ms)); }
+  /* Any hero element: <div class="hl" style="--hd:300ms"> fades up on load. */
+  html.js .hl { animation: hl-rise var(--d-rise) var(--ease-ink) both; animation-delay: var(--hd, 0ms); }
+  /* One-time highlight hairline sweep along the bottom of an instrument (omnibar). Parent needs position:relative. */
+  html.js .hl-sweep::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 1px;
+    background: var(--accent-phosphor);
+    transform-origin: left;
+    animation: hl-sweep 600ms var(--ease-rule) both;
+    animation-delay: calc(var(--hd, 0ms) + 120ms);
+    pointer-events: none;
+  }
+
+  /* ---------- Hover / press ---------- */
+  .btn-primary,
+  .btn-outline,
+  .btn-ghost,
+  .press { transition: background-color var(--d-hover) var(--ease-press), border-color var(--d-hover) var(--ease-press), color var(--d-hover) var(--ease-press), transform var(--d-press) var(--ease-press); }
+  .ink-link,
+  .ink-target .ink-line { transition: background-size var(--d-hover) var(--ease-press); }
+  .ink-target { transition: color var(--d-hover) var(--ease-press); }
+  .idx-row::before { transition: clip-path var(--d-tab) var(--ease-ink); }
+  .idx-title { transition: transform var(--d-tab) var(--ease-ink); }
+  .idx-fig { transition: color var(--d-hover) var(--ease-press); }
+  .dot-link { transition: color var(--d-hover) var(--ease-press); }
+  .dot-link .dot { transition: transform var(--d-hover) var(--ease-press); }
+
+  /* ---------- Live data ---------- */
+  .led-ping { animation: led-ping var(--d-flash) var(--ease-ink) forwards; }
+  .live-value[data-flash="a"]::after { animation: lv-flash-a var(--d-flash) var(--ease-ink) forwards; }
+  .live-value[data-flash="b"]::after { animation: lv-flash-b var(--d-flash) var(--ease-ink) forwards; }
+  .tab-indicator { transition: transform var(--d-tab) var(--ease-rule); }
+  .tab-enter { animation: tab-enter var(--d-tab) var(--ease-ink) both; }
+  .inflight { animation: inflight 1.2s linear infinite; }
+  .skel { animation: skel 1.6s var(--ease-press) infinite; animation-delay: calc(var(--i, 0) * 120ms); }
+
+  /* ---------- Exactly one scroll-driven effect: instrument-index reading tick ---------- */
+  @supports (animation-timeline: view()) {
+    html.js .idx-row .idx-tick {
+      animation: idx-tick linear both;
+      animation-timeline: view();
+      animation-range: cover 35% cover 65%;
+    }
+  }
+}
+
+@keyframes rv-failsafe { to { opacity: 1; transform: none; clip-path: none; } }
+@keyframes rv-failsafe-bar { to { transform: scaleX(var(--v, 1)); } }
+@keyframes hl-word { from { transform: translateY(105%); opacity: 0.01; } to { transform: none; opacity: 1; } }
+@keyframes hl-rise { from { opacity: 0.01; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes hl-sweep { 0% { transform: scaleX(0); opacity: 1; } 70% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
+@keyframes led-ping { from { transform: scale(1); opacity: 0.5; } to { transform: scale(1.8); opacity: 0; } }
+@keyframes lv-flash-a { from { opacity: 1; } to { opacity: 0; } }
+@keyframes lv-flash-b { from { opacity: 1; } to { opacity: 0; } }
+@keyframes tab-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes inflight { from { transform: translateX(-100%); } to { transform: translateX(330%); } }
+@keyframes skel { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@keyframes idx-tick { 0% { transform: scaleY(0); } 50% { transform: scaleY(1); } 100% { transform: scaleY(0); } }
