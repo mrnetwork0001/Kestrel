@@ -72,14 +72,6 @@ export function SiteFooter() {
             </ul>
           </nav>
         </div>
-        <div className="mt-12 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-t border-hair pt-5">
-          <p className="t-meta max-w-[72ch]">
-            Set in Instrument Serif, Inter &amp; JetBrains Mono. Every figure read live from Base 8453 and Robinhood 4663.
-          </p>
-          <p className="t-meta">
-            <span className="text-phosphor">&gt;_</span> KESTREL
-          </p>
-        </div>
       </Wrap>
     </footer>
   );
