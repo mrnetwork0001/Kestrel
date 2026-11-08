@@ -1,0 +1,43 @@
+TITLE
+Kestrel: stay asleep, Kestrel watches the chain (Base + Robinhood Chain) | Vibeathon 02 Night Shift
+
+DESCRIPTION
+Kestrel is an overnight risk sentinel for Base and Robinhood Chain. Paste any wallet, token, pool or Vibestarter escrow and it reads the chain live over public RPC, scores what changed while you slept, pages you on Telegram when a rule fires, and stages a guided rescue that revokes risky approvals and unwinds to USDC. No wallet, no signup, no mock data.
+
+Live: https://usekestrel.vercel.app
+Agents (x402 + MCP): https://usekestrel.vercel.app/agents
+Everything in one fetch: https://usekestrel.vercel.app/llms.txt
+
+The real story in this film, all on Base mainnet on Sun 2026-11-08 (UTC):
+Three unlimited approvals from the demo wallet 0xCd0a2370F2dC12c1802707B7d9aB3fec891E3c02
+06:55:38 USDC to Permit2: https://basescan.org/tx/0xea2c13aac5558b8ca87413489d3a6da21b1d7f0a3d82a6c8edfa712e21a0733e
+06:56:17 VIBES to Aerodrome Router: https://basescan.org/tx/0x22bf1d244c327561e06a427d2ba55cd35b5ada4a161eb077b5c9348134bc941b
+06:56:55 WETH to Uniswap Universal Router: https://basescan.org/tx/0x86d4d64f652f7dcecc99042852d57d2b928900dae7b5b14ec21921ff2bb7ffe4
+
+The Panic Bunker rescue, 6 signatures in 32 seconds
+07:07:05 Revoke WETH to Uniswap Universal Router: https://basescan.org/tx/0xa3ca5b3757abcf39a28d7dc6d897da42e11b7d05ea54e2f799e4101b7ca8e0b4
+07:07:11 Revoke USDC to Permit2: https://basescan.org/tx/0x24cf905161a224f529dda9c9aee61d1fb6cd7c33f4b794fea67ced78b9bbfb69
+07:07:16 Approve exact 12,358.636 VIBES: https://basescan.org/tx/0xfca37c8f842be209891c8436529700936aec533c315f9f581a841007dfc12c07
+07:07:27 Swap 12,358.636 VIBES to 1.963096 USDC: https://basescan.org/tx/0x5d1a02b49ecb16066a81429a8036e667efc2661e90c4388809ba9638322c0cac
+07:07:32 Approve exact 0.0015 WETH: https://basescan.org/tx/0x41ce2c999ab43fe11de53d833a5d847afca516fc1027f778b67e15a6041071e7
+07:07:37 Swap 0.0015 WETH to 3.346594 USDC: https://basescan.org/tx/0x8752ce3215e6f8b340964650941f407f3daa71e73e6cf92616d1a1f98e27aa64
+
+The first paid x402 call (0.01 USDC), 07:25:19 UTC: https://basescan.org/tx/0xe79c92c1a29ccb3ef6efa848fffd34650b732941699c68f54d818f490a3522ee
+
+The Rug Lab scenes are simulations on live pool reserves and are labelled as such.
+Built for Vibestarter's Vibeathon 02: Night Shift.
+
+CHAPTERS
+0:00 Sunday, 06:55 UTC: three unlimited approvals
+0:14 Crypto never closes, people sleep
+0:27 200 ms blocks and a two-chain token
+0:41 Meet Kestrel
+0:48 The briefing: any address, no wallet
+1:05 The Night-Shift Pager on Telegram
+1:15 The Panic Bunker rescue, 32 seconds
+1:35 Simulate the rug and bridge parity
+1:51 Backer Shield for Vibestarter escrows
+2:03 Agents: x402 and MCP
+2:21 Under the hood
+2:30 What makes it different
+2:40 Stay asleep

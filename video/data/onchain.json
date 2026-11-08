@@ -1,0 +1,369 @@
+{
+  "chain": "Base mainnet (8453)",
+  "wallet": "0xCd0a2370F2dC12c1802707B7d9aB3fec891E3c02",
+  "readAtUtc": "2026-11-08T07:42:44.105Z",
+  "headBlock": 54666924,
+  "scannedFromBlock": 54546924,
+  "txs": [
+    {
+      "hash": "0xc3f9ecab28817b4c455e5fa737fd0adbc6aac211aa1c989958423a04e43e7fce",
+      "block": 54652046,
+      "utc": "2026-11-08T06:53:04.000Z",
+      "from": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+      "to": "0x111111125421ca6dc452d289314280a0f8842a65",
+      "nonce": 11,
+      "status": "success",
+      "gasUsed": 313544,
+      "feeWei": "1956907175413",
+      "events": [
+        {
+          "type": "Approval",
+          "token": "WETH",
+          "owner": "0x111116058b9828cdcdd810c502b925c14f34ca11",
+          "spender": "0xcf77a3ba9a5ca399b7c97c74d54e5b1beb874e43",
+          "spenderName": "Aerodrome Router",
+          "amount": "0.00089775",
+          "raw": "897750000000000"
+        },
+        {
+          "type": "Transfer",
+          "token": "WETH",
+          "from": "0x111116058b9828cdcdd810c502b925c14f34ca11",
+          "to": "0x07f78058685b75f89288f025a0a154a96021ac45",
+          "amount": "0.00089775",
+          "raw": "897750000000000"
+        },
+        {
+          "type": "Transfer",
+          "token": "VIBES",
+          "from": "0x07f78058685b75f89288f025a0a154a96021ac45",
+          "to": "0x111111125421ca6dc452d289314280a0f8842a65",
+          "amount": "12358.63636498258084623",
+          "raw": "12358636364982580846230"
+        },
+        {
+          "type": "Transfer",
+          "token": "WETH",
+          "from": "0x07f78058685b75f89288f025a0a154a96021ac45",
+          "to": "0x3ea8e703a3ccf267979292b53e7612e1f0073250",
+          "amount": "0.0000089775",
+          "raw": "8977500000000"
+        },
+        {
+          "type": "Transfer",
+          "token": "VIBES",
+          "from": "0x111111125421ca6dc452d289314280a0f8842a65",
+          "to": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+          "amount": "12358.63636498258084623",
+          "raw": "12358636364982580846230"
+        }
+      ],
+      "explorer": "https://basescan.org/tx/0xc3f9ecab28817b4c455e5fa737fd0adbc6aac211aa1c989958423a04e43e7fce"
+    },
+    {
+      "hash": "0x5d2b773301f5cc079f2f96b423f64e2f0695a46c53e6d2e840b2a00c451c2b30",
+      "block": 54652150,
+      "utc": "2026-11-08T06:53:25.000Z",
+      "from": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+      "to": "0x111111125421ca6dc452d289314280a0f8842a65",
+      "nonce": 12,
+      "status": "success",
+      "gasUsed": 155078,
+      "feeWei": "970450163842",
+      "events": [
+        {
+          "type": "Transfer",
+          "token": "USDC",
+          "from": "0x498581ff718922c3f8e6a244956af099b2652b2b",
+          "to": "0x111111125421ca6dc452d289314280a0f8842a65",
+          "amount": "1.001072",
+          "raw": "1001072"
+        },
+        {
+          "type": "Transfer",
+          "token": "USDC",
+          "from": "0x111111125421ca6dc452d289314280a0f8842a65",
+          "to": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+          "amount": "1.001072",
+          "raw": "1001072"
+        }
+      ],
+      "explorer": "https://basescan.org/tx/0x5d2b773301f5cc079f2f96b423f64e2f0695a46c53e6d2e840b2a00c451c2b30"
+    },
+    {
+      "hash": "0xea2c13aac5558b8ca87413489d3a6da21b1d7f0a3d82a6c8edfa712e21a0733e",
+      "block": 54652814,
+      "utc": "2026-11-08T06:55:38.000Z",
+      "from": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+      "to": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "nonce": 14,
+      "status": "success",
+      "gasUsed": 55725,
+      "feeWei": "355966978576",
+      "events": [
+        {
+          "type": "Approval",
+          "token": "USDC",
+          "owner": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+          "spender": "0x000000000022d473030f116ddee9f6b43ac78ba3",
+          "spenderName": "Permit2",
+          "amount": "unlimited",
+          "raw": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+        }
+      ],
+      "explorer": "https://basescan.org/tx/0xea2c13aac5558b8ca87413489d3a6da21b1d7f0a3d82a6c8edfa712e21a0733e"
+    },
+    {
+      "hash": "0x22bf1d244c327561e06a427d2ba55cd35b5ada4a161eb077b5c9348134bc941b",
+      "block": 54653010,
+      "utc": "2026-11-08T06:56:17.000Z",
+      "from": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+      "to": "0xeffc8815487084a97edfdff968b56ea123421acb",
+      "nonce": 15,
+      "status": "success",
+      "gasUsed": 46244,
+      "feeWei": "308029623607",
+      "events": [
+        {
+          "type": "Approval",
+          "token": "VIBES",
+          "owner": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+          "spender": "0xcf77a3ba9a5ca399b7c97c74d54e5b1beb874e43",
+          "spenderName": "Aerodrome Router",
+          "amount": "unlimited",
+          "raw": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+        }
+      ],
+      "explorer": "https://basescan.org/tx/0x22bf1d244c327561e06a427d2ba55cd35b5ada4a161eb077b5c9348134bc941b"
+    },
+    {
+      "hash": "0x86d4d64f652f7dcecc99042852d57d2b928900dae7b5b14ec21921ff2bb7ffe4",
+      "block": 54653197,
+      "utc": "2026-11-08T06:56:55.000Z",
+      "from": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+      "to": "0x4200000000000000000000000000000000000006",
+      "nonce": 16,
+      "status": "success",
+      "gasUsed": 46343,
+      "feeWei": "308663534066",
+      "events": [
+        {
+          "type": "Approval",
+          "token": "WETH",
+          "owner": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+          "spender": "0x6ff5693b99212da76ad316178a184ab56d299b43",
+          "spenderName": "Uniswap Universal Router",
+          "amount": "unlimited",
+          "raw": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+        }
+      ],
+      "explorer": "https://basescan.org/tx/0x86d4d64f652f7dcecc99042852d57d2b928900dae7b5b14ec21921ff2bb7ffe4"
+    },
+    {
+      "hash": "0xa3ca5b3757abcf39a28d7dc6d897da42e11b7d05ea54e2f799e4101b7ca8e0b4",
+      "block": 54656251,
+      "utc": "2026-11-08T07:07:05.000Z",
+      "from": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+      "to": "0x4200000000000000000000000000000000000006",
+      "nonce": 17,
+      "status": "success",
+      "gasUsed": 24059,
+      "feeWei": "151632727013",
+      "events": [
+        {
+          "type": "Approval",
+          "token": "WETH",
+          "owner": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+          "spender": "0x6ff5693b99212da76ad316178a184ab56d299b43",
+          "spenderName": "Uniswap Universal Router",
+          "amount": "0",
+          "raw": "0"
+        }
+      ],
+      "explorer": "https://basescan.org/tx/0xa3ca5b3757abcf39a28d7dc6d897da42e11b7d05ea54e2f799e4101b7ca8e0b4"
+    },
+    {
+      "hash": "0x24cf905161a224f529dda9c9aee61d1fb6cd7c33f4b794fea67ced78b9bbfb69",
+      "block": 54656281,
+      "utc": "2026-11-08T07:07:11.000Z",
+      "from": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+      "to": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "nonce": 18,
+      "status": "success",
+      "gasUsed": 33441,
+      "feeWei": "215757893013",
+      "events": [
+        {
+          "type": "Approval",
+          "token": "USDC",
+          "owner": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+          "spender": "0x000000000022d473030f116ddee9f6b43ac78ba3",
+          "spenderName": "Permit2",
+          "amount": "0",
+          "raw": "0"
+        }
+      ],
+      "explorer": "https://basescan.org/tx/0x24cf905161a224f529dda9c9aee61d1fb6cd7c33f4b794fea67ced78b9bbfb69"
+    },
+    {
+      "hash": "0xfca37c8f842be209891c8436529700936aec533c315f9f581a841007dfc12c07",
+      "block": 54656306,
+      "utc": "2026-11-08T07:07:16.000Z",
+      "from": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+      "to": "0xeffc8815487084a97edfdff968b56ea123421acb",
+      "nonce": 19,
+      "status": "success",
+      "gasUsed": 28880,
+      "feeWei": "188131241316",
+      "events": [
+        {
+          "type": "Approval",
+          "token": "VIBES",
+          "owner": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+          "spender": "0xcf77a3ba9a5ca399b7c97c74d54e5b1beb874e43",
+          "spenderName": "Aerodrome Router",
+          "amount": "12358.63636498258084623",
+          "raw": "12358636364982580846230"
+        }
+      ],
+      "explorer": "https://basescan.org/tx/0xfca37c8f842be209891c8436529700936aec533c315f9f581a841007dfc12c07"
+    },
+    {
+      "hash": "0x5d1a02b49ecb16066a81429a8036e667efc2661e90c4388809ba9638322c0cac",
+      "block": 54656358,
+      "utc": "2026-11-08T07:07:27.000Z",
+      "from": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+      "to": "0xcf77a3ba9a5ca399b7c97c74d54e5b1beb874e43",
+      "nonce": 20,
+      "status": "success",
+      "gasUsed": 302104,
+      "feeWei": "1899855104233",
+      "events": [
+        {
+          "type": "Transfer",
+          "token": "VIBES",
+          "from": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+          "to": "0x07f78058685b75f89288f025a0a154a96021ac45",
+          "amount": "12358.63636498258084623",
+          "raw": "12358636364982580846230"
+        },
+        {
+          "type": "Transfer",
+          "token": "WETH",
+          "from": "0x07f78058685b75f89288f025a0a154a96021ac45",
+          "to": "0xcdac0d6c6c59727a65f871236188350531885c43",
+          "amount": "0.000879885530041459",
+          "raw": "879885530041459"
+        },
+        {
+          "type": "Transfer",
+          "token": "VIBES",
+          "from": "0x07f78058685b75f89288f025a0a154a96021ac45",
+          "to": "0x3ea8e703a3ccf267979292b53e7612e1f0073250",
+          "amount": "123.586363649825808462",
+          "raw": "123586363649825808462"
+        },
+        {
+          "type": "Transfer",
+          "token": "USDC",
+          "from": "0xcdac0d6c6c59727a65f871236188350531885c43",
+          "to": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+          "amount": "1.963096",
+          "raw": "1963096"
+        },
+        {
+          "type": "Transfer",
+          "token": "WETH",
+          "from": "0xcdac0d6c6c59727a65f871236188350531885c43",
+          "to": "0x0cff5f2f4171db0b187ad99f05dcca08b0eebdd6",
+          "amount": "0.000002639656590124",
+          "raw": "2639656590124"
+        }
+      ],
+      "explorer": "https://basescan.org/tx/0x5d1a02b49ecb16066a81429a8036e667efc2661e90c4388809ba9638322c0cac"
+    },
+    {
+      "hash": "0x41ce2c999ab43fe11de53d833a5d847afca516fc1027f778b67e15a6041071e7",
+      "block": 54656385,
+      "utc": "2026-11-08T07:07:32.000Z",
+      "from": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+      "to": "0x4200000000000000000000000000000000000006",
+      "nonce": 21,
+      "status": "success",
+      "gasUsed": 46031,
+      "feeWei": "287279177745",
+      "events": [
+        {
+          "type": "Approval",
+          "token": "WETH",
+          "owner": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+          "spender": "0xcf77a3ba9a5ca399b7c97c74d54e5b1beb874e43",
+          "spenderName": "Aerodrome Router",
+          "amount": "0.0015",
+          "raw": "1500000000000000"
+        }
+      ],
+      "explorer": "https://basescan.org/tx/0x41ce2c999ab43fe11de53d833a5d847afca516fc1027f778b67e15a6041071e7"
+    },
+    {
+      "hash": "0x8752ce3215e6f8b340964650941f407f3daa71e73e6cf92616d1a1f98e27aa64",
+      "block": 54656408,
+      "utc": "2026-11-08T07:07:37.000Z",
+      "from": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+      "to": "0xcf77a3ba9a5ca399b7c97c74d54e5b1beb874e43",
+      "nonce": 22,
+      "status": "success",
+      "gasUsed": 182744,
+      "feeWei": "1133898845339",
+      "events": [
+        {
+          "type": "Transfer",
+          "token": "WETH",
+          "from": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+          "to": "0xcdac0d6c6c59727a65f871236188350531885c43",
+          "amount": "0.0015",
+          "raw": "1500000000000000"
+        },
+        {
+          "type": "Transfer",
+          "token": "USDC",
+          "from": "0xcdac0d6c6c59727a65f871236188350531885c43",
+          "to": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+          "amount": "3.346594",
+          "raw": "3346594"
+        },
+        {
+          "type": "Transfer",
+          "token": "WETH",
+          "from": "0xcdac0d6c6c59727a65f871236188350531885c43",
+          "to": "0x0cff5f2f4171db0b187ad99f05dcca08b0eebdd6",
+          "amount": "0.0000045",
+          "raw": "4500000000000"
+        }
+      ],
+      "explorer": "https://basescan.org/tx/0x8752ce3215e6f8b340964650941f407f3daa71e73e6cf92616d1a1f98e27aa64"
+    },
+    {
+      "hash": "0xe79c92c1a29ccb3ef6efa848fffd34650b732941699c68f54d818f490a3522ee",
+      "block": 54661721,
+      "utc": "2026-11-08T07:25:19.000Z",
+      "from": "0xb2bd29925cbbcea7628279c91945ca5b98bf371b",
+      "to": "0xca11bde05977b3631167028862be2a173976ca11",
+      "nonce": 4038294,
+      "status": "success",
+      "gasUsed": 92332,
+      "feeWei": "647251784049",
+      "events": [
+        {
+          "type": "Transfer",
+          "token": "USDC",
+          "from": "0xcd0a2370f2dc12c1802707b7d9ab3fec891e3c02",
+          "to": "0xebb92c8f27368222e4b722fb386dbc6fe80cc426",
+          "amount": "0.01",
+          "raw": "10000"
+        }
+      ],
+      "explorer": "https://basescan.org/tx/0xe79c92c1a29ccb3ef6efa848fffd34650b732941699c68f54d818f490a3522ee"
+    }
+  ]
+}

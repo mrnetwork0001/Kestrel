@@ -1,0 +1,255 @@
+{
+ "after": {
+  "file": "footage/after.mp4",
+  "width": 3200,
+  "height": 1800,
+  "durationFrames": 308,
+  "marks": {
+   "after.scroll": 90
+  },
+  "deviceScale": 2,
+  "viewport": {
+   "w": 1600,
+   "h": 900
+  },
+  "url": "usekestrel.vercel.app/rescue?target=0xCd0a…3c02",
+  "rects": {
+   "none2": {
+    "x": 136,
+    "y": 283,
+    "w": 875,
+    "h": 157
+   },
+   "rail": {
+    "x": 1043,
+    "y": 80,
+    "w": 421,
+    "h": 412
+   }
+  }
+ },
+ "agents": {
+  "file": "footage/agents.mp4",
+  "width": 3200,
+  "height": 1800,
+  "durationFrames": 905,
+  "marks": {
+   "agents.play": 90,
+   "agents.free": 229,
+   "agents.402": 361,
+   "agents.ledger": 466,
+   "agents.mcp": 673
+  },
+  "deviceScale": 2,
+  "viewport": {
+   "w": 1600,
+   "h": 900
+  },
+  "url": "usekestrel.vercel.app/agents",
+  "rects": {
+   "top": {
+    "x": 100,
+    "y": 95,
+    "w": 1400,
+    "h": 471
+   },
+   "play": {
+    "x": 474,
+    "y": 26,
+    "w": 990,
+    "h": 705
+   },
+   "play2": {
+    "x": 474,
+    "y": 26,
+    "w": 990,
+    "h": 945
+   },
+   "ledger": {
+    "x": 474,
+    "y": 23,
+    "w": 990,
+    "h": 577
+   },
+   "mcp": {
+    "x": 474,
+    "y": 23,
+    "w": 990,
+    "h": 1211
+   }
+  }
+ },
+ "hero": {
+  "file": "footage/hero.mp4",
+  "width": 3200,
+  "height": 1800,
+  "durationFrames": 563,
+  "marks": {
+   "hero.input": 210,
+   "hero.pasted": 259,
+   "hero.run": 295,
+   "hero.result": 372
+  },
+  "deviceScale": 2,
+  "viewport": {
+   "w": 1600,
+   "h": 900
+  },
+  "url": "usekestrel.vercel.app",
+  "rects": {
+   "input": {
+    "x": 136,
+    "y": 395,
+    "w": 644,
+    "h": 66
+   },
+   "score": {
+    "x": 1037,
+    "y": 267,
+    "w": 427,
+    "h": 107
+   },
+   "head": {
+    "x": 100,
+    "y": 239,
+    "w": 1400,
+    "h": 223
+   }
+  }
+ },
+ "lab": {
+  "file": "footage/lab.mp4",
+  "width": 3200,
+  "height": 1800,
+  "durationFrames": 1238,
+  "marks": {
+   "lab.whale": 75,
+   "lab.lp": 222,
+   "lab.parity": 370,
+   "lab.delta": 1062
+  },
+  "deviceScale": 2,
+  "viewport": {
+   "w": 1600,
+   "h": 900
+  },
+  "url": "usekestrel.vercel.app/app?tab=chaos",
+  "rects": {
+   "parity": null
+  }
+ },
+ "pager": {
+  "file": "footage/pager.mp4",
+  "width": 3200,
+  "height": 1800,
+  "durationFrames": 480,
+  "marks": {
+   "pager.eval": 119,
+   "pager.result": 335
+  },
+  "deviceScale": 2,
+  "viewport": {
+   "w": 1600,
+   "h": 900
+  },
+  "url": "usekestrel.vercel.app/app?tab=pager",
+  "rects": {
+   "evalBox": {
+    "x": 136,
+    "y": 466,
+    "w": 761,
+    "h": 579
+   }
+  }
+ },
+ "scan_swap": {
+  "file": "footage/scan_swap.mp4",
+  "width": 3200,
+  "height": 1800,
+  "durationFrames": 290,
+  "marks": {},
+  "deviceScale": 2,
+  "viewport": {
+   "w": 1600,
+   "h": 900
+  },
+  "url": "basescan.org/tx/0x5d1a02b4…2c0cac",
+  "hash": "0x5d1a02b49ecb16066a81429a8036e667efc2661e90c4388809ba9638322c0cac",
+  "rects": {}
+ },
+ "scan_x402": {
+  "file": "footage/scan_x402.mp4",
+  "width": 3200,
+  "height": 1800,
+  "durationFrames": 290,
+  "marks": {},
+  "deviceScale": 2,
+  "viewport": {
+   "w": 1600,
+   "h": 900
+  },
+  "url": "basescan.org/tx/0xe79c92c1…3522ee",
+  "hash": "0xe79c92c1a29ccb3ef6efa848fffd34650b732941699c68f54d818f490a3522ee",
+  "rects": {}
+ },
+ "shield": {
+  "file": "footage/shield.mp4",
+  "width": 3200,
+  "height": 1800,
+  "durationFrames": 386,
+  "marks": {
+   "shield.scroll": 135
+  },
+  "deviceScale": 2,
+  "viewport": {
+   "w": 1600,
+   "h": 900
+  },
+  "url": "usekestrel.vercel.app/app?tab=shield",
+  "rects": {
+   "tranches2": {
+    "x": 589,
+    "y": 418,
+    "w": 875,
+    "h": 19
+   },
+   "copilot": {
+    "x": 589,
+    "y": 684,
+    "w": 875,
+    "h": 1539
+   }
+  }
+ },
+ "tg": {
+  "file": "footage/tg.mp4",
+  "width": 708,
+  "height": 1534,
+  "durationFrames": 725,
+  "marks": {},
+  "url": "Telegram · @KestrelNightShiftBot"
+ },
+ "parity": {
+  "file": "footage/parity.mp4",
+  "width": 3200,
+  "height": 1800,
+  "durationFrames": 332,
+  "marks": {
+   "parity.table": 120
+  },
+  "deviceScale": 2,
+  "viewport": {
+   "w": 1600,
+   "h": 900
+  },
+  "url": "usekestrel.vercel.app/app?tab=parity",
+  "rects": {
+   "table": {
+    "x": 136,
+    "y": 363,
+    "w": 1328,
+    "h": 425
+   }
+  }
+ }
+}

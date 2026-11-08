@@ -1,0 +1,100 @@
+{
+  "readAtUtc": "2026-11-08T08:21:12.406Z",
+  "source": "https://usekestrel.vercel.app",
+  "parity": {
+    "verdict": "EXACT",
+    "delta": "0",
+    "lockedOnBase": "56937667730168000000000000",
+    "rhCirculating": "56937667730168000000000000",
+    "spreadBps": 211,
+    "baseBlock": "54678476",
+    "rhBlock": "109088956"
+  },
+  "genesisEscrow": {
+    "address": "0x0e9bf34baed84a80d7647dafe4db52169147c911",
+    "title": "Vibestarter",
+    "raisedWei": "123459700000000000000",
+    "tranches": [
+      {
+        "label": "Kickstart",
+        "status": "PAID",
+        "amount": "10494074500000000000"
+      },
+      {
+        "label": "Month 1",
+        "status": "PAID",
+        "amount": "15741111750000000000"
+      },
+      {
+        "label": "Month 2",
+        "status": "PAID",
+        "amount": "15741111750000000000"
+      },
+      {
+        "label": "Month 3",
+        "status": "PAID",
+        "amount": "15741111750000000000"
+      },
+      {
+        "label": "Month 4",
+        "status": "PAID",
+        "amount": "15741111750000000000"
+      },
+      {
+        "label": "Month 5",
+        "status": "LOCKED",
+        "amount": "15741111750000000000"
+      },
+      {
+        "label": "Month 6",
+        "status": "LOCKED",
+        "amount": "15741111750000000000"
+      }
+    ],
+    "score": 0,
+    "band": "NOMINAL",
+    "keys": [
+      "chainId",
+      "address",
+      "title",
+      "tagline",
+      "apiStatus",
+      "state",
+      "stateLabel",
+      "raiseTypeLabel",
+      "founder",
+      "token",
+      "tokenSymbol",
+      "totalRaised",
+      "escrowBalance",
+      "nextTranche",
+      "startTime",
+      "oracleTime",
+      "challengeWindowSeconds",
+      "lpCreated",
+      "lpWithdrawn",
+      "lpLockTxHash",
+      "allTranchesClaimed",
+      "activeChallenge",
+      "challengeThresholdBps",
+      "tranches",
+      "capsule",
+      "founderSignals",
+      "contributorCount",
+      "holderCount",
+      "appHealth",
+      "block"
+    ]
+  },
+  "guardVibes": {
+    "verdict": "ALLOW",
+    "riskScore": 22,
+    "band": "NOMINAL"
+  },
+  "pager": {
+    "healthy": true,
+    "cadenceSec": 240,
+    "scheduler": "qstash",
+    "checks": 26
+  }
+}

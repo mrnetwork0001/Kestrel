@@ -1,0 +1,155 @@
+{
+  "title": "Kestrel: stay asleep, Kestrel watches the chain",
+  "model": "eleven_multilingual_v2",
+  "voices": {
+    "narrator": {
+      "name": "Brian",
+      "id": "nPczCjzI2devNBz1zQrb",
+      "settings": {
+        "stability": 0.5,
+        "similarity_boost": 0.8,
+        "style": 0.2,
+        "use_speaker_boost": true
+      }
+    }
+  },
+  "scenes": [
+    {
+      "id": "open",
+      "seconds": 13,
+      "lines": [
+        {
+          "voice": "narrator",
+          "text": "Sunday, six fifty-five in the morning UTC, on Base. One wallet signs three unlimited approvals. USDC to Permit2. VIBES to Aerodrome. WETH to Uniswap. Nothing looks wrong.",
+          "say": "Sunday, six fifty-five in the morning UTC, on Base. One wallet signs three unlimited approvals. U S D C to Permit two. Vibes to Aerodrome. W E T H to Uniswap. Nothing looks wrong."
+        }
+      ]
+    },
+    {
+      "id": "problem",
+      "seconds": 11.5,
+      "lines": [
+        {
+          "voice": "narrator",
+          "text": "But crypto never closes, and people sleep. Overnight, liquidity gets pulled, contracts get upgraded, admin keys change, and an old approval gets drained. By morning, it is history."
+        }
+      ]
+    },
+    {
+      "id": "evidence",
+      "seconds": 14,
+      "lines": [
+        {
+          "voice": "narrator",
+          "text": "Base now makes a block every two hundred milliseconds. That is one hundred forty-four thousand blocks while you sleep. And VIBES lives on two chains at once, Base and Robinhood Chain, where a broken bridge would not wait for you to wake up.",
+          "say": "Base now makes a block every two hundred milliseconds. That is one hundred forty-four thousand blocks while you sleep. And Vibes lives on two chains at once, Base and Robinhood Chain, where a broken bridge would not wait for you to wake up."
+        }
+      ]
+    },
+    {
+      "id": "turn",
+      "seconds": 7,
+      "lines": [
+        {
+          "voice": "narrator",
+          "text": "Meet Kestrel. Stay asleep. Kestrel watches the chain."
+        }
+      ]
+    },
+    {
+      "id": "briefing",
+      "seconds": 16,
+      "lines": [
+        {
+          "voice": "narrator",
+          "text": "Paste any address on Base or Robinhood Chain. No wallet, no signup. In about a second, Kestrel reads the chain and scores it. That wallet from six fifty-five scores forty-five out of a hundred. Elevated. Three unlimited approvals, all fresh."
+        }
+      ]
+    },
+    {
+      "id": "pager",
+      "seconds": 10.5,
+      "lines": [
+        {
+          "voice": "narrator",
+          "text": "Set a watch and go to bed. Every four minutes, Kestrel checks your rules against live blocks. When one fires, Telegram wakes you, with a link straight into the Panic Bunker."
+        }
+      ]
+    },
+    {
+      "id": "rescue",
+      "seconds": 19,
+      "lines": [
+        {
+          "voice": "narrator",
+          "text": "At seven oh seven, the owner opened that link. Kestrel simulated every call first, then guided six signatures. Two revokes. VIBES and WETH swapped to USDC, through exact-size approvals. Thirty-two seconds. Every allowance back to zero. Score: zero.",
+          "say": "At seven oh seven, the owner opened that link. Kestrel simulated every call first, then guided six signatures. Two revokes. Vibes and W E T H swapped to U S D C, through exact-size approvals. Thirty-two seconds. Every allowance back to zero. Score: zero."
+        }
+      ]
+    },
+    {
+      "id": "lab",
+      "seconds": 16,
+      "lines": [
+        {
+          "voice": "narrator",
+          "text": "Before you trade, simulate the rug. Kestrel replays a whale dump or a pulled pool with exact pool math. And it checks the VIBES bridge on both chains: every token circulating on Robinhood Chain must be locked on Base. Right now, exact.",
+          "say": "Before you trade, simulate the rug. Kestrel replays a whale dump or a pulled pool with exact pool math. And it checks the Vibes bridge on both chains: every token circulating on Robinhood Chain must be locked on Base. Right now, exact."
+        }
+      ]
+    },
+    {
+      "id": "shield",
+      "seconds": 11,
+      "lines": [
+        {
+          "voice": "narrator",
+          "text": "For Vibestarter backers, Backer Shield watches tranche escrows, like the Genesis raise of one hundred twenty-three ETH, and counts down every seventy-two hour challenge window.",
+          "say": "For Vibe starter backers, Backer Shield watches tranche escrows, like the Genesis raise of one hundred twenty-three E T H, and counts down every seventy-two hour challenge window."
+        }
+      ]
+    },
+    {
+      "id": "agents",
+      "seconds": 16,
+      "lines": [
+        {
+          "voice": "narrator",
+          "text": "AI agents ask Kestrel before they swap. Allow, warn or block. The preview is free. A full verdict costs one cent of USDC over x402, and the first paid call settled on Base at seven twenty-five. Kestrel is an MCP server too, with eleven tools.",
+          "say": "A I agents ask Kestrel before they swap. Allow, warn or block. The preview is free. A full verdict costs one cent of U S D C over x four oh two, and the first paid call settled on Base at seven twenty-five. Kestrel is an M C P server too, with eleven tools."
+        }
+      ]
+    },
+    {
+      "id": "hood",
+      "seconds": 9,
+      "lines": [
+        {
+          "voice": "narrator",
+          "text": "Under the hood, there is no indexer and no mock data. Every number is read live from public nodes, with its block and an explorer link."
+        }
+      ]
+    },
+    {
+      "id": "different",
+      "seconds": 9.5,
+      "lines": [
+        {
+          "voice": "narrator",
+          "text": "Revoke tools clean up after you wake. Alert bots tell you what already happened. Kestrel watches, warns, and gets you out, while you sleep."
+        }
+      ]
+    },
+    {
+      "id": "close",
+      "seconds": 9,
+      "lines": [
+        {
+          "voice": "narrator",
+          "text": "Kestrel. Stay asleep. Kestrel watches the chain. Built for Vibeathon zero two, Night Shift.",
+          "say": "Kestrel. Stay asleep. Kestrel watches the chain. Built for Vibe-athon zero two, Night Shift."
+        }
+      ]
+    }
+  ]
+}

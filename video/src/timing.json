@@ -1,0 +1,2450 @@
+{
+ "fps": 30,
+ "totalFrames": 5129,
+ "bpm": 96,
+ "beats": [
+  1,
+  20,
+  39,
+  57,
+  76,
+  95,
+  114,
+  132,
+  151,
+  170,
+  189,
+  207,
+  226,
+  245,
+  264,
+  282,
+  301,
+  320,
+  339,
+  357,
+  376,
+  395,
+  414,
+  432,
+  451,
+  470,
+  489,
+  507,
+  526,
+  545,
+  564,
+  582,
+  601,
+  620,
+  639,
+  657,
+  676,
+  695,
+  714,
+  732,
+  751,
+  770,
+  789,
+  807,
+  826,
+  845,
+  864,
+  882,
+  901,
+  920,
+  939,
+  957,
+  976,
+  995,
+  1014,
+  1032,
+  1051,
+  1070,
+  1089,
+  1107,
+  1126,
+  1145,
+  1164,
+  1182,
+  1201,
+  1220,
+  1239,
+  1257,
+  1276,
+  1295,
+  1314,
+  1332,
+  1351,
+  1370,
+  1389,
+  1407,
+  1426,
+  1445,
+  1464,
+  1482,
+  1501,
+  1520,
+  1539,
+  1557,
+  1576,
+  1595,
+  1614,
+  1632,
+  1651,
+  1670,
+  1689,
+  1707,
+  1726,
+  1745,
+  1764,
+  1782,
+  1801,
+  1820,
+  1839,
+  1857,
+  1876,
+  1895,
+  1914,
+  1932,
+  1951,
+  1970,
+  1989,
+  2007,
+  2026,
+  2045,
+  2064,
+  2082,
+  2101,
+  2120,
+  2139,
+  2157,
+  2176,
+  2195,
+  2214,
+  2232,
+  2251,
+  2270,
+  2289,
+  2307,
+  2326,
+  2345,
+  2364,
+  2382,
+  2401,
+  2420,
+  2439,
+  2457,
+  2476,
+  2495,
+  2514,
+  2532,
+  2551,
+  2570,
+  2589,
+  2607,
+  2626,
+  2645,
+  2664,
+  2682,
+  2701,
+  2720,
+  2739,
+  2757,
+  2776,
+  2795,
+  2814,
+  2832,
+  2851,
+  2870,
+  2889,
+  2907,
+  2926,
+  2945,
+  2964,
+  2982,
+  3001,
+  3020,
+  3039,
+  3057,
+  3076,
+  3095,
+  3114,
+  3132,
+  3151,
+  3170,
+  3189,
+  3207,
+  3226,
+  3245,
+  3264,
+  3282,
+  3301,
+  3320,
+  3339,
+  3357,
+  3376,
+  3395,
+  3414,
+  3432,
+  3451,
+  3470,
+  3489,
+  3507,
+  3526,
+  3545,
+  3564,
+  3582,
+  3601,
+  3620,
+  3639,
+  3657,
+  3676,
+  3695,
+  3714,
+  3732,
+  3751,
+  3770,
+  3789,
+  3807,
+  3826,
+  3845,
+  3864,
+  3882,
+  3901,
+  3920,
+  3939,
+  3957,
+  3976,
+  3995,
+  4014,
+  4032,
+  4051,
+  4070,
+  4089,
+  4107,
+  4126,
+  4145,
+  4164,
+  4182,
+  4201,
+  4220,
+  4239,
+  4257,
+  4276,
+  4295,
+  4314,
+  4332,
+  4351,
+  4370,
+  4389,
+  4407,
+  4426,
+  4445,
+  4464,
+  4482,
+  4501,
+  4520,
+  4539,
+  4557,
+  4576,
+  4595,
+  4614,
+  4632,
+  4651,
+  4670,
+  4689,
+  4707,
+  4726,
+  4745,
+  4764,
+  4782,
+  4801,
+  4820,
+  4839,
+  4857,
+  4876,
+  4895,
+  4914,
+  4932,
+  4951,
+  4970,
+  4989,
+  5007,
+  5026,
+  5045,
+  5064,
+  5082,
+  5101,
+  5120
+ ],
+ "music": {
+  "file": "audio/music.mp3",
+  "source": "elevenlabs-music"
+ },
+ "scenes": [
+  {
+   "id": "open",
+   "from": 0,
+   "durationInFrames": 446,
+   "lines": [
+    {
+     "voice": "narrator",
+     "text": "Sunday, six fifty-five in the morning UTC, on Base. One wallet signs three unlimited approvals. USDC to Permit2. VIBES to Aerodrome. WETH to Uniswap. Nothing looks wrong.",
+     "file": "audio/vo/open_0.mp3",
+     "startFrame": 8,
+     "durationFrames": 414,
+     "words": [
+      {
+       "word": "Sunday,",
+       "start": 8,
+       "end": 22
+      },
+      {
+       "word": "six",
+       "start": 23,
+       "end": 28
+      },
+      {
+       "word": "fifty-five",
+       "start": 30,
+       "end": 45
+      },
+      {
+       "word": "in",
+       "start": 45,
+       "end": 47
+      },
+      {
+       "word": "the",
+       "start": 47,
+       "end": 49
+      },
+      {
+       "word": "morning",
+       "start": 50,
+       "end": 58
+      },
+      {
+       "word": "UTC,",
+       "start": 61,
+       "end": 76
+      },
+      {
+       "word": "on",
+       "start": 77,
+       "end": 80
+      },
+      {
+       "word": "Base.",
+       "start": 82,
+       "end": 96
+      },
+      {
+       "word": "One",
+       "start": 109,
+       "end": 116
+      },
+      {
+       "word": "wallet",
+       "start": 117,
+       "end": 126
+      },
+      {
+       "word": "signs",
+       "start": 127,
+       "end": 135
+      },
+      {
+       "word": "three",
+       "start": 138,
+       "end": 146
+      },
+      {
+       "word": "unlimited",
+       "start": 147,
+       "end": 162
+      },
+      {
+       "word": "approvals.",
+       "start": 163,
+       "end": 183
+      },
+      {
+       "word": "USDC",
+       "start": 194,
+       "end": 216
+      },
+      {
+       "word": "to",
+       "start": 223,
+       "end": 225
+      },
+      {
+       "word": "Permit2.",
+       "start": 227,
+       "end": 253
+      },
+      {
+       "word": "VIBES",
+       "start": 264,
+       "end": 276
+      },
+      {
+       "word": "to",
+       "start": 277,
+       "end": 279
+      },
+      {
+       "word": "Aerodrome.",
+       "start": 281,
+       "end": 301
+      },
+      {
+       "word": "WETH",
+       "start": 312,
+       "end": 347
+      },
+      {
+       "word": "to",
+       "start": 351,
+       "end": 354
+      },
+      {
+       "word": "Uniswap.",
+       "start": 357,
+       "end": 376
+      },
+      {
+       "word": "Nothing",
+       "start": 386,
+       "end": 395
+      },
+      {
+       "word": "looks",
+       "start": 396,
+       "end": 402
+      },
+      {
+       "word": "wrong.",
+       "start": 403,
+       "end": 422
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "problem",
+   "from": 446,
+   "durationInFrames": 367,
+   "lines": [
+    {
+     "voice": "narrator",
+     "text": "But crypto never closes, and people sleep. Overnight, liquidity gets pulled, contracts get upgraded, admin keys change, and an old approval gets drained. By morning, it is history.",
+     "file": "audio/vo/problem_0.mp3",
+     "startFrame": 454,
+     "durationFrames": 352,
+     "words": [
+      {
+       "word": "But",
+       "start": 454,
+       "end": 460
+      },
+      {
+       "word": "crypto",
+       "start": 461,
+       "end": 469
+      },
+      {
+       "word": "never",
+       "start": 471,
+       "end": 477
+      },
+      {
+       "word": "closes,",
+       "start": 479,
+       "end": 494
+      },
+      {
+       "word": "and",
+       "start": 495,
+       "end": 499
+      },
+      {
+       "word": "people",
+       "start": 501,
+       "end": 509
+      },
+      {
+       "word": "sleep.",
+       "start": 509,
+       "end": 523
+      },
+      {
+       "word": "Overnight,",
+       "start": 538,
+       "end": 555
+      },
+      {
+       "word": "liquidity",
+       "start": 556,
+       "end": 569
+      },
+      {
+       "word": "gets",
+       "start": 571,
+       "end": 576
+      },
+      {
+       "word": "pulled,",
+       "start": 577,
+       "end": 593
+      },
+      {
+       "word": "contracts",
+       "start": 599,
+       "end": 614
+      },
+      {
+       "word": "get",
+       "start": 615,
+       "end": 618
+      },
+      {
+       "word": "upgraded,",
+       "start": 619,
+       "end": 638
+      },
+      {
+       "word": "admin",
+       "start": 643,
+       "end": 655
+      },
+      {
+       "word": "keys",
+       "start": 657,
+       "end": 665
+      },
+      {
+       "word": "change,",
+       "start": 667,
+       "end": 685
+      },
+      {
+       "word": "and",
+       "start": 691,
+       "end": 696
+      },
+      {
+       "word": "an",
+       "start": 698,
+       "end": 700
+      },
+      {
+       "word": "old",
+       "start": 702,
+       "end": 707
+      },
+      {
+       "word": "approval",
+       "start": 708,
+       "end": 719
+      },
+      {
+       "word": "gets",
+       "start": 721,
+       "end": 726
+      },
+      {
+       "word": "drained.",
+       "start": 727,
+       "end": 741
+      },
+      {
+       "word": "By",
+       "start": 754,
+       "end": 759
+      },
+      {
+       "word": "morning,",
+       "start": 762,
+       "end": 774
+      },
+      {
+       "word": "it",
+       "start": 775,
+       "end": 778
+      },
+      {
+       "word": "is",
+       "start": 780,
+       "end": 782
+      },
+      {
+       "word": "history.",
+       "start": 784,
+       "end": 805
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "evidence",
+   "from": 813,
+   "durationInFrames": 438,
+   "lines": [
+    {
+     "voice": "narrator",
+     "text": "Base now makes a block every two hundred milliseconds. That is one hundred forty-four thousand blocks while you sleep. And VIBES lives on two chains at once, Base and Robinhood Chain, where a broken bridge would not wait for you to wake up.",
+     "file": "audio/vo/evidence_0.mp3",
+     "startFrame": 821,
+     "durationFrames": 423,
+     "words": [
+      {
+       "word": "Base",
+       "start": 821,
+       "end": 831
+      },
+      {
+       "word": "now",
+       "start": 833,
+       "end": 837
+      },
+      {
+       "word": "makes",
+       "start": 840,
+       "end": 846
+      },
+      {
+       "word": "a",
+       "start": 847,
+       "end": 848
+      },
+      {
+       "word": "block",
+       "start": 850,
+       "end": 858
+      },
+      {
+       "word": "every",
+       "start": 861,
+       "end": 870
+      },
+      {
+       "word": "two",
+       "start": 873,
+       "end": 879
+      },
+      {
+       "word": "hundred",
+       "start": 882,
+       "end": 889
+      },
+      {
+       "word": "milliseconds.",
+       "start": 891,
+       "end": 915
+      },
+      {
+       "word": "That",
+       "start": 925,
+       "end": 930
+      },
+      {
+       "word": "is",
+       "start": 931,
+       "end": 934
+      },
+      {
+       "word": "one",
+       "start": 937,
+       "end": 944
+      },
+      {
+       "word": "hundred",
+       "start": 946,
+       "end": 954
+      },
+      {
+       "word": "forty-four",
+       "start": 956,
+       "end": 971
+      },
+      {
+       "word": "thousand",
+       "start": 973,
+       "end": 985
+      },
+      {
+       "word": "blocks",
+       "start": 986,
+       "end": 996
+      },
+      {
+       "word": "while",
+       "start": 997,
+       "end": 1001
+      },
+      {
+       "word": "you",
+       "start": 1002,
+       "end": 1005
+      },
+      {
+       "word": "sleep.",
+       "start": 1006,
+       "end": 1020
+      },
+      {
+       "word": "And",
+       "start": 1030,
+       "end": 1034
+      },
+      {
+       "word": "VIBES",
+       "start": 1036,
+       "end": 1047
+      },
+      {
+       "word": "lives",
+       "start": 1049,
+       "end": 1055
+      },
+      {
+       "word": "on",
+       "start": 1056,
+       "end": 1059
+      },
+      {
+       "word": "two",
+       "start": 1060,
+       "end": 1066
+      },
+      {
+       "word": "chains",
+       "start": 1068,
+       "end": 1079
+      },
+      {
+       "word": "at",
+       "start": 1080,
+       "end": 1083
+      },
+      {
+       "word": "once,",
+       "start": 1085,
+       "end": 1097
+      },
+      {
+       "word": "Base",
+       "start": 1110,
+       "end": 1121
+      },
+      {
+       "word": "and",
+       "start": 1122,
+       "end": 1124
+      },
+      {
+       "word": "Robinhood",
+       "start": 1126,
+       "end": 1141
+      },
+      {
+       "word": "Chain,",
+       "start": 1142,
+       "end": 1158
+      },
+      {
+       "word": "where",
+       "start": 1163,
+       "end": 1170
+      },
+      {
+       "word": "a",
+       "start": 1170,
+       "end": 1171
+      },
+      {
+       "word": "broken",
+       "start": 1173,
+       "end": 1182
+      },
+      {
+       "word": "bridge",
+       "start": 1184,
+       "end": 1191
+      },
+      {
+       "word": "would",
+       "start": 1192,
+       "end": 1196
+      },
+      {
+       "word": "not",
+       "start": 1197,
+       "end": 1201
+      },
+      {
+       "word": "wait",
+       "start": 1202,
+       "end": 1207
+      },
+      {
+       "word": "for",
+       "start": 1209,
+       "end": 1211
+      },
+      {
+       "word": "you",
+       "start": 1213,
+       "end": 1215
+      },
+      {
+       "word": "to",
+       "start": 1217,
+       "end": 1218
+      },
+      {
+       "word": "wake",
+       "start": 1220,
+       "end": 1227
+      },
+      {
+       "word": "up.",
+       "start": 1229,
+       "end": 1243
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "turn",
+   "from": 1251,
+   "durationInFrames": 210,
+   "lines": [
+    {
+     "voice": "narrator",
+     "text": "Meet Kestrel. Stay asleep. Kestrel watches the chain.",
+     "file": "audio/vo/turn_0.mp3",
+     "startFrame": 1259,
+     "durationFrames": 111,
+     "words": [
+      {
+       "word": "Meet",
+       "start": 1259,
+       "end": 1267
+      },
+      {
+       "word": "Kestrel.",
+       "start": 1268,
+       "end": 1284
+      },
+      {
+       "word": "Stay",
+       "start": 1286,
+       "end": 1292
+      },
+      {
+       "word": "asleep.",
+       "start": 1294,
+       "end": 1308
+      },
+      {
+       "word": "Kestrel",
+       "start": 1320,
+       "end": 1333
+      },
+      {
+       "word": "watches",
+       "start": 1334,
+       "end": 1343
+      },
+      {
+       "word": "the",
+       "start": 1345,
+       "end": 1347
+      },
+      {
+       "word": "chain.",
+       "start": 1348,
+       "end": 1369
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "briefing",
+   "from": 1461,
+   "durationInFrames": 490,
+   "lines": [
+    {
+     "voice": "narrator",
+     "text": "Paste any address on Base or Robinhood Chain. No wallet, no signup. In about a second, Kestrel reads the chain and scores it. That wallet from six fifty-five scores forty-five out of a hundred. Elevated. Three unlimited approvals, all fresh.",
+     "file": "audio/vo/briefing_0.mp3",
+     "startFrame": 1469,
+     "durationFrames": 474,
+     "words": [
+      {
+       "word": "Paste",
+       "start": 1469,
+       "end": 1480
+      },
+      {
+       "word": "any",
+       "start": 1482,
+       "end": 1486
+      },
+      {
+       "word": "address",
+       "start": 1488,
+       "end": 1498
+      },
+      {
+       "word": "on",
+       "start": 1500,
+       "end": 1503
+      },
+      {
+       "word": "Base",
+       "start": 1506,
+       "end": 1516
+      },
+      {
+       "word": "or",
+       "start": 1518,
+       "end": 1521
+      },
+      {
+       "word": "Robinhood",
+       "start": 1523,
+       "end": 1536
+      },
+      {
+       "word": "Chain.",
+       "start": 1537,
+       "end": 1551
+      },
+      {
+       "word": "No",
+       "start": 1561,
+       "end": 1565
+      },
+      {
+       "word": "wallet,",
+       "start": 1568,
+       "end": 1582
+      },
+      {
+       "word": "no",
+       "start": 1584,
+       "end": 1588
+      },
+      {
+       "word": "signup.",
+       "start": 1590,
+       "end": 1605
+      },
+      {
+       "word": "In",
+       "start": 1623,
+       "end": 1627
+      },
+      {
+       "word": "about",
+       "start": 1629,
+       "end": 1635
+      },
+      {
+       "word": "a",
+       "start": 1636,
+       "end": 1637
+      },
+      {
+       "word": "second,",
+       "start": 1639,
+       "end": 1651
+      },
+      {
+       "word": "Kestrel",
+       "start": 1652,
+       "end": 1662
+      },
+      {
+       "word": "reads",
+       "start": 1664,
+       "end": 1670
+      },
+      {
+       "word": "the",
+       "start": 1672,
+       "end": 1674
+      },
+      {
+       "word": "chain",
+       "start": 1675,
+       "end": 1682
+      },
+      {
+       "word": "and",
+       "start": 1683,
+       "end": 1686
+      },
+      {
+       "word": "scores",
+       "start": 1687,
+       "end": 1697
+      },
+      {
+       "word": "it.",
+       "start": 1698,
+       "end": 1705
+      },
+      {
+       "word": "That",
+       "start": 1716,
+       "end": 1723
+      },
+      {
+       "word": "wallet",
+       "start": 1725,
+       "end": 1734
+      },
+      {
+       "word": "from",
+       "start": 1735,
+       "end": 1740
+      },
+      {
+       "word": "six",
+       "start": 1742,
+       "end": 1749
+      },
+      {
+       "word": "fifty-five",
+       "start": 1751,
+       "end": 1768
+      },
+      {
+       "word": "scores",
+       "start": 1769,
+       "end": 1784
+      },
+      {
+       "word": "forty-five",
+       "start": 1789,
+       "end": 1808
+      },
+      {
+       "word": "out",
+       "start": 1810,
+       "end": 1814
+      },
+      {
+       "word": "of",
+       "start": 1815,
+       "end": 1817
+      },
+      {
+       "word": "a",
+       "start": 1818,
+       "end": 1818
+      },
+      {
+       "word": "hundred.",
+       "start": 1820,
+       "end": 1832
+      },
+      {
+       "word": "Elevated.",
+       "start": 1834,
+       "end": 1854
+      },
+      {
+       "word": "Three",
+       "start": 1865,
+       "end": 1875
+      },
+      {
+       "word": "unlimited",
+       "start": 1877,
+       "end": 1892
+      },
+      {
+       "word": "approvals,",
+       "start": 1893,
+       "end": 1911
+      },
+      {
+       "word": "all",
+       "start": 1912,
+       "end": 1919
+      },
+      {
+       "word": "fresh.",
+       "start": 1920,
+       "end": 1943
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "pager",
+   "from": 1951,
+   "durationInFrames": 315,
+   "lines": [
+    {
+     "voice": "narrator",
+     "text": "Set a watch and go to bed. Every four minutes, Kestrel checks your rules against live blocks. When one fires, Telegram wakes you, with a link straight into the Panic Bunker.",
+     "file": "audio/vo/pager_0.mp3",
+     "startFrame": 1959,
+     "durationFrames": 282,
+     "words": [
+      {
+       "word": "Set",
+       "start": 1959,
+       "end": 1966
+      },
+      {
+       "word": "a",
+       "start": 1968,
+       "end": 1968
+      },
+      {
+       "word": "watch",
+       "start": 1970,
+       "end": 1977
+      },
+      {
+       "word": "and",
+       "start": 1979,
+       "end": 1981
+      },
+      {
+       "word": "go",
+       "start": 1982,
+       "end": 1984
+      },
+      {
+       "word": "to",
+       "start": 1985,
+       "end": 1987
+      },
+      {
+       "word": "bed.",
+       "start": 1989,
+       "end": 1999
+      },
+      {
+       "word": "Every",
+       "start": 2009,
+       "end": 2016
+      },
+      {
+       "word": "four",
+       "start": 2019,
+       "end": 2024
+      },
+      {
+       "word": "minutes,",
+       "start": 2026,
+       "end": 2036
+      },
+      {
+       "word": "Kestrel",
+       "start": 2037,
+       "end": 2049
+      },
+      {
+       "word": "checks",
+       "start": 2050,
+       "end": 2057
+      },
+      {
+       "word": "your",
+       "start": 2058,
+       "end": 2061
+      },
+      {
+       "word": "rules",
+       "start": 2062,
+       "end": 2070
+      },
+      {
+       "word": "against",
+       "start": 2071,
+       "end": 2078
+      },
+      {
+       "word": "live",
+       "start": 2080,
+       "end": 2086
+      },
+      {
+       "word": "blocks.",
+       "start": 2087,
+       "end": 2103
+      },
+      {
+       "word": "When",
+       "start": 2115,
+       "end": 2120
+      },
+      {
+       "word": "one",
+       "start": 2122,
+       "end": 2127
+      },
+      {
+       "word": "fires,",
+       "start": 2128,
+       "end": 2142
+      },
+      {
+       "word": "Telegram",
+       "start": 2143,
+       "end": 2158
+      },
+      {
+       "word": "wakes",
+       "start": 2159,
+       "end": 2166
+      },
+      {
+       "word": "you,",
+       "start": 2168,
+       "end": 2176
+      },
+      {
+       "word": "with",
+       "start": 2178,
+       "end": 2183
+      },
+      {
+       "word": "a",
+       "start": 2184,
+       "end": 2185
+      },
+      {
+       "word": "link",
+       "start": 2187,
+       "end": 2193
+      },
+      {
+       "word": "straight",
+       "start": 2196,
+       "end": 2204
+      },
+      {
+       "word": "into",
+       "start": 2205,
+       "end": 2209
+      },
+      {
+       "word": "the",
+       "start": 2210,
+       "end": 2212
+      },
+      {
+       "word": "Panic",
+       "start": 2213,
+       "end": 2221
+      },
+      {
+       "word": "Bunker.",
+       "start": 2222,
+       "end": 2240
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "rescue",
+   "from": 2266,
+   "durationInFrames": 590,
+   "lines": [
+    {
+     "voice": "narrator",
+     "text": "At seven oh seven, the owner opened that link. Kestrel simulated every call first, then guided six signatures. Two revokes. VIBES and WETH swapped to USDC, through exact-size approvals. Thirty-two seconds. Every allowance back to zero. Score: zero.",
+     "file": "audio/vo/rescue_0.mp3",
+     "startFrame": 2274,
+     "durationFrames": 552,
+     "words": [
+      {
+       "word": "At",
+       "start": 2274,
+       "end": 2279
+      },
+      {
+       "word": "seven",
+       "start": 2281,
+       "end": 2289
+      },
+      {
+       "word": "oh",
+       "start": 2290,
+       "end": 2292
+      },
+      {
+       "word": "seven,",
+       "start": 2294,
+       "end": 2302
+      },
+      {
+       "word": "the",
+       "start": 2303,
+       "end": 2305
+      },
+      {
+       "word": "owner",
+       "start": 2307,
+       "end": 2313
+      },
+      {
+       "word": "opened",
+       "start": 2315,
+       "end": 2322
+      },
+      {
+       "word": "that",
+       "start": 2323,
+       "end": 2327
+      },
+      {
+       "word": "link.",
+       "start": 2329,
+       "end": 2339
+      },
+      {
+       "word": "Kestrel",
+       "start": 2351,
+       "end": 2363
+      },
+      {
+       "word": "simulated",
+       "start": 2365,
+       "end": 2380
+      },
+      {
+       "word": "every",
+       "start": 2383,
+       "end": 2391
+      },
+      {
+       "word": "call",
+       "start": 2393,
+       "end": 2400
+      },
+      {
+       "word": "first,",
+       "start": 2403,
+       "end": 2415
+      },
+      {
+       "word": "then",
+       "start": 2415,
+       "end": 2420
+      },
+      {
+       "word": "guided",
+       "start": 2422,
+       "end": 2431
+      },
+      {
+       "word": "six",
+       "start": 2433,
+       "end": 2439
+      },
+      {
+       "word": "signatures.",
+       "start": 2440,
+       "end": 2461
+      },
+      {
+       "word": "Two",
+       "start": 2472,
+       "end": 2478
+      },
+      {
+       "word": "revokes.",
+       "start": 2481,
+       "end": 2499
+      },
+      {
+       "word": "VIBES",
+       "start": 2510,
+       "end": 2524
+      },
+      {
+       "word": "and",
+       "start": 2525,
+       "end": 2528
+      },
+      {
+       "word": "WETH",
+       "start": 2529,
+       "end": 2559
+      },
+      {
+       "word": "swapped",
+       "start": 2564,
+       "end": 2575
+      },
+      {
+       "word": "to",
+       "start": 2575,
+       "end": 2577
+      },
+      {
+       "word": "USDC,",
+       "start": 2579,
+       "end": 2609
+      },
+      {
+       "word": "through",
+       "start": 2618,
+       "end": 2625
+      },
+      {
+       "word": "exact-size",
+       "start": 2627,
+       "end": 2652
+      },
+      {
+       "word": "approvals.",
+       "start": 2653,
+       "end": 2674
+      },
+      {
+       "word": "Thirty-two",
+       "start": 2683,
+       "end": 2696
+      },
+      {
+       "word": "seconds.",
+       "start": 2699,
+       "end": 2714
+      },
+      {
+       "word": "Every",
+       "start": 2723,
+       "end": 2730
+      },
+      {
+       "word": "allowance",
+       "start": 2731,
+       "end": 2744
+      },
+      {
+       "word": "back",
+       "start": 2745,
+       "end": 2750
+      },
+      {
+       "word": "to",
+       "start": 2751,
+       "end": 2753
+      },
+      {
+       "word": "zero.",
+       "start": 2755,
+       "end": 2768
+      },
+      {
+       "word": "Score:",
+       "start": 2779,
+       "end": 2795
+      },
+      {
+       "word": "zero.",
+       "start": 2804,
+       "end": 2826
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "lab",
+   "from": 2856,
+   "durationInFrames": 484,
+   "lines": [
+    {
+     "voice": "narrator",
+     "text": "Before you trade, simulate the rug. Kestrel replays a whale dump or a pulled pool with exact pool math. And it checks the VIBES bridge on both chains: every token circulating on Robinhood Chain must be locked on Base. Right now, exact.",
+     "file": "audio/vo/lab_0.mp3",
+     "startFrame": 2864,
+     "durationFrames": 469,
+     "words": [
+      {
+       "word": "Before",
+       "start": 2864,
+       "end": 2876
+      },
+      {
+       "word": "you",
+       "start": 2878,
+       "end": 2880
+      },
+      {
+       "word": "trade,",
+       "start": 2882,
+       "end": 2895
+      },
+      {
+       "word": "simulate",
+       "start": 2895,
+       "end": 2910
+      },
+      {
+       "word": "the",
+       "start": 2911,
+       "end": 2913
+      },
+      {
+       "word": "rug.",
+       "start": 2915,
+       "end": 2927
+      },
+      {
+       "word": "Kestrel",
+       "start": 2938,
+       "end": 2951
+      },
+      {
+       "word": "replays",
+       "start": 2953,
+       "end": 2967
+      },
+      {
+       "word": "a",
+       "start": 2969,
+       "end": 2970
+      },
+      {
+       "word": "whale",
+       "start": 2972,
+       "end": 2979
+      },
+      {
+       "word": "dump",
+       "start": 2980,
+       "end": 2986
+      },
+      {
+       "word": "or",
+       "start": 2990,
+       "end": 2995
+      },
+      {
+       "word": "a",
+       "start": 2996,
+       "end": 2997
+      },
+      {
+       "word": "pulled",
+       "start": 2998,
+       "end": 3006
+      },
+      {
+       "word": "pool",
+       "start": 3007,
+       "end": 3014
+      },
+      {
+       "word": "with",
+       "start": 3016,
+       "end": 3019
+      },
+      {
+       "word": "exact",
+       "start": 3021,
+       "end": 3030
+      },
+      {
+       "word": "pool",
+       "start": 3032,
+       "end": 3037
+      },
+      {
+       "word": "math.",
+       "start": 3039,
+       "end": 3051
+      },
+      {
+       "word": "And",
+       "start": 3064,
+       "end": 3068
+      },
+      {
+       "word": "it",
+       "start": 3070,
+       "end": 3072
+      },
+      {
+       "word": "checks",
+       "start": 3073,
+       "end": 3081
+      },
+      {
+       "word": "the",
+       "start": 3082,
+       "end": 3084
+      },
+      {
+       "word": "VIBES",
+       "start": 3086,
+       "end": 3094
+      },
+      {
+       "word": "bridge",
+       "start": 3096,
+       "end": 3103
+      },
+      {
+       "word": "on",
+       "start": 3104,
+       "end": 3106
+      },
+      {
+       "word": "both",
+       "start": 3107,
+       "end": 3112
+      },
+      {
+       "word": "chains:",
+       "start": 3114,
+       "end": 3130
+      },
+      {
+       "word": "every",
+       "start": 3143,
+       "end": 3151
+      },
+      {
+       "word": "token",
+       "start": 3153,
+       "end": 3163
+      },
+      {
+       "word": "circulating",
+       "start": 3165,
+       "end": 3181
+      },
+      {
+       "word": "on",
+       "start": 3183,
+       "end": 3185
+      },
+      {
+       "word": "Robinhood",
+       "start": 3187,
+       "end": 3200
+      },
+      {
+       "word": "Chain",
+       "start": 3201,
+       "end": 3212
+      },
+      {
+       "word": "must",
+       "start": 3221,
+       "end": 3228
+      },
+      {
+       "word": "be",
+       "start": 3229,
+       "end": 3232
+      },
+      {
+       "word": "locked",
+       "start": 3234,
+       "end": 3242
+      },
+      {
+       "word": "on",
+       "start": 3243,
+       "end": 3246
+      },
+      {
+       "word": "Base.",
+       "start": 3248,
+       "end": 3262
+      },
+      {
+       "word": "Right",
+       "start": 3275,
+       "end": 3282
+      },
+      {
+       "word": "now,",
+       "start": 3284,
+       "end": 3297
+      },
+      {
+       "word": "exact.",
+       "start": 3303,
+       "end": 3332
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "shield",
+   "from": 3340,
+   "durationInFrames": 353,
+   "lines": [
+    {
+     "voice": "narrator",
+     "text": "For Vibestarter backers, Backer Shield watches tranche escrows, like the Genesis raise of one hundred twenty-three ETH, and counts down every seventy-two hour challenge window.",
+     "file": "audio/vo/shield_0.mp3",
+     "startFrame": 3348,
+     "durationFrames": 338,
+     "words": [
+      {
+       "word": "For",
+       "start": 3348,
+       "end": 3354
+      },
+      {
+       "word": "Vibestarter",
+       "start": 3356,
+       "end": 3378
+      },
+      {
+       "word": "backers,",
+       "start": 3380,
+       "end": 3400
+      },
+      {
+       "word": "Backer",
+       "start": 3405,
+       "end": 3415
+      },
+      {
+       "word": "Shield",
+       "start": 3417,
+       "end": 3426
+      },
+      {
+       "word": "watches",
+       "start": 3428,
+       "end": 3438
+      },
+      {
+       "word": "tranche",
+       "start": 3440,
+       "end": 3451
+      },
+      {
+       "word": "escrows,",
+       "start": 3454,
+       "end": 3476
+      },
+      {
+       "word": "like",
+       "start": 3489,
+       "end": 3495
+      },
+      {
+       "word": "the",
+       "start": 3495,
+       "end": 3497
+      },
+      {
+       "word": "Genesis",
+       "start": 3499,
+       "end": 3512
+      },
+      {
+       "word": "raise",
+       "start": 3515,
+       "end": 3524
+      },
+      {
+       "word": "of",
+       "start": 3526,
+       "end": 3527
+      },
+      {
+       "word": "one",
+       "start": 3529,
+       "end": 3533
+      },
+      {
+       "word": "hundred",
+       "start": 3534,
+       "end": 3540
+      },
+      {
+       "word": "twenty-three",
+       "start": 3541,
+       "end": 3554
+      },
+      {
+       "word": "ETH,",
+       "start": 3556,
+       "end": 3579
+      },
+      {
+       "word": "and",
+       "start": 3587,
+       "end": 3591
+      },
+      {
+       "word": "counts",
+       "start": 3594,
+       "end": 3602
+      },
+      {
+       "word": "down",
+       "start": 3603,
+       "end": 3611
+      },
+      {
+       "word": "every",
+       "start": 3614,
+       "end": 3623
+      },
+      {
+       "word": "seventy-two",
+       "start": 3625,
+       "end": 3641
+      },
+      {
+       "word": "hour",
+       "start": 3643,
+       "end": 3650
+      },
+      {
+       "word": "challenge",
+       "start": 3652,
+       "end": 3663
+      },
+      {
+       "word": "window.",
+       "start": 3664,
+       "end": 3685
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "agents",
+   "from": 3693,
+   "durationInFrames": 559,
+   "lines": [
+    {
+     "voice": "narrator",
+     "text": "AI agents ask Kestrel before they swap. Allow, warn or block. The preview is free. A full verdict costs one cent of USDC over x402, and the first paid call settled on Base at seven twenty-five. Kestrel is an MCP server too, with eleven tools.",
+     "file": "audio/vo/agents_0.mp3",
+     "startFrame": 3701,
+     "durationFrames": 544,
+     "words": [
+      {
+       "word": "AI",
+       "start": 3701,
+       "end": 3707
+      },
+      {
+       "word": "agents",
+       "start": 3710,
+       "end": 3721
+      },
+      {
+       "word": "ask",
+       "start": 3722,
+       "end": 3727
+      },
+      {
+       "word": "Kestrel",
+       "start": 3729,
+       "end": 3739
+      },
+      {
+       "word": "before",
+       "start": 3740,
+       "end": 3746
+      },
+      {
+       "word": "they",
+       "start": 3747,
+       "end": 3750
+      },
+      {
+       "word": "swap.",
+       "start": 3751,
+       "end": 3766
+      },
+      {
+       "word": "Allow,",
+       "start": 3775,
+       "end": 3793
+      },
+      {
+       "word": "warn",
+       "start": 3796,
+       "end": 3808
+      },
+      {
+       "word": "or",
+       "start": 3811,
+       "end": 3815
+      },
+      {
+       "word": "block.",
+       "start": 3817,
+       "end": 3833
+      },
+      {
+       "word": "The",
+       "start": 3842,
+       "end": 3846
+      },
+      {
+       "word": "preview",
+       "start": 3848,
+       "end": 3861
+      },
+      {
+       "word": "is",
+       "start": 3863,
+       "end": 3866
+      },
+      {
+       "word": "free.",
+       "start": 3868,
+       "end": 3883
+      },
+      {
+       "word": "A",
+       "start": 3889,
+       "end": 3892
+      },
+      {
+       "word": "full",
+       "start": 3895,
+       "end": 3902
+      },
+      {
+       "word": "verdict",
+       "start": 3904,
+       "end": 3913
+      },
+      {
+       "word": "costs",
+       "start": 3915,
+       "end": 3924
+      },
+      {
+       "word": "one",
+       "start": 3927,
+       "end": 3934
+      },
+      {
+       "word": "cent",
+       "start": 3936,
+       "end": 3943
+      },
+      {
+       "word": "of",
+       "start": 3945,
+       "end": 3947
+      },
+      {
+       "word": "USDC",
+       "start": 3949,
+       "end": 3968
+      },
+      {
+       "word": "over",
+       "start": 3977,
+       "end": 3984
+      },
+      {
+       "word": "x402,",
+       "start": 3990,
+       "end": 4019
+      },
+      {
+       "word": "and",
+       "start": 4026,
+       "end": 4030
+      },
+      {
+       "word": "the",
+       "start": 4032,
+       "end": 4034
+      },
+      {
+       "word": "first",
+       "start": 4035,
+       "end": 4042
+      },
+      {
+       "word": "paid",
+       "start": 4044,
+       "end": 4049
+      },
+      {
+       "word": "call",
+       "start": 4051,
+       "end": 4057
+      },
+      {
+       "word": "settled",
+       "start": 4059,
+       "end": 4067
+      },
+      {
+       "word": "on",
+       "start": 4069,
+       "end": 4071
+      },
+      {
+       "word": "Base",
+       "start": 4073,
+       "end": 4083
+      },
+      {
+       "word": "at",
+       "start": 4085,
+       "end": 4089
+      },
+      {
+       "word": "seven",
+       "start": 4091,
+       "end": 4099
+      },
+      {
+       "word": "twenty-five.",
+       "start": 4100,
+       "end": 4120
+      },
+      {
+       "word": "Kestrel",
+       "start": 4137,
+       "end": 4149
+      },
+      {
+       "word": "is",
+       "start": 4151,
+       "end": 4153
+      },
+      {
+       "word": "an",
+       "start": 4154,
+       "end": 4157
+      },
+      {
+       "word": "MCP",
+       "start": 4159,
+       "end": 4175
+      },
+      {
+       "word": "server",
+       "start": 4179,
+       "end": 4187
+      },
+      {
+       "word": "too,",
+       "start": 4189,
+       "end": 4200
+      },
+      {
+       "word": "with",
+       "start": 4205,
+       "end": 4211
+      },
+      {
+       "word": "eleven",
+       "start": 4212,
+       "end": 4222
+      },
+      {
+       "word": "tools.",
+       "start": 4224,
+       "end": 4244
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "hood",
+   "from": 4252,
+   "durationInFrames": 270,
+   "lines": [
+    {
+     "voice": "narrator",
+     "text": "Under the hood, there is no indexer and no mock data. Every number is read live from public nodes, with its block and an explorer link.",
+     "file": "audio/vo/hood_0.mp3",
+     "startFrame": 4260,
+     "durationFrames": 243,
+     "words": [
+      {
+       "word": "Under",
+       "start": 4260,
+       "end": 4268
+      },
+      {
+       "word": "the",
+       "start": 4270,
+       "end": 4272
+      },
+      {
+       "word": "hood,",
+       "start": 4274,
+       "end": 4281
+      },
+      {
+       "word": "there",
+       "start": 4282,
+       "end": 4286
+      },
+      {
+       "word": "is",
+       "start": 4288,
+       "end": 4290
+      },
+      {
+       "word": "no",
+       "start": 4293,
+       "end": 4298
+      },
+      {
+       "word": "indexer",
+       "start": 4300,
+       "end": 4315
+      },
+      {
+       "word": "and",
+       "start": 4319,
+       "end": 4325
+      },
+      {
+       "word": "no",
+       "start": 4327,
+       "end": 4330
+      },
+      {
+       "word": "mock",
+       "start": 4332,
+       "end": 4338
+      },
+      {
+       "word": "data.",
+       "start": 4339,
+       "end": 4351
+      },
+      {
+       "word": "Every",
+       "start": 4364,
+       "end": 4373
+      },
+      {
+       "word": "number",
+       "start": 4375,
+       "end": 4382
+      },
+      {
+       "word": "is",
+       "start": 4384,
+       "end": 4386
+      },
+      {
+       "word": "read",
+       "start": 4389,
+       "end": 4393
+      },
+      {
+       "word": "live",
+       "start": 4395,
+       "end": 4404
+      },
+      {
+       "word": "from",
+       "start": 4405,
+       "end": 4409
+      },
+      {
+       "word": "public",
+       "start": 4410,
+       "end": 4419
+      },
+      {
+       "word": "nodes,",
+       "start": 4421,
+       "end": 4433
+      },
+      {
+       "word": "with",
+       "start": 4435,
+       "end": 4440
+      },
+      {
+       "word": "its",
+       "start": 4441,
+       "end": 4445
+      },
+      {
+       "word": "block",
+       "start": 4446,
+       "end": 4457
+      },
+      {
+       "word": "and",
+       "start": 4461,
+       "end": 4466
+      },
+      {
+       "word": "an",
+       "start": 4468,
+       "end": 4470
+      },
+      {
+       "word": "explorer",
+       "start": 4472,
+       "end": 4484
+      },
+      {
+       "word": "link.",
+       "start": 4485,
+       "end": 4502
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "different",
+   "from": 4522,
+   "durationInFrames": 285,
+   "lines": [
+    {
+     "voice": "narrator",
+     "text": "Revoke tools clean up after you wake. Alert bots tell you what already happened. Kestrel watches, warns, and gets you out, while you sleep.",
+     "file": "audio/vo/different_0.mp3",
+     "startFrame": 4530,
+     "durationFrames": 253,
+     "words": [
+      {
+       "word": "Revoke",
+       "start": 4530,
+       "end": 4543
+      },
+      {
+       "word": "tools",
+       "start": 4544,
+       "end": 4551
+      },
+      {
+       "word": "clean",
+       "start": 4553,
+       "end": 4560
+      },
+      {
+       "word": "up",
+       "start": 4562,
+       "end": 4565
+      },
+      {
+       "word": "after",
+       "start": 4567,
+       "end": 4572
+      },
+      {
+       "word": "you",
+       "start": 4574,
+       "end": 4576
+      },
+      {
+       "word": "wake.",
+       "start": 4577,
+       "end": 4589
+      },
+      {
+       "word": "Alert",
+       "start": 4601,
+       "end": 4611
+      },
+      {
+       "word": "bots",
+       "start": 4613,
+       "end": 4621
+      },
+      {
+       "word": "tell",
+       "start": 4622,
+       "end": 4628
+      },
+      {
+       "word": "you",
+       "start": 4629,
+       "end": 4631
+      },
+      {
+       "word": "what",
+       "start": 4633,
+       "end": 4637
+      },
+      {
+       "word": "already",
+       "start": 4638,
+       "end": 4646
+      },
+      {
+       "word": "happened.",
+       "start": 4647,
+       "end": 4661
+      },
+      {
+       "word": "Kestrel",
+       "start": 4675,
+       "end": 4687
+      },
+      {
+       "word": "watches,",
+       "start": 4688,
+       "end": 4707
+      },
+      {
+       "word": "warns,",
+       "start": 4712,
+       "end": 4726
+      },
+      {
+       "word": "and",
+       "start": 4727,
+       "end": 4730
+      },
+      {
+       "word": "gets",
+       "start": 4731,
+       "end": 4737
+      },
+      {
+       "word": "you",
+       "start": 4738,
+       "end": 4740
+      },
+      {
+       "word": "out,",
+       "start": 4742,
+       "end": 4750
+      },
+      {
+       "word": "while",
+       "start": 4752,
+       "end": 4757
+      },
+      {
+       "word": "you",
+       "start": 4758,
+       "end": 4760
+      },
+      {
+       "word": "sleep.",
+       "start": 4762,
+       "end": 4782
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "close",
+   "from": 4807,
+   "durationInFrames": 322,
+   "lines": [
+    {
+     "voice": "narrator",
+     "text": "Kestrel. Stay asleep. Kestrel watches the chain. Built for Vibeathon zero two, Night Shift.",
+     "file": "audio/vo/close_0.mp3",
+     "startFrame": 4815,
+     "durationFrames": 194,
+     "words": [
+      {
+       "word": "Kestrel.",
+       "start": 4815,
+       "end": 4829
+      },
+      {
+       "word": "Stay",
+       "start": 4830,
+       "end": 4835
+      },
+      {
+       "word": "asleep.",
+       "start": 4837,
+       "end": 4849
+      },
+      {
+       "word": "Kestrel",
+       "start": 4865,
+       "end": 4877
+      },
+      {
+       "word": "watches",
+       "start": 4878,
+       "end": 4887
+      },
+      {
+       "word": "the",
+       "start": 4889,
+       "end": 4891
+      },
+      {
+       "word": "chain.",
+       "start": 4892,
+       "end": 4905
+      },
+      {
+       "word": "Built",
+       "start": 4918,
+       "end": 4926
+      },
+      {
+       "word": "for",
+       "start": 4927,
+       "end": 4930
+      },
+      {
+       "word": "Vibeathon",
+       "start": 4932,
+       "end": 4955
+      },
+      {
+       "word": "zero",
+       "start": 4961,
+       "end": 4970
+      },
+      {
+       "word": "two,",
+       "start": 4971,
+       "end": 4979
+      },
+      {
+       "word": "Night",
+       "start": 4981,
+       "end": 4987
+      },
+      {
+       "word": "Shift.",
+       "start": 4988,
+       "end": 5009
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
