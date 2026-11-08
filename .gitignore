@@ -25,3 +25,10 @@ pnpm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 .vercel
+
+# demo film (video/): heavy, generated or local-only artefacts
+video/node_modules/
+video/out/
+video/.cache/
+video/public/footage/
+video/public/stills/
