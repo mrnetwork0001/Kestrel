@@ -256,6 +256,22 @@ function classify(message: string, httpStatus?: number): RpcLogsError {
   return new RpcLogsError(m, "fatal");
 }
 
+/**
+ * Splits [fromBlock, toBlock] into `span`-sized ranges, newest first. Kept out of getLogsChunked on purpose: when the
+ * queue was a local `[]` literal, the @vercel/nft static evaluator resolved `queue.shift()` and crashed `next build`
+ * on `r.to - r.from + 1n` (NaN + BigInt). A function result is opaque to it.
+ */
+function newestFirstRanges(fromBlock: bigint, toBlock: bigint, span: bigint): BlockRange[] {
+  const out: BlockRange[] = [];
+  for (let to = toBlock; to >= fromBlock; ) {
+    const from = to - span + 1n > fromBlock ? to - span + 1n : fromBlock;
+    out.push({ from, to });
+    if (from === 0n) break;
+    to = from - 1n;
+  }
+  return out;
+}
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** The caller's deadline passed while waiting for a provider slot: the range is reported as not reached. */
@@ -521,14 +537,7 @@ async function getLogsChunkedOne(chainId: ChainId, query: LogsQuery, opts: Chunk
   }
   let span = opts.chunkSize && opts.chunkSize > 0n && opts.chunkSize < cap ? opts.chunkSize : cap;
 
-  // newest-first queue
-  const queue: BlockRange[] = [];
-  for (let to = query.toBlock; to >= query.fromBlock; ) {
-    const from = to - span + 1n > query.fromBlock ? to - span + 1n : query.fromBlock;
-    queue.push({ from, to });
-    if (from === 0n) break;
-    to = from - 1n;
-  }
+  const queue = newestFirstRanges(query.fromBlock, query.toBlock, span);
 
   const collected: { range: BlockRange; logs: unknown[] }[] = [];
   let total = 0;
