@@ -237,14 +237,12 @@ export function walletFindings(w: WalletReport): Finding[] {
   const out: Finding[] = [];
   const unlimited = w.approvals.filter((a) => a.unlimited);
   const fresh = w.approvals.filter((a) => a.discoveredOvernight);
-  // Each approval is scored once: approvals granted overnight score in "approvals-overnight" (15 flat, critical),
-  // so the unlimited/bounded findings only add points for the ones that pre-date the night.
-  const unlimitedOld = unlimited.filter((a) => !a.discoveredOvernight);
-  const unlimitedFresh = unlimited.length - unlimitedOld.length;
-  if (unlimited.length) out.push({ id: "approvals-unlimited", severity: unlimited.length >= 3 ? "critical" : "warn", points: Math.min(40, unlimitedOld.length * 10), title: `${unlimited.length} unlimited approval${unlimited.length > 1 ? "s" : ""}`, detail: unlimited.map((a) => `${a.tokenSymbol} → ${a.spenderName}`).join(" · ") + (unlimitedFresh ? ` (${unlimitedFresh} granted overnight, scored once under the overnight finding)` : "") });
+  // Every live approval scores by size (unlimited +10 each, cap 40; bounded +3 each, cap 10), as documented on
+  // /how-it-works. "Granted overnight" is a separate recency premium (+15 flat): a fresh unlimited approval is the
+  // classic drainer setup, so it must never score LOWER than the same approval granted last week.
+  if (unlimited.length) out.push({ id: "approvals-unlimited", severity: unlimited.length >= 3 ? "critical" : "warn", points: Math.min(40, unlimited.length * 10), title: `${unlimited.length} unlimited approval${unlimited.length > 1 ? "s" : ""}`, detail: unlimited.map((a) => `${a.tokenSymbol} → ${a.spenderName}`).join(" · ") });
   const limitedAll = w.approvals.filter((a) => !a.unlimited);
-  const limitedOld = limitedAll.filter((a) => !a.discoveredOvernight);
-  if (limitedAll.length > 0) out.push({ id: "approvals-limited", severity: "info", points: Math.min(10, limitedOld.length * 3), title: `${limitedAll.length} bounded approval${limitedAll.length > 1 ? "s" : ""}`, detail: "Non-zero but capped allowances — still revocable in the Panic Bunker." });
+  if (limitedAll.length > 0) out.push({ id: "approvals-limited", severity: "info", points: Math.min(10, limitedAll.length * 3), title: `${limitedAll.length} bounded approval${limitedAll.length > 1 ? "s" : ""}`, detail: "Non-zero but capped allowances — still revocable in the Panic Bunker." });
   if (fresh.length) out.push({ id: "approvals-overnight", severity: "critical", points: 15, title: `${fresh.length} approval${fresh.length > 1 ? "s" : ""} granted overnight`, detail: fresh.map((a) => `${a.tokenSymbol} → ${shortAddr(a.spender)}${a.unlimited ? " (unlimited)" : ""}`).join(" · ") });
   if (w.eip7702Delegate) {
     const known = known7702Delegate(w.eip7702Delegate);
