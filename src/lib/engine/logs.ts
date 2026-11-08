@@ -244,6 +244,9 @@ function classify(message: string, httpStatus?: number): RpcLogsError {
   if (/specify an address/i.test(m)) return new RpcLogsError(m, "address-required");
   if (/max(imum)? results|exceeds limit of|more than \d+ results|too many (results|logs)|response size|query returned more than|log response size/i.test(m))
     return new RpcLogsError(m, "results");
+  // Rate limits first: publicnode's -32005 text goes on to mention the block range, and reading it as a
+  // "range" error used to halve (and remember) the chunk span down to ~100 blocks on every throttled scan.
+  if (httpStatus === 429 || /-32005|rate.?limit|too many requests|request limit reached/i.test(m)) return new RpcLogsError(m, "transient");
   const span =
     /maximum block range:?\s*(\d+)/i.exec(m) ??
     /only (\d+) are allowed/i.exec(m) ??
