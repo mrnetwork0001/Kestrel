@@ -4,7 +4,7 @@
 
 All paths below are relative to this site's origin. Machine-readable API: /api/openapi.json (OpenAPI 3.1). MCP server: /api/mcp (Streamable HTTP).
 
-Demo film (2:51): https://youtu.be/uoDrMigaJfo. Mainnet proof from 2026-11-08: 3 unlimited approvals scored 45 ELEVATED, Telegram paged CRITICAL, and a 6-transaction guided rescue returned every allowance to 0 in 32 seconds.
+Demo film (2:51): https://youtu.be/uoDrMigaJfo. Source (MIT): https://github.com/mrnetwork0001/Kestrel. Mainnet proof from 2026-11-08: 3 unlimited approvals scored 45 ELEVATED, Telegram paged CRITICAL, and a 6-transaction guided rescue returned every allowance to 0 in 32 seconds.
 
 ## The problem
 

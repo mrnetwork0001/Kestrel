@@ -64,6 +64,18 @@ export function SiteFooter() {
               <li><Link href="/agents#guard" className="ink-target"><span className="ink-line">/api/v1/guard</span></Link></li>
               <li><Link href="/agents#mcp" className="ink-target"><span className="ink-line">/api/mcp</span></Link></li>
               <li>
+                <a href="https://github.com/mrnetwork0001/Kestrel" target="_blank" rel="noreferrer" className="ink-target">
+                  <span className="ink-line">Source on GitHub</span>
+                  <span className="text-ink-3">&nbsp;↗</span>
+                </a>
+              </li>
+              <li>
+                <a href="https://youtu.be/uoDrMigaJfo" target="_blank" rel="noreferrer" className="ink-target">
+                  <span className="ink-line">Demo film</span>
+                  <span className="text-ink-3">&nbsp;↗</span>
+                </a>
+              </li>
+              <li>
                 <a href="https://app.vibestarter.xyz" target="_blank" rel="noreferrer" className="ink-target">
                   <span className="ink-line">Vibestarter</span>
                   <span className="text-ink-3">&nbsp;↗</span>
