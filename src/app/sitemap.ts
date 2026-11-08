@@ -4,5 +4,5 @@ import { siteUrl } from "@/lib/site";
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = siteUrl();
   const now = new Date();
-  return ["", "/app", "/how-it-works", "/agents", "/token", "/rescue", "/ecosystem"].map((p) => ({ url: `${base}${p}`, lastModified: now, changeFrequency: p === "" || p === "/app" || p === "/ecosystem" ? "hourly" : "weekly", priority: p === "" ? 1 : 0.7 }));
+  return ["", "/app", "/how-it-works", "/agents", "/rescue", "/ecosystem"].map((p) => ({ url: `${base}${p}`, lastModified: now, changeFrequency: p === "" || p === "/app" || p === "/ecosystem" ? "hourly" : "weekly", priority: p === "" ? 1 : 0.7 }));
 }

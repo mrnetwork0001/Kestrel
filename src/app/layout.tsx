@@ -15,7 +15,7 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mo
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
-  title: { default: "Kestrel ($KEST) — Overnight Sentinel for Base & Robinhood Chain", template: "%s · Kestrel" },
+  title: { default: "Kestrel — Overnight Sentinel for Base & Robinhood Chain", template: "%s · Kestrel" },
   description:
     "Autonomous overnight risk, liquidity, bridge parity, and tranche-escrow sentinel for Base & Robinhood Chain. Live onchain threat scores, EIP-5792 atomic Panic Bunker, rug stress tests, $VIBES OFT parity, and Vibestarter Backer Shield.",
   openGraph: {

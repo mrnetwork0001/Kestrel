@@ -135,7 +135,6 @@ export function MobileNav({ items }: { items: NavItem[] }) {
                   <span className="mono text-[15px] font-semibold tracking-tight text-ink">
                     <span className="text-phosphor">&gt;_</span> KESTREL
                   </span>
-                  <span className="mono text-[11px] text-ink-meta">$KEST</span>
                 </Link>
                 <button
                   ref={closeRef}

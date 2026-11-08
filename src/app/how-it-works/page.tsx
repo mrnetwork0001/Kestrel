@@ -212,7 +212,7 @@ export default function HowItWorks() {
           kicker="Mechanics"
           title={["Architecture"]}
           wide={
-            <Plate label={<><span>stack</span><span>server: viem · browser: wagmi</span></>}>{`Next.js 15 App Router (SSR: / · /app · /how-it-works · /token · /agents · /ecosystem · /rescue)
+            <Plate label={<><span>stack</span><span>server: viem · browser: wagmi</span></>}>{`Next.js 15 App Router (SSR: / · /app · /how-it-works · /agents · /ecosystem · /rescue)
 │
 ├── Onchain engine (viem, server-side)
 │   ├── Base client      mainnet.base.org → publicnode fallback · multicall batching

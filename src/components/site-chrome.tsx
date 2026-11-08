@@ -10,7 +10,6 @@ const NAV = [
   { href: "/ecosystem", label: "Ecosystem" },
   { href: "/how-it-works", label: "How it works" },
   { href: "/agents", label: "Agents · x402 · MCP" },
-  { href: "/token", label: "$KEST" },
 ];
 
 export function SiteHeader() {
@@ -23,7 +22,6 @@ export function SiteHeader() {
           <span className="mono text-[15px] font-semibold tracking-tight text-ink">
             <span className="text-phosphor">&gt;_</span> KESTREL
           </span>
-          <span className="mono text-[11px] text-ink-meta max-[360px]:hidden">$KEST</span>
         </Link>
         <HeaderNav items={NAV.slice(1)} />
         <HeaderTail />
@@ -79,7 +77,7 @@ export function SiteFooter() {
             Set in Instrument Serif, Inter &amp; JetBrains Mono. Every figure read live from Base 8453 and Robinhood 4663.
           </p>
           <p className="t-meta">
-            <span className="text-phosphor">&gt;_</span> KESTREL · $KEST
+            <span className="text-phosphor">&gt;_</span> KESTREL
           </p>
         </div>
       </Wrap>

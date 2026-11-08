@@ -1,4 +1,4 @@
-# Kestrel ($KEST)
+# Kestrel
 
 > Autonomous overnight risk, liquidity, bridge parity, and tranche-escrow sentinel for Base (chain 8453) and Robinhood Chain (chain 4663). Tagline: "Stay asleep. Kestrel watches the chain." Every number is read live from mainnet RPCs, Vibestarter's public API or Vibestarter's MCP server, with block numbers and explorer links. No mock data, no wallet or account needed to explore. When a read fails, Kestrel says "unavailable" / "degraded" instead of guessing. Built end-to-end with Claude Code for Vibestarter Vibeathon 02: Night Shift.
 
@@ -32,7 +32,6 @@ Crypto never closes, but people sleep. Overnight, LP gets pulled, proxies get up
 - /ecosystem : Vibestarter Ecosystem Health Board (server-rendered): token X-Ray score, Proof-of-Lock, pool depth, escrow state + next window countdown, Refund Radar, founder app HTTP, founder GitHub, Origin Capsule, with explorer links and data provenance.
 - /how-it-works : Problem, architecture, X-Ray method, AMM math, parity and bridge lanes, overnight deltas, EIP-5792 rescue, scoring.
 - /agents : Guard + x402 docs, live x402 handshake playground ("Simulate Agent x402 Call"), onchain x402 revenue panel, MCP setup.
-- /token : Proposed $KEST utility design (watcher-slot staking, x402 agent firewall credits, Panic Bunker automation tiers) with an honest risk disclosure. No token is deployed, sold or promised; Kestrel works without one.
 
 ## HTTP API (JSON, CORS *, per-IP rate limits answer 429)
 

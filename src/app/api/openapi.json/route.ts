@@ -64,7 +64,7 @@ export async function GET(req: Request) {
   const spec = {
     openapi: "3.1.0",
     info: {
-      title: "Kestrel ($KEST) Sentinel API",
+      title: "Kestrel Sentinel API",
       version: "0.2.0",
       summary: "Autonomous overnight risk, liquidity, bridge parity and tranche-escrow sentinel for Base & Robinhood Chain.",
       description:

@@ -14,7 +14,6 @@ import { InstrumentIndexSection } from "@/components/landing/instrument-index";
 import { LedgerSection } from "@/components/landing/ledger";
 import { ProblemSection } from "@/components/landing/problem";
 import { presetTab } from "@/components/landing/shared";
-import { TokenSection } from "@/components/landing/token";
 import { SplitWords } from "@/components/motion";
 import { SectionLabel } from "@/components/ui";
 
@@ -95,7 +94,6 @@ export default function Landing() {
       <ProblemSection />
       <InstrumentIndexSection />
       <AgentsSection />
-      <TokenSection />
       <FinalCtaSection />
     </>
   );

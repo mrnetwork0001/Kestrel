@@ -5,6 +5,10 @@ const nextConfig: NextConfig = {
   // Lets `next build` run into a separate dir while `next dev` keeps using .next
   distDir: process.env.NEXT_DIST_DIR || ".next",
   poweredByHeader: false,
+  // There is no Kestrel token: the old /token page is gone; keep its URL working for old links and crawler caches.
+  async redirects() {
+    return [{ source: "/token", destination: "/how-it-works", permanent: true }];
+  },
   async headers() {
     return [
       {

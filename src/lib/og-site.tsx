@@ -49,7 +49,7 @@ export async function renderSiteCard(): Promise<ImageResponse> {
       <Frame>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Wordmark size={28} />
-          <span style={{ fontSize: 16, letterSpacing: 4, color: OG.ink3 }}>$KEST · NIGHT SHIFT SENTINEL</span>
+          <span style={{ fontSize: 16, letterSpacing: 4, color: OG.ink3 }}>NIGHT SHIFT SENTINEL</span>
         </div>
         <div style={{ display: "flex", flexDirection: "column", marginTop: 34, flex: 1 }}>
           <span style={{ fontFamily: "Serif", fontSize: 84, lineHeight: 1, color: OG.ink }}>Stay asleep.</span>

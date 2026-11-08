@@ -5,7 +5,7 @@ import { cx } from "@/components/ui";
 import { Toc, type TocItem } from "@/components/toc";
 
 /**
- * Shared editorial chrome for the content pages (/how-it-works, /agents, /token, /ecosystem, 404, error).
+ * Shared editorial chrome for the content pages (/how-it-works, /agents, /ecosystem, 404, error).
  * Server components only; every hidden "before" state comes from the foundation reveal CSS (html.js scoped),
  * so with JS off or reduced motion everything below renders in its final state.
  */
