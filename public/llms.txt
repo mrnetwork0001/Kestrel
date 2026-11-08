@@ -4,6 +4,8 @@
 
 All paths below are relative to this site's origin. Machine-readable API: /api/openapi.json (OpenAPI 3.1). MCP server: /api/mcp (Streamable HTTP).
 
+Demo film (2:51): https://youtu.be/uoDrMigaJfo. Mainnet proof from 2026-11-08: 3 unlimited approvals scored 45 ELEVATED, Telegram paged CRITICAL, and a 6-transaction guided rescue returned every allowance to 0 in 32 seconds.
+
 ## The problem
 
 Crypto never closes, but people sleep. Overnight, LP gets pulled, proxies get upgraded, admin keys change, a stale unlimited approval gets drained, a bridged token's backing drifts, and a Vibestarter tranche's 72-hour challenge window closes before backers notice. Kestrel is a defensive sentinel for exactly those hours on Base and Robinhood Chain: it reads the chain directly, scores what changed, pages you only when it matters, and gives you a one-signature rescue.

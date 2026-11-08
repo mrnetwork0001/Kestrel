@@ -76,6 +76,9 @@ export default function Landing() {
             <InkLink href="/how-it-works" className="text-[15px]">
               How it works
             </InkLink>
+            <InkLink href="https://youtu.be/uoDrMigaJfo" external className="text-[15px]">
+              Watch the 3-min demo
+            </InkLink>
           </div>
           <p className="hl t-meta mt-6" style={hd(680)}>
             No wallet connect · zero mock data · every number links to an explorer
