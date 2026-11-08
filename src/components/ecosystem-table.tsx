@@ -395,7 +395,7 @@ export function EcosystemTable({ rows, nowSec }: { rows: EcosystemRow[]; nowSec:
       <div className="hidden xl:block">
         <table className="w-full border-collapse text-left">
           <caption className="sr-only">Vibestarter launches on Base and Robinhood Chain with live health checks. Click a column header to sort.</caption>
-          <thead className="sticky top-0 z-10 bg-canvas/95 backdrop-blur-sm">
+          <thead className="sticky top-[var(--topbar-h)] z-10 bg-canvas/95 backdrop-blur-sm">
             <tr className="border-b border-hair-strong">
               {COLS.map((c) => {
                 const active = sort.key === c.key;

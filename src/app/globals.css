@@ -155,9 +155,9 @@ input[type="range"] {
   }
 }
 
-/* Height of the sticky mobile top bar (site-chrome.tsx); sticky sub-bars such as the /app tab row sit below it. */
+/* Height of the sticky site header (site-chrome.tsx) at every width; sticky rails, TOCs and table heads sit below it. */
 :root {
-  --topbar-h: 0px;
+  --topbar-h: 64px;
 }
 
 @media (max-width: 900px) {

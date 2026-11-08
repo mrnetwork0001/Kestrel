@@ -39,7 +39,7 @@ export function Toc({ items }: { items: TocItem[] }) {
   return (
     <nav
       aria-label="On this page"
-      className="sticky top-8 max-[901px]:top-14 max-[901px]:z-20 max-[901px]:-mx-[clamp(16px,2.5vw,36px)] max-[901px]:border-b max-[901px]:border-hair max-[901px]:bg-canvas/90 max-[901px]:backdrop-blur-md"
+      className="sticky top-[calc(var(--topbar-h)+32px)] max-[901px]:top-14 max-[901px]:z-20 max-[901px]:-mx-[clamp(16px,2.5vw,36px)] max-[901px]:border-b max-[901px]:border-hair max-[901px]:bg-canvas/90 max-[901px]:backdrop-blur-md"
     >
       <p className="t-kicker mb-4 max-[901px]:hidden">On this page</p>
       <ul

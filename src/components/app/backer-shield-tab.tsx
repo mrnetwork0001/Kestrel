@@ -155,7 +155,7 @@ export function BackerShieldTab({ focus }: { focus: string | null }) {
     <div className="min-w-0 space-y-6">
       {universe && <UniverseLine u={universe} count={escrows.length} />}
       <div className="grid grid-cols-1 gap-x-8 gap-y-8 min-[901px]:grid-cols-12">
-        <aside className="min-w-0 min-[901px]:sticky min-[901px]:top-24 min-[901px]:col-span-4 min-[901px]:self-start min-[901px]:max-h-[calc(100vh-112px)] min-[901px]:overflow-y-auto min-[901px]:overscroll-contain" aria-label="Vibestarter escrows">
+        <aside className="min-w-0 min-[901px]:sticky min-[901px]:top-[calc(var(--topbar-h)+32px)] min-[901px]:col-span-4 min-[901px]:self-start min-[901px]:max-h-[calc(100vh-var(--topbar-h)-48px)] min-[901px]:overflow-y-auto min-[901px]:overscroll-contain" aria-label="Vibestarter escrows">
           <div className="flex items-baseline justify-between gap-3 border-t border-hair-strong pt-4">
             <Kicker as="h2" tone="meta">
               Escrows · {escrows.length}

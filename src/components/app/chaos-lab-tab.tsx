@@ -141,7 +141,7 @@ export function ChaosLabTab({ scan }: { scan: ScanResult | null }) {
     <div className="grid grid-cols-12 gap-x-8 gap-y-8 max-[901px]:gap-x-4">
       {/* INSTRUMENT: stress controls */}
       <div className="col-span-12 min-w-0 lg:col-span-4">
-        <Panel title="Stress scenarios" variant="instrument" className="lg:sticky lg:top-24">
+        <Panel title="Stress scenarios" variant="instrument" className="lg:sticky lg:top-[calc(var(--topbar-h)+32px)]">
           <p className="t-kicker">Pool under test</p>
           <div className="mt-2 divide-y divide-hair border-y border-hair" role="radiogroup" aria-label="Pool under test">
             {pools.map((p) => {

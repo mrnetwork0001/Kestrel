@@ -96,7 +96,7 @@ export function PagerTab({ target, chainId }: { target: string; chainId: number 
           <SleepPanel desk={desk} sleep={data?.sleep ?? null} watchCount={watches.length} mutations={mutations} />
           </>
         )}
-        <div id="pager-eval" className="min-w-0 scroll-mt-4">
+        <div id="pager-eval" className="min-w-0 scroll-mt-[calc(var(--topbar-h)+16px)]">
           <EvaluationPanel evaluation={evaluation} pending={evalPending} error={evalErr} hasDesk={hasDesk} target={target} chainId={chainId} onPreview={preview} />
         </div>
       </div>

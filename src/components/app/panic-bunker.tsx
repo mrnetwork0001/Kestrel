@@ -772,7 +772,7 @@ export function PanicBunker({ previewAddress, previewChainId = 8453, initialLive
         </div>
 
         {/* ── Sign rail: exposure + the single crit SIGN RESCUE (sticky at 901px+) ── */}
-        <aside className="min-w-0 min-[901px]:sticky min-[901px]:top-4 min-[901px]:col-span-4 min-[901px]:self-start" aria-label="Sign rescue">
+        <aside className="min-w-0 min-[901px]:sticky min-[901px]:top-[calc(var(--topbar-h)+16px)] min-[901px]:col-span-4 min-[901px]:self-start" aria-label="Sign rescue">
           <section className="panel min-w-0 border-crit/30">
             <header className="flex items-center justify-between gap-3 border-b border-hair px-5 py-3 max-[601px]:px-3">
               <p className="t-kicker text-crit">[ LIVE // RESCUE ]</p>
