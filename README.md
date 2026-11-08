@@ -4,7 +4,7 @@
 
 *Stay asleep. Kestrel watches the chain.* Every target gets an **Overnight Threat score from 0 to 100** (NOMINAL 0-29, ELEVATED 30-64, CRITICAL 65-100). The score is the sum of documented findings, each read live from mainnet over RPC (remote procedure call) at a stated block. Everything Kestrel does is measured by one thing: **getting a risky wallet back to 0**.
 
-Built for Vibestarter **Vibeathon 02: Night Shift** · Independent project, not affiliated with Base, Robinhood, LayerZero, Aerodrome or Uniswap · App: [usekestrel.vercel.app](https://usekestrel.vercel.app) · Demo: `<VIDEO_URL>` · Code: private repository, access on request · Fundable: [80/100 FUNDABLE](https://fundable.vibestarter.xyz/s/jrCaMPdMh4) (scored 2026-11-08)
+Built for Vibestarter **Vibeathon 02: Night Shift** · Independent project, not affiliated with Base, Robinhood, LayerZero, Aerodrome or Uniswap · App: [usekestrel.vercel.app](https://usekestrel.vercel.app) · Demo: [watch the 3-minute film](https://youtu.be/uoDrMigaJfo) · Code: private repository, access on request · Fundable: [80/100 FUNDABLE](https://fundable.vibestarter.xyz/s/jrCaMPdMh4) (scored 2026-11-08)
 
 **Judges, start here:** open [usekestrel.vercel.app](https://usekestrel.vercel.app) and click a mainnet preset, then [preview a live rescue](https://usekestrel.vercel.app/rescue?target=0x05CEa6C36f3a44944A4F4bA39B1820677AcB97EE&chain=8453) with no wallet. The technical write-up is [/how-it-works](https://usekestrel.vercel.app/how-it-works), the agent docs are [/agents](https://usekestrel.vercel.app/agents), and the whole product fits in one fetch at [/llms.txt](https://usekestrel.vercel.app/llms.txt).
 
