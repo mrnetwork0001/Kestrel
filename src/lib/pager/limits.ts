@@ -62,8 +62,8 @@ export const maxDesksTotal = (): number => envInt("PAGER_MAX_DESKS_TOTAL", 5_000
 
 /** Max desks one IP (daily hash) can open per day (`PAGER_MAX_DESKS_PER_IP_DAY`, default 20). */
 export const maxDesksPerIpDay = (): number => envInt("PAGER_MAX_DESKS_PER_IP_DAY", 20, 1, 10_000);
-/** Expected scheduler cadence in seconds (`PAGER_CADENCE_SEC`, default 120). */
-export const cadenceSec = (): number => envInt("PAGER_CADENCE_SEC", 120, 10, 86_400);
+/** Expected scheduler cadence in seconds (`PAGER_CADENCE_SEC`, default 240 = every 4 min: 360 QStash messages/day, under the free 500/day). */
+export const cadenceSec = (): number => envInt("PAGER_CADENCE_SEC", 240, 10, 86_400);
 
 /** Increments the window counter; returns `{ limited, retryAfterSec }`. Never throws. */
 export async function hit(bucket: string, subject: string, rule: LimitRule, cost = 1): Promise<{ limited: boolean; count: number; retryAfterSec: number }> {

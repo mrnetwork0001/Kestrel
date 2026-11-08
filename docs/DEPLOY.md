@@ -6,7 +6,7 @@ Kestrel runs entirely on Vercel plus three free managed services. No VPS.
 | :--- | :--- | :--- |
 | Web app + API + MCP | **Vercel** | Serves every route 24/7 |
 | Shared state (desks, watches, x402 replay ledger, caches) | **Upstash Redis** (free) | Serverless functions keep no memory between requests |
-| Pager heartbeat (watch checks every 2 min) | **Upstash QStash** (free) or **cron-job.org** | Vercel Hobby cron runs at most once a day |
+| Pager heartbeat (watch checks every 4 min) | **Upstash QStash** (free) or **cron-job.org** | Vercel Hobby cron runs at most once a day |
 | Telegram inbound updates | Telegram **webhook** to `/api/pager/telegram/webhook` | Telegram pushes `/start` links to the app |
 
 ---
@@ -62,17 +62,17 @@ Never set `PAGER_INPROCESS` on Vercel; the in-process scheduler is for local dev
 
 ## 3. Pager heartbeat (pick one)
 
-The endpoint is `https://<APP_URL>/api/pager/tick`. Every 2 minutes is recommended.
+The endpoint is `https://<APP_URL>/api/pager/tick`. The app expects a check every 4 minutes (`PAGER_CADENCE_SEC`, default 240). That is 360 messages a day, inside the QStash free plan's 500/day. If you schedule a different interval, set `PAGER_CADENCE_SEC` to match (in seconds) so `/api/pager/status` judges staleness correctly.
 
 ### 3a. Upstash QStash (recommended)
 
 1. Upstash console → QStash → **Schedules** → Create.
-2. Destination: `https://<APP_URL>/api/pager/tick`, method `POST`, cron `*/2 * * * *`.
-3. Copy the QStash **Current** and **Next signing keys** into `QSTASH_CURRENT_SIGNING_KEY` / `QSTASH_NEXT_SIGNING_KEY` in Vercel and redeploy. Requests are verified by signature.
+2. Destination: `https://<APP_URL>/api/pager/tick`, method `POST`, cron `*/4 * * * *`, retries `0` (retries count toward the daily message limit; a missed check is covered by the next one).
+3. Install QStash from Vercel Storage (Upstash QStash/Workflow, Free plan, **no custom prefix**) so `QSTASH_CURRENT_SIGNING_KEY` / `QSTASH_NEXT_SIGNING_KEY` are added automatically, then redeploy. Requests are verified by signature.
 
 ### 3b. cron-job.org
 
-1. Create a job: URL `https://<APP_URL>/api/pager/tick?async=1`, every 2 minutes, method `GET`.
+1. Create a job: URL `https://<APP_URL>/api/pager/tick?async=1`, every 4 minutes, method `GET`.
 2. Advanced → Headers: `Authorization: Bearer <CRON_SECRET>`.
 3. `async=1` makes the endpoint answer 202 at once (cron-job.org times out at 30 s).
 
