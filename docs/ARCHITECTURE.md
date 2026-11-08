@@ -1,11 +1,13 @@
-# Kestrel (`$KEST`) — System Architecture & Feature Spec
+# Kestrel: System Architecture & Feature Spec
+
+> Original build spec, kept for reference. There is no Kestrel token (the old `/token` page now redirects to `/how-it-works`). For the system as built, see the [README](../README.md) architecture section and [DEPLOY.md](DEPLOY.md).
 
 ## 1. High-Level System Topology
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────────┐
 │                        KESTREL NEXT.JS 15 APP ROUTER                       │
-│  SSR Semantic Pages (/ , /how-it-works , /token , /agents , /rescue)       │
+│  SSR Semantic Pages (/ , /app , /how-it-works , /agents , /rescue)         │
 │  Optimized for Human Judges, $VIBES Voters & Fundable Claude Crawler       │
 └───────────────┬────────────────────────────────────────┬───────────────────┘
                 │                                        │
@@ -34,7 +36,7 @@
   - Composite **Kestrel Threat Score (`0–100`)** mapped to `NOMINAL (0–29)`, `ELEVATED (30–64)`, or `CRITICAL (65–100)`.
   - Wallet mode: native ETH balance, tracked ERC-20 holdings, active `allowance()` & `Permit2` exposures across `CONTRACTS.base.commonSpenders`, and net exposure at risk.
   - Token/Contract mode: supply, owner/admin key posture, bytecode risk flags, primary pool depth, and cross-chain parity.
-  - **Morning Desk Brief:** Calls `/api/brief` (uses `ANTHROPIC_API_KEY` if set; otherwise generates a crisp, deterministic analyst brief directly from the live onchain findings so the UI never errors without keys).
+  - **Morning Desk Brief:** Calls `/api/brief` (0G Compute when `ZG_COMPUTE_API_KEY` + `ZG_COMPUTE_MODEL` are set, then `ANTHROPIC_API_KEY`; otherwise generates a crisp, deterministic analyst brief directly from the live onchain findings so the UI never errors without keys).
 
 ### Feature 2: 1-Click Atomic "Panic Bunker" (`EIP-5792` Batch Rescue)
 - **Problem Solved:** At 3:00 AM during an exploit, signing 8 separate `approve(spender, 0)` popups in MetaMask takes too long and fails halfway.
@@ -79,7 +81,7 @@
   - In `preview` mode (or with valid `X-PAYMENT` Base USDC transfer receipt / demo bypass toggle in UI playground): returns `{ verdict: "ALLOW" | "WARN" | "BLOCK", riskScore, flags, bridgeParity, poolDepthWeth, blockNumber, timestamp }`.
   - If `mode=full` without `X-PAYMENT` header: returns **HTTP `402 Payment Required`** with standard `x402` payment metadata (`chainId: 8453`, `asset: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`, `receiver`, `amountAtomic: "10000"` = `0.01 USDC`) so judges can watch an interactive **"Agent x402 Handshake"** right inside `/agents`!
 - **`POST /api/mcp`:**
-  - JSON-RPC 2.0 MCP endpoint supporting `initialize`, `tools/list`, and `tools/call` for `scan_contract`, `check_bridge_parity`, `simulate_rug_shock`, and `inspect_vibestarter_escrow`.
+  - JSON-RPC 2.0 MCP endpoint supporting `initialize`, `tools/list`, and `tools/call` for 11 tools: `scan_contract`, `check_bridge_parity`, `simulate_exit`, `inspect_vibestarter_escrow`, `challenge_copilot`, `challenge_dry_run`, `ecosystem_health`, `vibestarter_pulse`, `create_watch`, `list_watches`, `delete_watch`.
 
 ### Feature 8: Night-Shift Pager (Webhook / Telegram Deep-Links)
 - **`POST /api/pager/test`:**
@@ -95,7 +97,8 @@ src/app/
 ├── layout.tsx                 # Dark Night-Shift shell, live Base/RH block ticker, nav + footer
 ├── page.tsx                   # SSR Hero + 1-Click Presets + Unified Sentinel Workspace Tabs
 ├── how-it-works/page.tsx      # Deep technical explainer (for Judges & Fundable crawler)
-├── token/page.tsx             # $KEST non-security utility model, fee sinks & risk disclosure
+├── app/page.tsx               # Six-tab Sentinel workspace (Briefing, Rug Lab, Parity, Backer Shield, Panic Bunker, Pager)
+├── ecosystem/page.tsx         # Vibestarter Ecosystem Health Board
 ├── agents/page.tsx            # Interactive x402 Playground + MCP copy-paste config
 ├── rescue/page.tsx            # Dedicated EIP-5792 Atomic Panic Bunker deep-link view
 └── api/
