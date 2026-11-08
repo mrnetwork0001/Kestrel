@@ -18,7 +18,7 @@ export function SiteHeader() {
     // <=900px: sticky, blurred 56px top bar (brand | PANIC BUNKER + burger). >=901px: unchanged static header.
     // Tailwind v4 `max-[901px]:` compiles to `width < 901px`, i.e. <=900px, pairing exactly with `min-[901px]:`.
     <header className="border-b hairline max-[901px]:sticky max-[901px]:top-0 max-[901px]:z-30 max-[901px]:bg-canvas/85 max-[901px]:backdrop-blur-md">
-      <Wrap className="flex items-center gap-6 py-3 max-[901px]:h-14 max-[901px]:gap-3 max-[901px]:py-0">
+      <Wrap className="wrap-header flex items-center gap-6 py-3 max-[901px]:h-14 max-[901px]:gap-3 max-[901px]:py-0">
         <Link href="/" className="flex shrink-0 items-baseline gap-2 max-[901px]:py-2.5">
           <span className="mono text-[15px] font-semibold tracking-tight text-ink">
             <span className="text-phosphor">&gt;_</span> KESTREL

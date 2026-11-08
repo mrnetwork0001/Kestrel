@@ -275,6 +275,11 @@ input[type="range"] {
     max-width: 1400px;
     padding-inline: clamp(16px, 2.5vw, 36px);
   }
+  /* Header bar only: side margin = 25% of the .wrap margin (centering gutter + padding), never under 16px. */
+  .wrap.wrap-header {
+    max-width: none;
+    padding-inline: max(16px, calc(0.25 * (max(0px, (100vw - 1400px) / 2) + clamp(16px, 2.5vw, 36px))));
+  }
   /* Landing section rhythm: 128 / 88 / 64. */
   .sec-y { padding-block: 128px; }
   @media (max-width: 900px) { .sec-y { padding-block: 88px; } }
