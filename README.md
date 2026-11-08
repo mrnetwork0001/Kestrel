@@ -4,7 +4,7 @@
 
 *Stay asleep. Kestrel watches the chain.* Every target gets an **Overnight Threat score from 0 to 100** (NOMINAL 0-29, ELEVATED 30-64, CRITICAL 65-100). The score is the sum of documented findings, each read live from mainnet over RPC (remote procedure call) at a stated block. Everything Kestrel does is measured by one thing: **getting a risky wallet back to 0**.
 
-Built for Vibestarter **Vibeathon 02: Night Shift** · Independent project, not affiliated with Base, Robinhood, LayerZero, Aerodrome or Uniswap · App: [usekestrel.vercel.app](https://usekestrel.vercel.app) · Demo: [watch the 3-minute film](https://youtu.be/uoDrMigaJfo) · Code: private repository, access on request · Fundable: [80/100 FUNDABLE](https://fundable.vibestarter.xyz/s/jrCaMPdMh4) (scored 2026-11-08)
+Built for Vibestarter **Vibeathon 02: Night Shift** · Independent project, not affiliated with Base, Robinhood, LayerZero, Aerodrome or Uniswap · App: [usekestrel.vercel.app](https://usekestrel.vercel.app) · Demo: [watch the 3-minute film](https://youtu.be/uoDrMigaJfo) · Code: [github.com/mrnetwork0001/Kestrel](https://github.com/mrnetwork0001/Kestrel) (MIT) · Fundable: [80/100 FUNDABLE](https://fundable.vibestarter.xyz/s/jrCaMPdMh4) (scored 2026-11-08)
 
 **Judges, start here:** open [usekestrel.vercel.app](https://usekestrel.vercel.app) and click a mainnet preset, then [preview a live rescue](https://usekestrel.vercel.app/rescue?target=0x05CEa6C36f3a44944A4F4bA39B1820677AcB97EE&chain=8453) with no wallet. The technical write-up is [/how-it-works](https://usekestrel.vercel.app/how-it-works), the agent docs are [/agents](https://usekestrel.vercel.app/agents), and the whole product fits in one fetch at [/llms.txt](https://usekestrel.vercel.app/llms.txt).
 
@@ -380,7 +380,7 @@ npm run build
 
 The full runbook is [docs/DEPLOY.md](docs/DEPLOY.md).
 
-1. **Vercel.** Import the private repository as a Next.js project. Set the environment variables before the first build, because `NEXT_PUBLIC_*` values are inlined at build time. Also set `VERCEL_FORCE_NO_BUILD_CACHE=1`: a stale build cache once broke git-triggered deploys. `.vercelignore` keeps `video/` out of the upload.
+1. **Vercel.** Import the repository as a Next.js project. Set the environment variables before the first build, because `NEXT_PUBLIC_*` values are inlined at build time. Also set `VERCEL_FORCE_NO_BUILD_CACHE=1`: a stale build cache once broke git-triggered deploys. `.vercelignore` keeps `video/` out of the upload.
 2. **Upstash Redis.** Install it from the Vercel Marketplace so `KV_REST_API_URL` and `KV_REST_API_TOKEN` are injected. Production pager and x402 routes refuse to run without it.
 3. **Upstash QStash.** Create a schedule that sends `POST https://<APP_URL>/api/pager/tick` on `*/4 * * * *` with retries set to 0, because retries count against the 500 messages a day free tier and a missed tick is covered by the next one. Install QStash from Vercel Storage (no custom prefix) so the signing keys are added. cron-job.org with `Authorization: Bearer <CRON_SECRET>` and `?async=1` also works.
 4. **Telegram.** Create a bot with BotFather and set `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` and `TELEGRAM_WEBHOOK_SECRET`. Then call `setWebhook` with `url=https://<APP_URL>/api/pager/telegram/webhook` and the same `secret_token`. Use a second bot for localhost, because a bot with a webhook cannot poll.
