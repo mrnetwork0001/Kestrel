@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { LogoMark } from "./logo-mark";
 import { Led } from "./motion/led";
 
 type NavItem = { href: string; label: string };
@@ -131,10 +132,9 @@ export function MobileNav({ items }: { items: NavItem[] }) {
               }`}
             >
               <div className="flex h-14 shrink-0 items-center justify-between border-b hairline px-4">
-                <Link href="/" onClick={close} className="flex items-baseline gap-2">
-                  <span className="mono text-[15px] font-semibold tracking-tight text-ink">
-                    <span className="text-phosphor">&gt;_</span> KESTREL
-                  </span>
+                <Link href="/" onClick={close} className="flex items-center gap-2">
+                  <LogoMark size={20} />
+                  <span className="mono text-[15px] font-semibold tracking-tight text-ink">KESTREL</span>
                 </Link>
                 <button
                   ref={closeRef}

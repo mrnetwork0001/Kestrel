@@ -77,12 +77,14 @@ export async function ogFontOption(): Promise<OgFont[] | undefined> {
 // Shared marks
 // ---------------------------------------------------------------------------
 
-/** The '>_' prompt mark, drawn as vector strokes so it stays crisp at 32px and 1200px. */
-export function PromptMark({ size, color = OG.phosphor }: { size: number; color?: string }) {
+/** Night Eye mark: a crescent moon wrapped around an open raptor eye. Same geometry as components/logo-mark.tsx. */
+export function PromptMark({ size, color = OG.phosphor, bg = OG.canvas }: { size: number; color?: string; bg?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32">
-      <path d="M7 9 L14 16 L7 23" fill="none" stroke={color} strokeWidth={3.4} strokeLinecap="square" strokeLinejoin="miter" />
-      <rect x={16.5} y={20.3} width={9} height={3.4} fill={color} />
+    <svg width={size} height={size} viewBox="0 0 64 64">
+      <path d="M40 6 A27 27 0 1 0 58 40 A22 22 0 0 1 40 6 Z" fill={color} />
+      <circle cx={29} cy={35} r={10.5} fill={bg} />
+      <circle cx={29} cy={35} r={7.5} fill="none" stroke={color} strokeWidth={2.4} />
+      <circle cx={29} cy={35} r={3.2} fill={color} />
     </svg>
   );
 }

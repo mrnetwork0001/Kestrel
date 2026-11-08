@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Kicker, Rule, Wrap } from "./editorial";
 import { SplitWords } from "./motion";
 import { HeaderNav, HeaderTail } from "./header-client";
+import { LogoMark } from "./logo-mark";
 import { MobileNav } from "./mobile-nav";
 
 const NAV = [
@@ -18,10 +19,9 @@ export function SiteHeader() {
     // Tailwind v4 `max-[901px]:` compiles to `width < 901px`, i.e. <=900px, pairing exactly with `min-[901px]:`.
     <header className="sticky top-0 z-30 border-b hairline bg-canvas/85 backdrop-blur-md">
       <Wrap className="wrap-header flex h-16 items-center gap-6 max-[901px]:h-14 max-[901px]:gap-3">
-        <Link href="/" className="flex shrink-0 items-baseline gap-2 max-[901px]:py-2.5">
-          <span className="mono text-[15px] font-semibold tracking-tight text-ink">
-            <span className="text-phosphor">&gt;_</span> KESTREL
-          </span>
+        <Link href="/" className="flex shrink-0 items-center gap-2 max-[901px]:py-2.5">
+          <LogoMark size={20} />
+          <span className="mono text-[15px] font-semibold tracking-tight text-ink">KESTREL</span>
         </Link>
         <HeaderNav items={NAV.slice(1)} />
         <HeaderTail />
