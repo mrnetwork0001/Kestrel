@@ -57,6 +57,21 @@ export function AgentsSection() {
               <span className="ink-line">/llms.txt</span>
             </a>
           </div>
+          {/* Plain links to raw live output (no JS needed): crawlers and judges can verify the product directly. */}
+          <p className="t-meta mt-6 max-w-[52ch]" {...rv(4, "up", 380)}>
+            Verify the raw output:{" "}
+            <a href={`/api/v1/guard?address=${CONTRACTS.base.vibesToken}&chainId=8453`} className="ink-target mono">
+              <span className="ink-line">guard verdict JSON</span>
+            </a>
+            {" · "}
+            <a href="/api/x402/revenue" className="ink-target mono">
+              <span className="ink-line">x402 revenue ledger</span>
+            </a>{" "}
+            (real USDC settlements on Base){" · "}
+            <a href="/api/openapi.json" className="ink-target mono">
+              <span className="ink-line">OpenAPI</span>
+            </a>
+          </p>
         </div>
         <div className="min-w-0 min-[901px]:col-span-7" {...rv(0, "up", 200)}>
           <Suspense
