@@ -17,6 +17,7 @@ const DRAWER_ID = "kestrel-mobile-nav";
  */
 export function MobileNav({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
+  const inApp = pathname === "/app" || pathname.startsWith("/app/") || pathname === "/rescue" || pathname.startsWith("/rescue/");
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const burgerRef = useRef<HTMLButtonElement>(null);
@@ -172,6 +173,7 @@ export function MobileNav({ items }: { items: NavItem[] }) {
                   })}
                 </ul>
               </nav>
+              {inApp ? null : (
               <div className="shrink-0 border-t hairline p-4">
                 <Link
                   href="/app"
@@ -181,6 +183,7 @@ export function MobileNav({ items }: { items: NavItem[] }) {
                   LAUNCH APP
                 </Link>
               </div>
+              )}
             </div>
           </div>,
           document.body,

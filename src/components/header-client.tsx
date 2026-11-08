@@ -5,11 +5,16 @@ import { usePathname } from "next/navigation";
 
 type NavItem = { href: string; label: string };
 
-/** Header menu. On the landing page it sits flush right (no CTA there — the hero carries LAUNCH APP). */
+/** Pages with no /llms.txt + LAUNCH APP in the header: the landing (its hero carries LAUNCH APP) and the app itself. */
+export function hidesHeaderTail(pathname: string): boolean {
+  return pathname === "/" || pathname === "/app" || pathname.startsWith("/app/") || pathname === "/rescue" || pathname.startsWith("/rescue/");
+}
+
+/** Header menu. Where the header has no CTA (landing, app) it sits flush right. */
 export function HeaderNav({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
   return (
-    <nav className={`hidden items-center gap-5 min-[901px]:flex ${pathname === "/" ? "ml-auto" : ""}`}>
+    <nav className={`hidden items-center gap-5 min-[901px]:flex ${hidesHeaderTail(pathname) ? "ml-auto" : ""}`}>
       {items.map((n) => {
         const active = pathname === n.href || pathname.startsWith(n.href + "/");
         return (
@@ -22,11 +27,11 @@ export function HeaderNav({ items }: { items: NavItem[] }) {
   );
 }
 
-/** /llms.txt link + LAUNCH APP button, shown everywhere except the landing page. Desktop only (>=901px): on smaller
+/** /llms.txt link + LAUNCH APP button, shown everywhere except the landing page and inside the app. Desktop only (>=901px): on smaller
  *  screens LAUNCH APP lives at the bottom of the mobile drawer and /llms.txt stays in the footer. */
 export function HeaderTail() {
   const pathname = usePathname();
-  if (pathname === "/") return null;
+  if (hidesHeaderTail(pathname)) return null;
   return (
     <>
       <a href="/llms.txt" className="ml-auto hidden mono text-[12px] text-ink-meta transition-colors duration-200 hover:text-phosphor min-[901px]:inline">
